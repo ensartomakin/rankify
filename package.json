@@ -8,6 +8,7 @@
     "dev:api": "ts-node-dev --respawn --transpile-only src/index.ts",
     "dev:ui": "npm run dev --prefix client",
     "build": "tsc && npm run build --prefix client",
+    "build:server": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts"
   },

@@ -22,6 +22,7 @@ import type {
 import { saveConfig } from '../api/config';
 import { getStoredThreshold } from '../utils/threshold';
 import type { WeightCriterion, CriterionKey } from '../types';
+import type { SavedConfig } from '../api/config';
 
 const DEFAULT_CRITERIA: [WeightCriterion, WeightCriterion, WeightCriterion] = [
   { key: 'stockScore',  weight: 33, direction: 'desc' },
@@ -421,7 +422,6 @@ function SortablePreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isP
 /* ─── Ana bileşen ─── */
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
-const card   = 'rounded-2xl p-7';
 const cardSt = { background: 'var(--surface)', border: '1.5px solid var(--border)', boxShadow: '0 2px 16px rgba(226,50,96,0.09), 0 1px 3px rgba(0,0,0,0.06)' };
 
 interface Props { prefill?: SavedConfig; }
@@ -460,7 +460,6 @@ export function Dashboard({ prefill }: Props) {
 
   // Manuel sıralama — önizleme görünümü
   const [previewOrder, setPreviewOrder] = useState<ProductPreviewItem[]>([]);
-  const [previewDirty, setPreviewDirty] = useState(false);
 
   // Sabitleme
   const [pinnedPositions, setPinnedPositions] = useState<Record<string, number>>({});
@@ -652,7 +651,6 @@ export function Dashboard({ prefill }: Props) {
       const result = await previewRanking({ categoryId: categoryId.trim(), availabilityThreshold: threshold, criteria, smartMix });
       setPreviewResult(result);
       setPreviewOrder(applyPinnedPositions(result.products));
-      setPreviewDirty(false);
       setPreviewStatus('idle');
       setView('preview');
     } catch (err) {
@@ -670,7 +668,6 @@ export function Dashboard({ prefill }: Props) {
       const newIdx = items.findIndex(p => p.productCode === over.id);
       return arrayMove(items, oldIdx, newIdx).map((p, i) => ({ ...p, finalRank: i + 1 }));
     });
-    setPreviewDirty(true);
   }
 
   // Preview rank input
@@ -684,7 +681,6 @@ export function Dashboard({ prefill }: Props) {
       next.splice(clamped - 1, 0, item);
       return next.map((p, i) => ({ ...p, finalRank: i + 1 }));
     });
-    setPreviewDirty(true);
   }
 
   async function handleTrigger() {
@@ -701,7 +697,6 @@ export function Dashboard({ prefill }: Props) {
         await applyManualRanking(id, result.products.map(p => ({ productCode: p.productCode, rank: p.finalRank })));
       }
       setTriggerStatus('success');
-      setPreviewDirty(false);
       setMessage(selectedCategories.length > 1
         ? `${selectedCategories.length} kategoriye sıralama uygulandı.`
         : 'Sıralama başarıyla uygulandı.'

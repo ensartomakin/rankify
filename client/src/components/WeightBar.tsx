@@ -82,8 +82,8 @@ export function WeightBar({ criteria, onChange }: Props) {
       </div>
 
       {/* Numeric inputs */}
-      <div className="flex items-center gap-4 rounded-xl" style={{ padding: '12px 20.3px' }}
-        style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center gap-4 rounded-xl"
+        style={{ padding: '12px 20.3px', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
         <span className="text-xs font-medium shrink-0" style={{ color: 'var(--tx3)' }}>Ağırlıklar</span>
         <div className="flex items-center gap-4 ml-auto">
           {criteria.map((c, i) => (

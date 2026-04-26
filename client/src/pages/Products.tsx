@@ -191,7 +191,7 @@ export function Products() {
     if (!categoryId) return;
     setLoading(true); setError(''); setResult(null); setFilter('');
     try {
-      setResult(await previewRanking(categoryId));
+      setResult(await previewRanking({ categoryId }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Yüklenemedi');
     } finally {

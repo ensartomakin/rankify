@@ -177,7 +177,7 @@ export function Settings({ onSaved }: Props) {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-2xl mx-auto py-8 space-y-6 animate-fade-up" style={{ paddingLeft: '28px', paddingRight: '28px' }}>
+      <div className="max-w-2xl mx-auto py-8 space-y-8 animate-fade-up" style={{ paddingLeft: '28px', paddingRight: '28px' }}>
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>

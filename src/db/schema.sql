@@ -1,4 +1,32 @@
--- T-Soft mağaza bilgileri (şifreli)
+-- ============================================================
+-- 1. Yardımcı fonksiyon (trigger'lardan önce tanımlanmalı)
+-- ============================================================
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================
+-- 2. Kullanıcılar (diğer tüm tablolar buna FK ile bağlanır)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS users (
+  id            SERIAL PRIMARY KEY,
+  email         VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  name          VARCHAR(128),
+  role          VARCHAR(32)  NOT NULL DEFAULT 'user',
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(32) NOT NULL DEFAULT 'user';
+-- İlk kullanıcıyı super_admin yap (migration sırasında)
+UPDATE users SET role = 'super_admin' WHERE id = (SELECT MIN(id) FROM users) AND role = 'user';
+
+-- ============================================================
+-- 3. T-Soft mağaza bilgileri (şifreli)
+-- ============================================================
 CREATE TABLE IF NOT EXISTS tsoft_credentials (
   id           SERIAL PRIMARY KEY,
   user_id      INTEGER      NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
@@ -12,8 +40,15 @@ CREATE TABLE IF NOT EXISTS tsoft_credentials (
 );
 ALTER TABLE tsoft_credentials ADD COLUMN IF NOT EXISTS api_token TEXT;
 
--- Otomatik sıralama zamanlaması (kullanıcı bazlı)
+DROP TRIGGER IF EXISTS trg_tsoft_credentials_updated_at ON tsoft_credentials;
+CREATE TRIGGER trg_tsoft_credentials_updated_at
+  BEFORE UPDATE ON tsoft_credentials
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ============================================================
+-- 4. Otomatik sıralama zamanlaması (kullanıcı bazlı)
 -- day_hours: { "1": [5,9], "5": [17] } — gün numarası → saat listesi
+-- ============================================================
 CREATE TABLE IF NOT EXISTS schedule_settings (
   user_id    INTEGER   PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   is_enabled BOOLEAN   NOT NULL DEFAULT FALSE,
@@ -22,25 +57,9 @@ CREATE TABLE IF NOT EXISTS schedule_settings (
 ALTER TABLE schedule_settings ADD COLUMN IF NOT EXISTS is_enabled BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE schedule_settings ADD COLUMN IF NOT EXISTS day_hours JSONB NOT NULL DEFAULT '{}';
 
-DROP TRIGGER IF EXISTS trg_tsoft_credentials_updated_at ON tsoft_credentials;
-CREATE TRIGGER trg_tsoft_credentials_updated_at
-  BEFORE UPDATE ON tsoft_credentials
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
--- Kullanıcılar
-CREATE TABLE IF NOT EXISTS users (
-  id            SERIAL PRIMARY KEY,
-  email         VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  name          VARCHAR(128),
-  role          VARCHAR(32)  NOT NULL DEFAULT 'user',
-  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(32) NOT NULL DEFAULT 'user';
--- İlk kullanıcıyı super_admin yap (migration sırasında)
-UPDATE users SET role = 'super_admin' WHERE id = (SELECT MIN(id) FROM users) AND role = 'user';
-
--- Kategori sıralama konfigürasyonları
+-- ============================================================
+-- 5. Kategori sıralama konfigürasyonları
+-- ============================================================
 CREATE TABLE IF NOT EXISTS ranking_configs (
   id                     SERIAL PRIMARY KEY,
   user_id                INTEGER       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -54,7 +73,14 @@ CREATE TABLE IF NOT EXISTS ranking_configs (
   UNIQUE (user_id, category_id)
 );
 
--- Sıralama çalışma logları
+DROP TRIGGER IF EXISTS trg_ranking_configs_updated_at ON ranking_configs;
+CREATE TRIGGER trg_ranking_configs_updated_at
+  BEFORE UPDATE ON ranking_configs
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ============================================================
+-- 6. Sıralama çalışma logları
+-- ============================================================
 CREATE TABLE IF NOT EXISTS audit_logs (
   id                 SERIAL PRIMARY KEY,
   user_id            INTEGER      NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -69,19 +95,17 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   ran_at             TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_ranking_configs_user  ON ranking_configs (user_id);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_user        ON audit_logs (user_id);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_ran_at      ON audit_logs (ran_at DESC);
-
--- GA4 OAuth bağlantı bilgileri (şifreli refresh token)
+-- ============================================================
+-- 7. GA4 OAuth bağlantı bilgileri (şifreli refresh token)
+-- ============================================================
 CREATE TABLE IF NOT EXISTS ga4_credentials (
-  id                  SERIAL PRIMARY KEY,
-  user_id             INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  property_id         VARCHAR(50) NOT NULL,
-  refresh_token_enc   TEXT NOT NULL,
-  google_email        VARCHAR(255),
-  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id                SERIAL PRIMARY KEY,
+  user_id           INTEGER      NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  property_id       VARCHAR(50)  NOT NULL DEFAULT '',
+  refresh_token_enc TEXT,
+  google_email      VARCHAR(255),
+  created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 -- Service account'tan OAuth'a geçiş migration
 ALTER TABLE ga4_credentials ADD COLUMN IF NOT EXISTS refresh_token_enc TEXT;
@@ -93,33 +117,28 @@ CREATE TRIGGER trg_ga4_credentials_updated_at
   BEFORE UPDATE ON ga4_credentials
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
--- GA4'ten çekilen ürün bazlı metrik önbelleği
+-- ============================================================
+-- 8. GA4 ürün bazlı metrik önbelleği
+-- ============================================================
 CREATE TABLE IF NOT EXISTS ga4_product_metrics (
   id              SERIAL PRIMARY KEY,
-  user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id         INTEGER      NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   item_id         VARCHAR(256) NOT NULL,
-  date_range      VARCHAR(10) NOT NULL DEFAULT '30d',
-  views           INTEGER NOT NULL DEFAULT 0,
-  sessions        INTEGER NOT NULL DEFAULT 0,
+  date_range      VARCHAR(10)  NOT NULL DEFAULT '30d',
+  views           INTEGER      NOT NULL DEFAULT 0,
+  sessions        INTEGER      NOT NULL DEFAULT 0,
   ctr             NUMERIC(8,4) NOT NULL DEFAULT 0,
   conversion_rate NUMERIC(8,4) NOT NULL DEFAULT 0,
-  purchases       INTEGER NOT NULL DEFAULT 0,
+  purchases       INTEGER      NOT NULL DEFAULT 0,
   revenue         NUMERIC(12,2) NOT NULL DEFAULT 0,
-  cached_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  cached_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   UNIQUE(user_id, item_id, date_range)
 );
 
-CREATE INDEX IF NOT EXISTS idx_ga4_metrics_user ON ga4_product_metrics (user_id, date_range);
-
-CREATE OR REPLACE FUNCTION set_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_ranking_configs_updated_at ON ranking_configs;
-CREATE TRIGGER trg_ranking_configs_updated_at
-  BEFORE UPDATE ON ranking_configs
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- ============================================================
+-- 9. İndeksler
+-- ============================================================
+CREATE INDEX IF NOT EXISTS idx_ranking_configs_user ON ranking_configs (user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user       ON audit_logs (user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_ran_at     ON audit_logs (ran_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ga4_metrics_user      ON ga4_product_metrics (user_id, date_range);

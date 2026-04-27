@@ -26,7 +26,10 @@ export async function fetchGa4Status(): Promise<Ga4Status> {
 
 export async function fetchGa4AuthUrl(): Promise<string> {
   const res = await apiFetch('/api/ga4/auth/url');
-  if (!res.ok) throw new Error('OAuth URL alınamadı');
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error ?? 'OAuth URL alınamadı');
+  }
   const { url } = await res.json();
   return url;
 }

@@ -1,20 +1,23 @@
 import {
-  CRITERION_COLORS, CRITERION_LABELS, SALES_PERIOD_LABELS,
+  CRITERION_COLORS, CRITERION_LABELS, SALES_PERIOD_LABELS, GA4_CRITERION_KEYS,
   type CriterionKey, type SalesPeriod, type SortDirection, type WeightCriterion,
 } from '../types';
 
-const ALL_KEYS: CriterionKey[] = ['stockScore', 'bestSeller', 'newness', 'reviewScore'];
+const BASE_KEYS: CriterionKey[] = ['stockScore', 'bestSeller', 'newness', 'reviewScore', 'availabilityScore'];
+const GA4_KEYS:  CriterionKey[] = ['ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate'];
 
 interface Props {
   index: 0 | 1 | 2;
   criterion: WeightCriterion;
   usedKeys: CriterionKey[];
   onChange: (c: WeightCriterion) => void;
+  ga4Connected?: boolean;
 }
 
-export function CriterionCard({ index, criterion, usedKeys, onChange }: Props) {
+export function CriterionCard({ index, criterion, usedKeys, onChange, ga4Connected = false }: Props) {
   const color   = CRITERION_COLORS[index];
-  const options = ALL_KEYS.filter(k => k === criterion.key || !usedKeys.includes(k));
+  const allKeys = ga4Connected ? [...BASE_KEYS, ...GA4_KEYS] : BASE_KEYS;
+  const options = allKeys.filter(k => k === criterion.key || !usedKeys.includes(k));
 
   const selectSt: React.CSSProperties = {
     width: '100%',
@@ -81,7 +84,16 @@ export function CriterionCard({ index, criterion, usedKeys, onChange }: Props) {
             <select value={criterion.key}
               onChange={e => onChange({ ...criterion, key: e.target.value as CriterionKey, salesPeriod: undefined })}
               style={selectSt}>
-              {options.map(k => <option key={k} value={k}>{CRITERION_LABELS[k]}</option>)}
+              {options.filter(k => !GA4_CRITERION_KEYS.has(k)).map(k =>
+                <option key={k} value={k}>{CRITERION_LABELS[k]}</option>
+              )}
+              {ga4Connected && options.some(k => GA4_CRITERION_KEYS.has(k)) && (
+                <optgroup label="── Google Analytics 4 ──">
+                  {options.filter(k => GA4_CRITERION_KEYS.has(k)).map(k =>
+                    <option key={k} value={k}>{CRITERION_LABELS[k]}</option>
+                  )}
+                </optgroup>
+              )}
             </select>
             <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '9px', color: 'var(--tx3)', pointerEvents: 'none' }}>▼</span>
           </div>

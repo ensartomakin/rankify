@@ -20,6 +20,7 @@ import type {
   PreviewResponse, ProductPreviewItem,
 } from '../api/ranking';
 import { saveConfig } from '../api/config';
+import { fetchGa4Status } from '../api/ga4';
 import { getStoredThreshold } from '../utils/threshold';
 import type { WeightCriterion, CriterionKey } from '../types';
 import type { SavedConfig } from '../api/config';
@@ -436,7 +437,8 @@ export function Dashboard({ prefill }: Props) {
   const [criteria,     setCriteria]     = useState<[WeightCriterion, WeightCriterion, WeightCriterion]>(
     prefill?.criteria ?? DEFAULT_CRITERIA
   );
-  const [smartMix, setSmartMix] = useState(false);
+  const [smartMix,      setSmartMix]      = useState(false);
+  const [ga4Connected,  setGa4Connected]  = useState(false);
 
   const [saveStatus,    setSaveStatus]    = useState<Status>('idle');
   const [triggerStatus, setTriggerStatus] = useState<Status>('idle');
@@ -478,6 +480,11 @@ export function Dashboard({ prefill }: Props) {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  // GA4 bağlantı durumunu yükle
+  useEffect(() => {
+    fetchGa4Status().then(s => setGa4Connected(s.ready)).catch(() => {});
+  }, []);
 
   // Kategori değişince mevcut sıralamayı yükle
   useEffect(() => {
@@ -872,7 +879,8 @@ export function Dashboard({ prefill }: Props) {
               {criteria.map((c, i) => (
                 <CriterionCard key={i} index={i as 0 | 1 | 2} criterion={c}
                   usedKeys={criteria.map(x => x.key)}
-                  onChange={u => handleCriterionChange(i, u)} />
+                  onChange={u => handleCriterionChange(i, u)}
+                  ga4Connected={ga4Connected} />
               ))}
             </div>
           </div>

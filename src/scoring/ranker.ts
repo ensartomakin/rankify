@@ -45,9 +45,12 @@ export function computeRankingScores(
   const usedKeys = new Set(config.criteria.map(c => c.key));
 
   // Temel metrikler
-  const sales   = minMaxNormalize(products.map(p => p.sales14Days));
-  const reviews = minMaxNormalize(products.map(p => p.reviewCount));
-  const stock   = minMaxNormalize(products.map(p => p.sizeAvailability.totalStock));
+  const sales    = minMaxNormalize(products.map(p => p.sales14Days));
+  const reviews  = minMaxNormalize(products.map(p => p.reviewCount));
+  const stock    = minMaxNormalize(products.map(p => p.sizeAvailability.totalStock));
+  const discount = usedKeys.has('discountRate')
+    ? minMaxNormalize(products.map(p => p.discountRate))
+    : null;
 
   // GA4 metrikleri — sadece konfigürasyonda kullanılanları normalize et
   const ga4ViewsNorm    = usedKeys.has('ga4Views')
@@ -70,10 +73,11 @@ export function computeRankingScores(
       reviewScore:       reviews[i],
       stockScore:        stock[i],
       availabilityScore: p.sizeAvailability.availabilityRate * 100,
-      ...(ga4ViewsNorm    && { ga4Views:          ga4ViewsNorm[i] }),
+      ...(discount       && { discountRate:        discount[i] }),
+      ...(ga4ViewsNorm   && { ga4Views:            ga4ViewsNorm[i] }),
       ...(ga4SessionsNorm && { ga4Sessions:        ga4SessionsNorm[i] }),
-      ...(ga4CtrNorm      && { ga4Ctr:             ga4CtrNorm[i] }),
-      ...(ga4CrNorm       && { ga4ConversionRate:  ga4CrNorm[i] }),
+      ...(ga4CtrNorm     && { ga4Ctr:              ga4CtrNorm[i] }),
+      ...(ga4CrNorm      && { ga4ConversionRate:   ga4CrNorm[i] }),
     };
 
     const rankingScore = config.criteria.reduce((total, c) => {

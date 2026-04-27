@@ -13,6 +13,7 @@ const criteriaSchema = z
   .array(z.object({
     key: z.enum([
       'newness', 'bestSeller', 'reviewScore', 'stockScore', 'availabilityScore',
+      'discountRate',
       'ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate',
     ]),
     weight: z.number().min(0).max(100),

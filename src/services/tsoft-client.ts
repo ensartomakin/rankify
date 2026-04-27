@@ -348,6 +348,13 @@ export class TSoftClient {
       p.Image        ?? p.image        ?? p.Photo    ?? p.photo    ?? ''
     );
 
+    const listPrice    = Number(p.ListPrice ?? p.listPrice ?? p.MarketPrice ?? p.marketPrice ?? p.OldPrice ?? p.oldPrice ?? 0);
+    const sellingPrice = Number(p.SellingPrice ?? p.sellingPrice ?? 0);
+    const discountRate = Number(p.DiscountRate ?? p.discountRate ?? p.Discount ?? p.discount ?? 0)
+      || (listPrice > 0 && sellingPrice < listPrice
+          ? Math.round(((listPrice - sellingPrice) / listPrice) * 100)
+          : 0);
+
     return {
       productId:        String(p.ProductId ?? p.productId ?? p.Id ?? p.id ?? ''),
       productCode:      String(p.ProductCode ?? p.productCode ?? ''),
@@ -362,6 +369,7 @@ export class TSoftClient {
                                p.SortNo ?? p.sortNo ?? 0),
       reviewCount:      Number(p.ReviewCount ?? p.reviewCount ?? p.CommentCount ?? p.commentCount ?? 0),
       variants,
+      discountRate,
     };
   }
 

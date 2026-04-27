@@ -47,6 +47,7 @@ export interface ProductPreviewItem {
   availabilityRate:      number;
   sales14Days:           number;
   reviewCount:           number;
+  discountRate:          number;
   registrationDate:      string;
   imageCount:            number;
   imageUrl:              string;

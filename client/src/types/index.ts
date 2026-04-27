@@ -4,6 +4,7 @@ export type CriterionKey =
   | 'reviewScore'
   | 'stockScore'
   | 'availabilityScore'
+  | 'discountRate'
   | 'ga4Views'
   | 'ga4Sessions'
   | 'ga4Ctr'
@@ -18,6 +19,7 @@ export const CRITERION_LABELS: Record<CriterionKey, string> = {
   reviewScore:        'Yorum sayısı',
   stockScore:         'Stoğa göre',
   availabilityScore:  'Beden bulunurluğu',
+  discountRate:       'İndirim oranı',
   ga4Views:           'GA4 · Görüntülenme',
   ga4Sessions:        'GA4 · Oturum',
   ga4Ctr:             'GA4 · Tıklama Oranı (CTR)',

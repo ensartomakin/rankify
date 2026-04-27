@@ -198,9 +198,11 @@ function CurrentCard({
             </span>
           </div>
         )}
-        <p className="text-sm font-semibold leading-snug line-clamp-2" style={{ color: 'var(--tx1)' }}>
+        <a href={`${apiUrl}/urun-detay/${p.productCode}`} target="_blank" rel="noopener noreferrer"
+          className="text-sm font-semibold leading-snug line-clamp-2 hover:underline"
+          style={{ color: 'var(--tx1)' }}>
           {p.productName || p.productCode}
-        </p>
+        </a>
       </div>
 
       {/* Alt bilgi */}
@@ -344,9 +346,11 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             </span>
           </div>
         )}
-        <p className="text-[13px] font-semibold leading-snug line-clamp-2" style={{ color: 'var(--tx1)' }}>
+        <a href={`${apiUrl}/urun-detay/${p.productCode}`} target="_blank" rel="noopener noreferrer"
+          className="text-[13px] font-semibold leading-snug line-clamp-2 hover:underline"
+          style={{ color: 'var(--tx1)' }}>
           {p.productName || p.productCode}
-        </p>
+        </a>
       </div>
 
       {/* Puan dağılımı */}
@@ -367,6 +371,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
               key === 'newness'          ? `Yenilik (${c.weight}%)` :
               key === 'reviewScore'      ? `Yorum (${c.weight}%)` :
               key === 'availabilityScore'? `Bulunurluk (${c.weight}%)` :
+              key === 'discountRate'     ? `İndirim (${c.weight}%)` :
               `${GA4_LABELS[key] ?? key} (${c.weight}%)`;
             let raw: string | number = '';
             if (key === 'stockScore')             raw = p.totalStock.toLocaleString('tr-TR');
@@ -374,6 +379,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             else if (key === 'newness')           raw = fmtDate(p.registrationDate);
             else if (key === 'reviewScore')       raw = p.reviewCount.toLocaleString('tr-TR');
             else if (key === 'availabilityScore') raw = fmtPct(p.availabilityRate * 100);
+            else if (key === 'discountRate')      raw = `%${(p.discountRate ?? 0).toLocaleString('tr-TR')}`;
             else if (key === 'ga4Views')          raw = (p.ga4?.views ?? 0).toLocaleString('tr-TR');
             else if (key === 'ga4Sessions')       raw = (p.ga4?.sessions ?? 0).toLocaleString('tr-TR');
             else if (key === 'ga4Ctr')            raw = `${(p.ga4?.ctr ?? 0).toFixed(2)}%`;

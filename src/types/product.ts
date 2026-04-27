@@ -4,6 +4,7 @@ export type CriterionKey =
   | 'reviewScore'
   | 'stockScore'
   | 'availabilityScore'
+  | 'discountRate'
   | 'ga4Views'
   | 'ga4Sessions'
   | 'ga4Ctr'
@@ -38,6 +39,7 @@ export interface ProductScores {
   reviewScore: number;
   stockScore: number;
   availabilityScore: number;
+  discountRate?: number;
   ga4Views?: number;
   ga4Sessions?: number;
   ga4Ctr?: number;
@@ -59,6 +61,7 @@ export interface NormalizedProduct {
   registrationDate: Date;
   reviewCount: number;
   sales14Days: number;
+  discountRate: number;
   sizeAvailability: SizeAvailability;
   ga4?: Ga4RawMetrics;
   scores: ProductScores;

@@ -80,6 +80,7 @@ export interface ProductPreviewItem {
   availabilityRate:     number;
   sales14Days:          number;
   reviewCount:          number;
+  discountRate:         number;
   registrationDate:     string;
   imageCount:           number;
   imageUrl:             string;
@@ -143,6 +144,7 @@ export async function runRankingPipeline(
         registrationDate: new Date(p.registrationDate),
         reviewCount:      p.reviewCount,
         sales14Days:      sales?.soldQuantity14Days ?? 0,
+        discountRate:     p.discountRate,
         sizeAvailability,
         ga4: ga4 ? { views: ga4.views, sessions: ga4.sessions, ctr: ga4.ctr, conversionRate: ga4.conversionRate } : undefined,
         scores: { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
@@ -241,6 +243,7 @@ export async function previewRanking(
       registrationDate: new Date(p.registrationDate),
       reviewCount:      p.reviewCount,
       sales14Days:      sales?.soldQuantity14Days ?? 0,
+      discountRate:     p.discountRate,
       sizeAvailability,
       ga4: ga4 ? { views: ga4.views, sessions: ga4.sessions, ctr: ga4.ctr, conversionRate: ga4.conversionRate } : undefined,
       scores:        { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
@@ -276,6 +279,7 @@ export async function previewRanking(
       availabilityRate:      p.sizeAvailability.availabilityRate,
       sales14Days:           p.sales14Days,
       reviewCount:           p.reviewCount,
+      discountRate:          p.discountRate,
       registrationDate:      p.registrationDate.toISOString(),
       imageCount:            imageCountMap.get(p.productCode) ?? 0,
       imageUrl:              imageUrlMap.get(p.productCode) ?? '',

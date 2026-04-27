@@ -18,6 +18,7 @@ export interface TSoftProduct {
   sortOrder:        number;   // current category display order (ListNo / SortOrder)
   reviewCount:      number;
   variants:         TSoftVariant[];
+  discountRate:     number;   // 0-100, indirim yüzdesi
 }
 
 export interface TSoftSalesData {

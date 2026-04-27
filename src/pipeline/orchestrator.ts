@@ -35,6 +35,7 @@ export interface CurrentRankItem {
   productName: string;
   imageUrl:    string;
   totalStock:  number;
+  seoUrl:      string;
 }
 
 export interface CurrentRankingResult {
@@ -61,6 +62,7 @@ export async function getCurrentRanking(
     productName: p.productName,
     imageUrl:    p.imageUrl,
     totalStock:  p.variants.reduce((s, v) => s + v.stock, 0),
+    seoUrl:      p.seoUrl,
   }));
 
   return { products: items, total: items.length, apiUrl };
@@ -81,6 +83,7 @@ export interface ProductPreviewItem {
   sales14Days:          number;
   reviewCount:          number;
   discountRate:         number;
+  seoUrl:               string;
   registrationDate:     string;
   imageCount:           number;
   imageUrl:             string;
@@ -230,6 +233,7 @@ export async function previewRanking(
   const imageCountMap = new Map<string, number>(products.map(p => [p.productCode, p.imageCount]));
   const imageUrlMap   = new Map<string, string>(products.map(p => [p.productCode, p.imageUrl]));
   const productIdMap  = new Map<string, string>(products.map(p => [p.productCode, p.productId]));
+  const seoUrlMap     = new Map<string, string>(products.map(p => [p.productCode, p.seoUrl]));
 
   let normalized: NormalizedProduct[] = products.map((p: TSoftProduct) => {
     const sales            = salesMap.get(p.productCode);
@@ -280,6 +284,7 @@ export async function previewRanking(
       sales14Days:           p.sales14Days,
       reviewCount:           p.reviewCount,
       discountRate:          p.discountRate,
+      seoUrl:                seoUrlMap.get(p.productCode) ?? '',
       registrationDate:      p.registrationDate.toISOString(),
       imageCount:            imageCountMap.get(p.productCode) ?? 0,
       imageUrl:              imageUrlMap.get(p.productCode) ?? '',

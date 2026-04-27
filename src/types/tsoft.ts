@@ -19,6 +19,7 @@ export interface TSoftProduct {
   reviewCount:      number;
   variants:         TSoftVariant[];
   discountRate:     number;   // 0-100, indirim yüzdesi
+  seoUrl:           string;   // T-Soft ürün sayfası URL'si (SEOUrl / Url)
 }
 
 export interface TSoftSalesData {

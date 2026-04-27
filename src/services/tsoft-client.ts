@@ -329,7 +329,17 @@ export class TSoftClient {
     return results;
   }
 
+  private _loggedProductKeys = false;
+
   private mapProduct(p: Record<string, unknown>): TSoftProduct {
+    if (!this._loggedProductKeys) {
+      this._loggedProductKeys = true;
+      const priceKeys = Object.keys(p).filter(k =>
+        /price|Price|discount|Discount|rate|Rate|old|Old|market|Market|list|List|url|Url|seo|Seo/i.test(k)
+      );
+      logger.info(`[mapProduct] ilk ürün alan adları (fiyat/url): ${priceKeys.join(', ')}`);
+      logger.info(`[mapProduct] ilk ürün tüm anahtarlar: ${Object.keys(p).join(', ')}`);
+    }
     const stock = Number(p.Stock ?? p.stock ?? 0);
     // T-Soft'tan varyant verisi SubProducts veya Details altında gelebilir
     const rawVariants = (p.SubProducts ?? p.Variants ?? p.Details ?? []) as Record<string, unknown>[];
@@ -370,6 +380,7 @@ export class TSoftClient {
       reviewCount:      Number(p.ReviewCount ?? p.reviewCount ?? p.CommentCount ?? p.commentCount ?? 0),
       variants,
       discountRate,
+      seoUrl: String(p.SEOUrl ?? p.SeoUrl ?? p.seoUrl ?? p.Url ?? p.url ?? p.ProductUrl ?? p.productUrl ?? p.PageUrl ?? p.pageUrl ?? ''),
     };
   }
 

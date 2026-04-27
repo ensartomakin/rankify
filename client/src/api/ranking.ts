@@ -9,6 +9,7 @@ export interface CurrentRankItem {
   productName: string;
   imageUrl:    string;
   totalStock:  number;
+  seoUrl:      string;
 }
 
 export interface CurrentRankingResponse {
@@ -48,6 +49,7 @@ export interface ProductPreviewItem {
   sales14Days:           number;
   reviewCount:           number;
   discountRate:          number;
+  seoUrl:                string;
   registrationDate:      string;
   imageCount:            number;
   imageUrl:              string;

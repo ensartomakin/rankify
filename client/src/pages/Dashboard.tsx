@@ -198,7 +198,10 @@ function CurrentCard({
             </span>
           </div>
         )}
-        <a href={`${apiUrl}/urun-detay/${p.productCode}`} target="_blank" rel="noopener noreferrer"
+        <a href={p.seoUrl
+            ? (p.seoUrl.startsWith('http') ? p.seoUrl : `${apiUrl.replace(/\/$/, '')}/${p.seoUrl.replace(/^\//, '')}`)
+            : `${apiUrl.replace(/\/$/, '')}/urun-detay/${p.productCode}`}
+          target="_blank" rel="noopener noreferrer"
           className="text-sm font-semibold leading-snug line-clamp-2 hover:underline"
           style={{ color: 'var(--tx1)' }}>
           {p.productName || p.productCode}
@@ -346,7 +349,10 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             </span>
           </div>
         )}
-        <a href={`${apiUrl}/urun-detay/${p.productCode}`} target="_blank" rel="noopener noreferrer"
+        <a href={p.seoUrl
+            ? (p.seoUrl.startsWith('http') ? p.seoUrl : `${apiUrl.replace(/\/$/, '')}/${p.seoUrl.replace(/^\//, '')}`)
+            : `${apiUrl.replace(/\/$/, '')}/urun-detay/${p.productCode}`}
+          target="_blank" rel="noopener noreferrer"
           className="text-[13px] font-semibold leading-snug line-clamp-2 hover:underline"
           style={{ color: 'var(--tx1)' }}>
           {p.productName || p.productCode}

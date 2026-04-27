@@ -8,16 +8,19 @@ import { Dashboard } from './pages/Dashboard';
 import { Configs } from './pages/Configs';
 import { Audit } from './pages/Audit';
 import { Settings } from './pages/Settings';
+import { Users } from './pages/Users';
 import { fetchCredentials } from './api/settings';
 import type { SavedConfig } from './api/config';
 
-type Page = 'dashboard' | 'configs' | 'audit' | 'settings';
+type Page = 'dashboard' | 'configs' | 'audit' | 'settings' | 'users';
 
 function AppShell() {
   const { user } = useAuth();
   const [page,       setPage]       = useState<Page>('dashboard');
   const [prefill,    setPrefill]    = useState<SavedConfig | undefined>();
   const [configured, setConfigured] = useState<boolean | null>(null);
+
+  const isSuperAdmin = user?.role === 'super_admin';
 
   useEffect(() => {
     if (!user) return;
@@ -44,6 +47,7 @@ function AppShell() {
         current={page}
         onChange={handlePageChange}
         credentialsConfigured={configured ?? true}
+        isSuperAdmin={isSuperAdmin}
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden rounded-2xl"
@@ -52,13 +56,15 @@ function AppShell() {
           <div className="shrink-0 flex items-center justify-between px-6 py-2.5 text-sm"
             style={{ background: 'var(--warn-bg)', borderBottom: '1px solid var(--warn-bd)', color: 'var(--warn-tx)' }}>
             <span>⚠️ T-Soft bağlantı bilgileri tanımlı değil — sıralama çalışmaz.</span>
-            <button
-              onClick={() => handlePageChange('settings')}
-              className="underline text-xs font-semibold transition-colors"
-              style={{ color: 'var(--warn-tx)' }}
-            >
-              Ayarlara git →
-            </button>
+            {isSuperAdmin && (
+              <button
+                onClick={() => handlePageChange('settings')}
+                className="underline text-xs font-semibold transition-colors"
+                style={{ color: 'var(--warn-tx)' }}
+              >
+                Ayarlara git →
+              </button>
+            )}
           </div>
         )}
 
@@ -67,6 +73,7 @@ function AppShell() {
           {page === 'configs'   && <Configs onEdit={handleEdit} />}
           {page === 'audit'     && <Audit />}
           {page === 'settings'  && <Settings onSaved={() => setConfigured(true)} />}
+          {page === 'users'     && isSuperAdmin && <Users />}
         </main>
       </div>
     </div>

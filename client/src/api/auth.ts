@@ -1,14 +1,23 @@
 import { apiFetch } from './http';
 
+export type UserRole = 'super_admin' | 'user';
+
 export interface AuthUser {
   id: number;
   email: string;
   name?: string;
+  role: UserRole;
 }
 
 export interface AuthResponse {
   token: string;
   user: AuthUser;
+}
+
+export async function getSetupStatus(): Promise<{ needsSetup: boolean }> {
+  const res = await apiFetch('/api/auth/setup');
+  if (!res.ok) return { needsSetup: false };
+  return res.json();
 }
 
 export async function register(email: string, password: string, name?: string): Promise<AuthResponse> {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { fetchCredentials, saveCredentials, testCredentials, fetchSchedule, saveSchedule, type CredentialsPayload, type ScheduleSettings } from '../api/settings';
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail';
@@ -9,6 +10,8 @@ interface Props { onSaved?: () => void; }
 export { getStoredThreshold } from '../utils/threshold';
 
 export function Settings({ onSaved }: Props) {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
   const [form,       setForm]       = useState<CredentialsPayload>({ apiUrl: '', storeCode: '', apiUser: '', apiPass: '', apiToken: '' });
   const [configured, setConfigured] = useState(false);
   const [loading,    setLoading]    = useState(true);
@@ -138,15 +141,26 @@ export function Settings({ onSaved }: Props) {
         <div className="rounded-2xl p-6 space-y-5"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
 
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'var(--acc-bg)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-              </svg>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'var(--acc-bg)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                </svg>
+              </div>
+              <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--tx3)' }}>
+                API Bilgileri
+              </span>
             </div>
-            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--tx3)' }}>
-              API Bilgileri
-            </span>
+            {!isSuperAdmin && (
+              <span className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full"
+                style={{ background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+                Yalnızca Süper Admin düzenleyebilir
+              </span>
+            )}
           </div>
 
           {/* API URL */}
@@ -154,7 +168,8 @@ export function Settings({ onSaved }: Props) {
             <label className="text-xs font-medium" style={{ color: 'var(--tx2)' }}>API URL</label>
             <input type="url" placeholder="https://markaadi.com"
               value={form.apiUrl} onChange={e => set('apiUrl', e.target.value)}
-              className={inputCls} style={inputSt} />
+              disabled={!isSuperAdmin}
+              className={inputCls} style={{ ...inputSt, opacity: isSuperAdmin ? 1 : 0.6 }} />
             <p className="text-xs" style={{ color: 'var(--tx3)' }}>
               Sadece alan adı — örn: <code style={{ color: 'var(--tx2)' }}>https://he-qa.com</code>
             </p>
@@ -166,13 +181,15 @@ export function Settings({ onSaved }: Props) {
               <label className="text-xs font-medium" style={{ color: 'var(--tx2)' }}>Mağaza Kodu</label>
               <input type="text" placeholder="STORE01"
                 value={form.storeCode} onChange={e => set('storeCode', e.target.value)}
-                className={inputCls} style={inputSt} />
+                disabled={!isSuperAdmin}
+                className={inputCls} style={{ ...inputSt, opacity: isSuperAdmin ? 1 : 0.6 }} />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium" style={{ color: 'var(--tx2)' }}>API Kullanıcısı</label>
               <input type="text" placeholder="kullanici@markaadi.com"
                 value={form.apiUser} onChange={e => set('apiUser', e.target.value)}
-                className={inputCls} style={inputSt} />
+                disabled={!isSuperAdmin}
+                className={inputCls} style={{ ...inputSt, opacity: isSuperAdmin ? 1 : 0.6 }} />
             </div>
           </div>
 
@@ -186,7 +203,8 @@ export function Settings({ onSaved }: Props) {
             </label>
             <input type="text" placeholder="Kalıcı API token — 2FA olmadan V3 erişimi"
               value={form.apiToken ?? ''} onChange={e => set('apiToken' as keyof CredentialsPayload, e.target.value)}
-              className={inputCls} style={inputSt} />
+              disabled={!isSuperAdmin}
+              className={inputCls} style={{ ...inputSt, opacity: isSuperAdmin ? 1 : 0.6 }} />
           </div>
 
           {/* Password */}
@@ -199,12 +217,15 @@ export function Settings({ onSaved }: Props) {
               <input type={showPass ? 'text' : 'password'}
                 placeholder={configured ? '••••••••' : 'Şifrenizi girin'}
                 value={form.apiPass} onChange={e => set('apiPass', e.target.value)}
-                className={inputCls + ' pr-16'} style={inputSt} />
-              <button type="button" onClick={() => setShowPass(p => !p)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium transition-colors"
-                style={{ color: 'var(--tx2)' }}>
-                {showPass ? 'Gizle' : 'Göster'}
-              </button>
+                disabled={!isSuperAdmin}
+                className={inputCls + ' pr-16'} style={{ ...inputSt, opacity: isSuperAdmin ? 1 : 0.6 }} />
+              {isSuperAdmin && (
+                <button type="button" onClick={() => setShowPass(p => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium transition-colors"
+                  style={{ color: 'var(--tx2)' }}>
+                  {showPass ? 'Gizle' : 'Göster'}
+                </button>
+              )}
             </div>
           </div>
 
@@ -240,22 +261,24 @@ export function Settings({ onSaved }: Props) {
             </div>
           )}
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-1">
-            <button onClick={handleTest} disabled={!canSubmit || testStatus === 'testing'}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
-              style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
-              {testStatus === 'testing' ? 'Test ediliyor…' : 'Bağlantıyı Test Et'}
-            </button>
-            <button onClick={handleSave} disabled={!canSubmit || saveStatus === 'saving'}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-all"
-              style={!canSubmit || saveStatus === 'saving'
-                ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
-                : { background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 4px 20px rgba(16,185,129,0.3)' }
-              }>
-              {saveStatus === 'saving' ? 'Kaydediliyor…' : 'Kaydet'}
-            </button>
-          </div>
+          {/* Buttons — sadece super_admin görebilir */}
+          {isSuperAdmin && (
+            <div className="flex gap-3 pt-1">
+              <button onClick={handleTest} disabled={!canSubmit || testStatus === 'testing'}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+                style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
+                {testStatus === 'testing' ? 'Test ediliyor…' : 'Bağlantıyı Test Et'}
+              </button>
+              <button onClick={handleSave} disabled={!canSubmit || saveStatus === 'saving'}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-all"
+                style={!canSubmit || saveStatus === 'saving'
+                  ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
+                  : { background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 4px 20px rgba(16,185,129,0.3)' }
+                }>
+                {saveStatus === 'saving' ? 'Kaydediliyor…' : 'Kaydet'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Otomatik Zamanlama */}

@@ -8,6 +8,7 @@ import { rankingRouter } from './api/ranking.routes';
 import { configRouter } from './api/config.routes';
 import { auditRouter } from './api/audit.routes';
 import { catalogRouter } from './api/catalog.routes';
+import { usersRouter } from './api/users.routes';
 import { startScheduler } from './scheduler/cron';
 import { runMigrations } from './db/migrate';
 
@@ -29,10 +30,11 @@ async function bootstrap() {
 
   app.use('/api/auth',     authRouter);
   app.use('/api/settings', settingsRouter);
-  app.use('/api/ranking', rankingRouter);
+  app.use('/api/ranking',  rankingRouter);
   app.use('/api/configs',  configRouter);
   app.use('/api/audit',    auditRouter);
   app.use('/api/catalog',  catalogRouter);
+  app.use('/api/users',    usersRouter);
 
   // Production'da Vite build çıktısını serve et
   if (process.env.NODE_ENV === 'production') {

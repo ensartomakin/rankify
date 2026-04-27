@@ -33,8 +33,12 @@ CREATE TABLE IF NOT EXISTS users (
   email         VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   name          VARCHAR(128),
+  role          VARCHAR(32)  NOT NULL DEFAULT 'user',
   created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(32) NOT NULL DEFAULT 'user';
+-- İlk kullanıcıyı super_admin yap (migration sırasında)
+UPDATE users SET role = 'super_admin' WHERE id = (SELECT MIN(id) FROM users) AND role = 'user';
 
 -- Kategori sıralama konfigürasyonları
 CREATE TABLE IF NOT EXISTS ranking_configs (

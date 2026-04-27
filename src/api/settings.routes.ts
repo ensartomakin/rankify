@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { requireAuth } from './auth.middleware';
+import { requireAuth, requireSuperAdmin } from './auth.middleware';
 import { upsertCredentials, getCredentials, hasCredentials } from '../db/credentials.repo';
 import { getSchedule, setSchedule } from '../db/schedule.repo';
 import { testConnection } from '../services/tsoft-client';
+import { getSuperAdminId } from '../db/user.repo';
 
 export const settingsRouter = Router();
 settingsRouter.use(requireAuth);
@@ -16,7 +17,6 @@ const credsSchema = z.object({
   apiToken:  z.string().optional(),
 });
 
-// Test için şifre boş gelebilir — kayıtlı şifreyle tamamlanır
 const testSchema = z.object({
   apiUrl:    z.string().url('Geçerli bir URL girin'),
   storeCode: z.string().min(1),
@@ -25,9 +25,16 @@ const testSchema = z.object({
   apiToken:  z.string().optional(),
 });
 
+// Credentials her zaman super_admin'in hesabından okunur (paylaşımlı)
+async function getCredentialsOwnerId(requestingUserId: number): Promise<number> {
+  const superAdminId = await getSuperAdminId();
+  return superAdminId ?? requestingUserId;
+}
+
 // GET — bağlantı bilgisi var mı + maskelenmiş özet
 settingsRouter.get('/credentials', async (req: Request, res: Response) => {
-  const creds = await getCredentials(req.user!.userId);
+  const ownerId = await getCredentialsOwnerId(req.user!.userId);
+  const creds = await getCredentials(ownerId);
   if (!creds) { res.json({ configured: false }); return; }
 
   res.json({
@@ -35,12 +42,12 @@ settingsRouter.get('/credentials', async (req: Request, res: Response) => {
     apiUrl:    creds.apiUrl,
     storeCode: creds.storeCode,
     apiUser:   creds.apiUser,
-    apiPass:   '••••••••',           // şifreyi asla gönderme
+    apiPass:   '••••••••',
   });
 });
 
-// PUT — kaydet
-settingsRouter.put('/credentials', async (req: Request, res: Response) => {
+// PUT — sadece super_admin kaydedebilir
+settingsRouter.put('/credentials', requireSuperAdmin, async (req: Request, res: Response) => {
   const parsed = credsSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
@@ -48,13 +55,12 @@ settingsRouter.put('/credentials', async (req: Request, res: Response) => {
   res.json({ message: 'Bağlantı bilgileri kaydedildi' });
 });
 
-// GET — zamanlama ayarları
+// GET — zamanlama ayarları (kullanıcıya özel)
 settingsRouter.get('/schedule', async (req: Request, res: Response) => {
   const schedule = await getSchedule(req.user!.userId);
   res.json(schedule);
 });
 
-// PUT — zamanlama ayarları
 const scheduleSchema = z.object({
   isEnabled: z.boolean(),
   dayHours:  z.record(
@@ -63,6 +69,7 @@ const scheduleSchema = z.object({
   ),
 });
 
+// PUT — zamanlama ayarları (kullanıcıya özel)
 settingsRouter.put('/schedule', async (req: Request, res: Response) => {
   const parsed = scheduleSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
@@ -72,14 +79,13 @@ settingsRouter.put('/schedule', async (req: Request, res: Response) => {
   res.json({ message: 'Zamanlama kaydedildi' });
 });
 
-// POST — bağlantı testi (şifre boşsa kayıtlı şifre kullanılır)
-settingsRouter.post('/credentials/test', async (req: Request, res: Response) => {
+// POST — bağlantı testi (sadece super_admin)
+settingsRouter.post('/credentials/test', requireSuperAdmin, async (req: Request, res: Response) => {
   const parsed = testSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
   let { apiUrl, storeCode, apiUser, apiPass, apiToken } = parsed.data;
 
-  // Şifre gönderilmediyse DB'den al
   if (!apiPass) {
     const stored = await getCredentials(req.user!.userId);
     if (!stored) {

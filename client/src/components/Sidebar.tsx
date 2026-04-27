@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
-type Page = 'dashboard' | 'configs' | 'audit' | 'settings';
+type Page = 'dashboard' | 'configs' | 'audit' | 'settings' | 'users';
 
 interface Props {
   current: Page;
   onChange: (p: Page) => void;
   credentialsConfigured?: boolean;
+  isSuperAdmin?: boolean;
 }
 
-const NAV: { key: Page; label: string; icon: React.ReactNode }[] = [
+const NAV: { key: Page; label: string; icon: React.ReactNode; adminOnly?: boolean }[] = [
   {
     key: 'dashboard', label: 'Sıralama',
     icon: (
@@ -46,9 +47,17 @@ const NAV: { key: Page; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    key: 'users', label: 'Kullanıcılar', adminOnly: true,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-[17px] h-[17px] shrink-0">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+      </svg>
+    ),
+  },
 ];
 
-export function Sidebar({ current, onChange, credentialsConfigured }: Props) {
+export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin }: Props) {
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
@@ -133,7 +142,7 @@ export function Sidebar({ current, onChange, credentialsConfigured }: Props) {
           </div>
         )}
 
-        {NAV.map(item => {
+        {NAV.filter(item => !item.adminOnly || isSuperAdmin).map(item => {
           const active = current === item.key;
           const warn   = item.key === 'settings' && !credentialsConfigured;
 
@@ -246,7 +255,7 @@ export function Sidebar({ current, onChange, credentialsConfigured }: Props) {
                   {user?.name ?? user?.email?.split('@')[0]}
                 </div>
                 <div className="text-[10px] truncate mt-0.5 leading-none" style={{ color: '#A04060' }}>
-                  {user?.email}
+                  {user?.role === 'super_admin' ? 'Süper Admin' : user?.email}
                 </div>
               </div>
               <button

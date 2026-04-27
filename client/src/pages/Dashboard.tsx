@@ -355,18 +355,29 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
           {criteria.map(c => {
             const key = c.key as CriterionKey;
             const contrib = p.criteriaContributions[key] ?? 0;
+            const GA4_LABELS: Partial<Record<CriterionKey, string>> = {
+              ga4Views:          'GA4 Görüntülenme',
+              ga4Sessions:       'GA4 Oturum',
+              ga4Ctr:            'GA4 CTR',
+              ga4ConversionRate: 'GA4 Dönüşüm',
+            };
             const label =
               key === 'bestSeller'       ? `Satış (${c.weight}%)` :
               key === 'stockScore'       ? `Stok (${c.weight}%)` :
               key === 'newness'          ? `Yenilik (${c.weight}%)` :
               key === 'reviewScore'      ? `Yorum (${c.weight}%)` :
-              `Bulunurluk (${c.weight}%)`;
+              key === 'availabilityScore'? `Bulunurluk (${c.weight}%)` :
+              `${GA4_LABELS[key] ?? key} (${c.weight}%)`;
             let raw: string | number = '';
             if (key === 'stockScore')             raw = p.totalStock.toLocaleString('tr-TR');
             else if (key === 'bestSeller')        raw = p.sales14Days.toLocaleString('tr-TR');
             else if (key === 'newness')           raw = fmtDate(p.registrationDate);
             else if (key === 'reviewScore')       raw = p.reviewCount.toLocaleString('tr-TR');
             else if (key === 'availabilityScore') raw = fmtPct(p.availabilityRate * 100);
+            else if (key === 'ga4Views')          raw = (p.ga4?.views ?? 0).toLocaleString('tr-TR');
+            else if (key === 'ga4Sessions')       raw = (p.ga4?.sessions ?? 0).toLocaleString('tr-TR');
+            else if (key === 'ga4Ctr')            raw = `${(p.ga4?.ctr ?? 0).toFixed(2)}%`;
+            else if (key === 'ga4ConversionRate') raw = `${(p.ga4?.conversionRate ?? 0).toFixed(2)}%`;
             return (
               <div key={key} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px]"
                 style={{ borderBottom: '1px solid var(--border)' }}>

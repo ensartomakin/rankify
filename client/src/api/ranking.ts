@@ -50,6 +50,12 @@ export interface ProductPreviewItem {
   registrationDate:      string;
   imageCount:            number;
   imageUrl:              string;
+  ga4?: {
+    views:          number;
+    sessions:       number;
+    ctr:            number;
+    conversionRate: number;
+  };
 }
 
 export interface PreviewResponse {

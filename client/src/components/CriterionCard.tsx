@@ -3,7 +3,7 @@ import {
   type CriterionKey, type SalesPeriod, type SortDirection, type WeightCriterion,
 } from '../types';
 
-const BASE_KEYS: CriterionKey[] = ['stockScore', 'bestSeller', 'newness', 'reviewScore', 'availabilityScore'];
+const BASE_KEYS: CriterionKey[] = ['stockScore', 'bestSeller', 'newness', 'reviewScore'];
 const GA4_KEYS:  CriterionKey[] = ['ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate'];
 
 interface Props {

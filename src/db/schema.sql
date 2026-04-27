@@ -73,6 +73,39 @@ CREATE INDEX IF NOT EXISTS idx_ranking_configs_user  ON ranking_configs (user_id
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user        ON audit_logs (user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_ran_at      ON audit_logs (ran_at DESC);
 
+-- GA4 servis hesabı bilgileri (şifreli)
+CREATE TABLE IF NOT EXISTS ga4_credentials (
+  id                  SERIAL PRIMARY KEY,
+  user_id             INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  property_id         VARCHAR(50) NOT NULL,
+  service_account_enc TEXT NOT NULL,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+DROP TRIGGER IF EXISTS trg_ga4_credentials_updated_at ON ga4_credentials;
+CREATE TRIGGER trg_ga4_credentials_updated_at
+  BEFORE UPDATE ON ga4_credentials
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- GA4'ten çekilen ürün bazlı metrik önbelleği
+CREATE TABLE IF NOT EXISTS ga4_product_metrics (
+  id              SERIAL PRIMARY KEY,
+  user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_id         VARCHAR(256) NOT NULL,
+  date_range      VARCHAR(10) NOT NULL DEFAULT '30d',
+  views           INTEGER NOT NULL DEFAULT 0,
+  sessions        INTEGER NOT NULL DEFAULT 0,
+  ctr             NUMERIC(8,4) NOT NULL DEFAULT 0,
+  conversion_rate NUMERIC(8,4) NOT NULL DEFAULT 0,
+  purchases       INTEGER NOT NULL DEFAULT 0,
+  revenue         NUMERIC(12,2) NOT NULL DEFAULT 0,
+  cached_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, item_id, date_range)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ga4_metrics_user ON ga4_product_metrics (user_id, date_range);
+
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN

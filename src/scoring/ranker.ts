@@ -34,28 +34,52 @@ export function applyDisqualification(
   });
 }
 
+const GA4_KEYS = new Set(['ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate'] as const);
+
 export function computeRankingScores(
   products: NormalizedProduct[],
   config: WeightConfig
 ): NormalizedProduct[] {
   validateWeights(config);
 
+  const usedKeys = new Set(config.criteria.map(c => c.key));
+
+  // Temel metrikler
   const sales   = minMaxNormalize(products.map(p => p.sales14Days));
   const reviews = minMaxNormalize(products.map(p => p.reviewCount));
   const stock   = minMaxNormalize(products.map(p => p.sizeAvailability.totalStock));
 
+  // GA4 metrikleri — sadece konfigürasyonda kullanılanları normalize et
+  const ga4ViewsNorm    = usedKeys.has('ga4Views')
+    ? minMaxNormalize(products.map(p => p.ga4?.views ?? 0))
+    : null;
+  const ga4SessionsNorm = usedKeys.has('ga4Sessions')
+    ? minMaxNormalize(products.map(p => p.ga4?.sessions ?? 0))
+    : null;
+  const ga4CtrNorm      = usedKeys.has('ga4Ctr')
+    ? minMaxNormalize(products.map(p => p.ga4?.ctr ?? 0))
+    : null;
+  const ga4CrNorm       = usedKeys.has('ga4ConversionRate')
+    ? minMaxNormalize(products.map(p => p.ga4?.conversionRate ?? 0))
+    : null;
+
   return products.map((p, i) => {
-    const scores = {
+    const scores: NormalizedProduct['scores'] = {
       newness:           newnessScore(p.registrationDate),
       bestSeller:        sales[i],
       reviewScore:       reviews[i],
       stockScore:        stock[i],
       availabilityScore: p.sizeAvailability.availabilityRate * 100,
+      ...(ga4ViewsNorm    && { ga4Views:          ga4ViewsNorm[i] }),
+      ...(ga4SessionsNorm && { ga4Sessions:        ga4SessionsNorm[i] }),
+      ...(ga4CtrNorm      && { ga4Ctr:             ga4CtrNorm[i] }),
+      ...(ga4CrNorm       && { ga4ConversionRate:  ga4CrNorm[i] }),
     };
 
     const rankingScore = config.criteria.reduce((total, c) => {
-      const raw = c.direction === 'asc' ? (100 - scores[c.key]) : scores[c.key];
-      return total + (raw * c.weight) / 100;
+      const raw = scores[c.key] ?? 0;
+      const directed = c.direction === 'asc' ? (100 - raw) : raw;
+      return total + (directed * c.weight) / 100;
     }, 0);
 
     return { ...p, scores, rankingScore };

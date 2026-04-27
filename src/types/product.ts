@@ -3,7 +3,11 @@ export type CriterionKey =
   | 'bestSeller'
   | 'reviewScore'
   | 'stockScore'
-  | 'availabilityScore';
+  | 'availabilityScore'
+  | 'ga4Views'
+  | 'ga4Sessions'
+  | 'ga4Ctr'
+  | 'ga4ConversionRate';
 
 export interface WeightCriterion {
   key: CriterionKey;
@@ -16,7 +20,7 @@ export interface WeightConfig {
   categoryId: string;
   criteria: [WeightCriterion, WeightCriterion, WeightCriterion];
   availabilityThreshold: number; // 0.0 - 1.0
-  smartMix?: boolean;            // aynı renk varyantlarını yan yana getirme
+  smartMix?: boolean;
 }
 
 export interface SizeAvailability {
@@ -34,6 +38,17 @@ export interface ProductScores {
   reviewScore: number;
   stockScore: number;
   availabilityScore: number;
+  ga4Views?: number;
+  ga4Sessions?: number;
+  ga4Ctr?: number;
+  ga4ConversionRate?: number;
+}
+
+export interface Ga4RawMetrics {
+  views: number;
+  sessions: number;
+  ctr: number;
+  conversionRate: number;
 }
 
 export interface NormalizedProduct {
@@ -45,6 +60,7 @@ export interface NormalizedProduct {
   reviewCount: number;
   sales14Days: number;
   sizeAvailability: SizeAvailability;
+  ga4?: Ga4RawMetrics;
   scores: ProductScores;
   rankingScore: number;
   isDisqualified: boolean;

@@ -1,5 +1,7 @@
 import { getClientForUser } from '../services/tsoft-client';
 import { computeSizeAvailability } from '../scoring/availability';
+import { getGa4Credentials, getGa4Metrics } from '../db/ga4.repo';
+import { fetchGa4ProductMetrics, } from '../services/ga4-client';
 
 function salesPeriodToDays(period?: string): number {
   switch (period) {
@@ -81,6 +83,7 @@ export interface ProductPreviewItem {
   registrationDate:     string;
   imageCount:           number;
   imageUrl:             string;
+  ga4?: NormalizedProduct['ga4'];
 }
 
 export interface PreviewResult {
@@ -119,6 +122,9 @@ export async function runRankingPipeline(
     const salesDays = salesPeriodToDays(bestSellerCriterion?.salesPeriod);
     const salesData    = await client.getSalesReport(productCodes, salesDays);
 
+    // GA4 metrikleri — varsa önbellekten yükle
+    const ga4Map = await getGa4Metrics(userId).catch(() => new Map());
+
     // Phase 2: Normalleştirme
     const salesMap = new Map<string, TSoftSalesData>(
       salesData.map(s => [s.productCode, s])
@@ -127,6 +133,7 @@ export async function runRankingPipeline(
     let normalized: NormalizedProduct[] = products.map((p: TSoftProduct) => {
       const sales = salesMap.get(p.productCode);
       const sizeAvailability = computeSizeAvailability(p.variants, availabilityThreshold);
+      const ga4 = ga4Map.get(p.productId) ?? ga4Map.get(p.productCode);
 
       return {
         productId:        p.productId,
@@ -137,6 +144,7 @@ export async function runRankingPipeline(
         reviewCount:      p.reviewCount,
         sales14Days:      sales?.soldQuantity14Days ?? 0,
         sizeAvailability,
+        ga4: ga4 ? { views: ga4.views, sessions: ga4.sessions, ctr: ga4.ctr, conversionRate: ga4.conversionRate } : undefined,
         scores: { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
         rankingScore:   0,
         isDisqualified: false,
@@ -213,6 +221,9 @@ export async function previewRanking(
   const salesData    = await client.getSalesReport(productCodes, salesDays);
   const salesMap     = new Map<string, TSoftSalesData>(salesData.map(s => [s.productCode, s]));
 
+  // GA4 metrikleri — önbellekten, hata olursa boş map
+  const ga4Map = await getGa4Metrics(userId).catch(() => new Map());
+
   // imageCount is stored per-product alongside normalized data
   const imageCountMap = new Map<string, number>(products.map(p => [p.productCode, p.imageCount]));
   const imageUrlMap   = new Map<string, string>(products.map(p => [p.productCode, p.imageUrl]));
@@ -221,6 +232,7 @@ export async function previewRanking(
   let normalized: NormalizedProduct[] = products.map((p: TSoftProduct) => {
     const sales            = salesMap.get(p.productCode);
     const sizeAvailability = computeSizeAvailability(p.variants, availabilityThreshold);
+    const ga4 = ga4Map.get(p.productId) ?? ga4Map.get(p.productCode);
     return {
       productId:        p.productId,
       productCode:      p.productCode,
@@ -230,6 +242,7 @@ export async function previewRanking(
       reviewCount:      p.reviewCount,
       sales14Days:      sales?.soldQuantity14Days ?? 0,
       sizeAvailability,
+      ga4: ga4 ? { views: ga4.views, sessions: ga4.sessions, ctr: ga4.ctr, conversionRate: ga4.conversionRate } : undefined,
       scores:        { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
       rankingScore:   0,
       isDisqualified: false,
@@ -247,7 +260,7 @@ export async function previewRanking(
   const items: ProductPreviewItem[] = ranked.map(p => {
     const contributions: Partial<Record<CriterionKey, number>> = {};
     for (const c of config.criteria) {
-      contributions[c.key] = (p.scores[c.key] * c.weight) / 100;
+      contributions[c.key] = ((p.scores[c.key] ?? 0) * c.weight) / 100;
     }
     return {
       finalRank:             p.finalRank,
@@ -266,6 +279,7 @@ export async function previewRanking(
       registrationDate:      p.registrationDate.toISOString(),
       imageCount:            imageCountMap.get(p.productCode) ?? 0,
       imageUrl:              imageUrlMap.get(p.productCode) ?? '',
+      ga4:                   p.ga4,
     };
   });
 

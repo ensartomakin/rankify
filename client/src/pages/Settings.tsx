@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchCredentials, saveCredentials, testCredentials, fetchSchedule, saveSchedule, type CredentialsPayload, type ScheduleSettings } from '../api/settings';
+import { fetchGa4Status, saveGa4Credentials, deleteGa4Credentials, testGa4Credentials, syncGa4Metrics, type Ga4Status } from '../api/ga4';
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail';
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+type SyncStatus = 'idle' | 'syncing' | 'done' | 'error';
 
 interface Props { onSaved?: () => void; }
 
@@ -27,6 +29,17 @@ export function Settings({ onSaved }: Props) {
   const [schedSaveStatus, setSchedSave]   = useState<'idle'|'saving'|'saved'|'error'>('idle');
   const [schedSaveMsg,    setSchedMsg]    = useState('');
 
+  // GA4 state
+  const [ga4Status,     setGa4Status]     = useState<Ga4Status | null>(null);
+  const [ga4Form,       setGa4Form]       = useState({ propertyId: '', serviceAccountJson: '' });
+  const [ga4TestStatus, setGa4TestStatus] = useState<TestStatus>('idle');
+  const [ga4TestMsg,    setGa4TestMsg]    = useState('');
+  const [ga4SaveStatus, setGa4SaveStatus] = useState<SaveStatus>('idle');
+  const [ga4SaveMsg,    setGa4SaveMsg]    = useState('');
+  const [ga4SyncStatus, setGa4SyncStatus] = useState<SyncStatus>('idle');
+  const [ga4SyncMsg,    setGa4SyncMsg]    = useState('');
+  const [ga4DateRange,  setGa4DateRange]  = useState('30d');
+
   useEffect(() => {
     Promise.all([
       fetchCredentials().then(data => {
@@ -34,6 +47,10 @@ export function Settings({ onSaved }: Props) {
         if (data.configured) setForm({ apiUrl: data.apiUrl, storeCode: data.storeCode, apiUser: data.apiUser, apiPass: '' });
       }),
       fetchSchedule().then(s => setSchedule(s)).catch(() => {}),
+      fetchGa4Status().then(s => {
+        setGa4Status(s);
+        if (s.propertyId) setGa4Form(f => ({ ...f, propertyId: s.propertyId! }));
+      }).catch(() => {}),
     ])
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -102,6 +119,49 @@ export function Settings({ onSaved }: Props) {
       return next;
     });
     setSchedSave('idle');
+  }
+
+  async function handleGa4Test() {
+    if (!ga4Form.propertyId || !ga4Form.serviceAccountJson) return;
+    setGa4TestStatus('testing'); setGa4TestMsg('');
+    try {
+      const r = await testGa4Credentials(ga4Form);
+      setGa4TestStatus(r.ok ? 'ok' : 'fail'); setGa4TestMsg(r.message);
+    } catch { setGa4TestStatus('fail'); setGa4TestMsg('Bağlantı testi başarısız'); }
+  }
+
+  async function handleGa4Save() {
+    if (!ga4Form.propertyId || !ga4Form.serviceAccountJson) return;
+    setGa4SaveStatus('saving'); setGa4SaveMsg('');
+    try {
+      await saveGa4Credentials(ga4Form);
+      setGa4SaveStatus('saved'); setGa4SaveMsg('GA4 bağlantısı kaydedildi.');
+      setGa4Status(s => s ? { ...s, configured: true, propertyId: ga4Form.propertyId } : s);
+      setGa4Form(f => ({ ...f, serviceAccountJson: '' }));
+    } catch (err) {
+      setGa4SaveStatus('error'); setGa4SaveMsg(err instanceof Error ? err.message : 'Kayıt hatası');
+    }
+  }
+
+  async function handleGa4Delete() {
+    if (!confirm('GA4 bağlantısı ve tüm metrik önbelleği silinsin mi?')) return;
+    try {
+      await deleteGa4Credentials();
+      setGa4Status(s => s ? { ...s, configured: false, propertyId: null, lastSync: null } : s);
+      setGa4Form({ propertyId: '', serviceAccountJson: '' });
+      setGa4SaveStatus('idle'); setGa4TestStatus('idle');
+    } catch { /* ignore */ }
+  }
+
+  async function handleGa4Sync() {
+    setGa4SyncStatus('syncing'); setGa4SyncMsg('');
+    try {
+      const r = await syncGa4Metrics(ga4DateRange);
+      setGa4SyncStatus('done'); setGa4SyncMsg(`${r.count} ürün metriği güncellendi.`);
+      setGa4Status(s => s ? { ...s, lastSync: new Date().toISOString() } : s);
+    } catch (err) {
+      setGa4SyncStatus('error'); setGa4SyncMsg(err instanceof Error ? err.message : 'Senkronizasyon hatası');
+    }
   }
 
   const inputCls = 'w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all';
@@ -391,6 +451,186 @@ export function Settings({ onSaved }: Props) {
               : { background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 4px 20px rgba(16,185,129,0.3)' }}>
             {schedSaveStatus === 'saving' ? 'Kaydediliyor…' : 'Zamanlamayı Kaydet'}
           </button>
+        </div>
+
+        {/* GA4 Entegrasyonu */}
+        <div className="rounded-2xl p-6 space-y-5"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'var(--acc-bg)' }}>
+                {/* GA4 chart icon */}
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zm9.75-9.75c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v16.5c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 0112.75 20.25V3.375zm-4.875 6c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v10.5c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 017.875 19.875v-10.5z" />
+                </svg>
+              </div>
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--tx3)' }}>
+                  Google Analytics 4
+                </span>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--tx3)' }}>
+                  Ürün bazlı CTR, oturum, görüntülenme ve dönüşüm verilerini sıralamaya dahil edin
+                </p>
+              </div>
+            </div>
+            {ga4Status?.configured && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0"
+                style={{ background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)' }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ok-tx)' }} />
+                Bağlı
+              </div>
+            )}
+          </div>
+
+          {/* Property ID */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium" style={{ color: 'var(--tx2)' }}>GA4 Property ID</label>
+            <input type="text" placeholder="123456789"
+              value={ga4Form.propertyId}
+              onChange={e => { setGa4Form(f => ({ ...f, propertyId: e.target.value })); setGa4TestStatus('idle'); setGa4SaveStatus('idle'); }}
+              className={inputCls} style={inputSt} />
+            <p className="text-xs" style={{ color: 'var(--tx3)' }}>
+              GA4 Admin → Mülk Ayarları → Mülk ID
+            </p>
+          </div>
+
+          {/* Service Account JSON */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium" style={{ color: 'var(--tx2)' }}>
+              Servis Hesabı JSON
+              {ga4Status?.configured && (
+                <span className="ml-2 font-normal" style={{ color: 'var(--tx3)' }}>(güncellemek için yapıştırın)</span>
+              )}
+            </label>
+            <textarea
+              rows={4}
+              placeholder={'{\n  "type": "service_account",\n  "client_email": "...",\n  "private_key": "..."\n}'}
+              value={ga4Form.serviceAccountJson}
+              onChange={e => { setGa4Form(f => ({ ...f, serviceAccountJson: e.target.value })); setGa4TestStatus('idle'); setGa4SaveStatus('idle'); }}
+              className={inputCls + ' resize-none font-mono text-xs leading-relaxed'}
+              style={inputSt} />
+            <p className="text-xs" style={{ color: 'var(--tx3)' }}>
+              GCP → IAM → Servis Hesapları → JSON anahtar dosyası içeriğini yapıştırın
+            </p>
+          </div>
+
+          {/* GA4 test result */}
+          {ga4TestStatus !== 'idle' && (
+            <div className="rounded-xl px-4 py-3 text-sm font-medium flex items-center gap-2"
+              style={ga4TestStatus === 'ok'
+                ? { background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)' }
+                : ga4TestStatus === 'fail'
+                ? { background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }
+                : { background: 'var(--acc-bg)', border: '1px solid var(--acc-bd)', color: 'var(--acc-tx)' }
+              }>
+              {ga4TestStatus === 'testing' && <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />}
+              {ga4TestStatus === 'ok' && '✓'}
+              {ga4TestStatus === 'fail' && '✕'}
+              {ga4TestStatus === 'testing' ? 'Test ediliyor…' : ga4TestMsg}
+            </div>
+          )}
+
+          {/* GA4 save result */}
+          {ga4SaveStatus !== 'idle' && ga4SaveStatus !== 'saving' && (
+            <div className="rounded-xl px-4 py-3 text-sm font-medium"
+              style={ga4SaveStatus === 'saved'
+                ? { background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)' }
+                : { background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }
+              }>
+              {ga4SaveMsg}
+            </div>
+          )}
+
+          {/* Test + Save buttons */}
+          <div className="flex gap-3 pt-1">
+            <button onClick={handleGa4Test}
+              disabled={!ga4Form.propertyId || !ga4Form.serviceAccountJson || ga4TestStatus === 'testing'}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+              style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
+              {ga4TestStatus === 'testing' ? 'Test ediliyor…' : 'Bağlantıyı Test Et'}
+            </button>
+            <button onClick={handleGa4Save}
+              disabled={!ga4Form.propertyId || !ga4Form.serviceAccountJson || ga4SaveStatus === 'saving'}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-all"
+              style={!ga4Form.propertyId || !ga4Form.serviceAccountJson || ga4SaveStatus === 'saving'
+                ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
+                : { background: 'linear-gradient(135deg, #6366f1, #4f46e5)', boxShadow: '0 4px 20px rgba(99,102,241,0.3)' }
+              }>
+              {ga4SaveStatus === 'saving' ? 'Kaydediliyor…' : 'Kaydet'}
+            </button>
+          </div>
+
+          {/* Sync section — sadece bağlıysa */}
+          {ga4Status?.configured && (
+            <div className="pt-2 space-y-3 border-t" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold" style={{ color: 'var(--tx2)' }}>Metrik Senkronizasyonu</p>
+                  {ga4Status.lastSync && (
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--tx3)' }}>
+                      Son sync: {new Date(ga4Status.lastSync).toLocaleString('tr-TR')}
+                    </p>
+                  )}
+                </div>
+                <select
+                  value={ga4DateRange}
+                  onChange={e => setGa4DateRange(e.target.value)}
+                  className="px-3 py-2 rounded-xl text-xs font-medium"
+                  style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx2)' }}>
+                  <option value="7d">Son 7 Gün</option>
+                  <option value="14d">Son 14 Gün</option>
+                  <option value="30d">Son 30 Gün</option>
+                  <option value="90d">Son 90 Gün</option>
+                </select>
+              </div>
+
+              {ga4SyncStatus !== 'idle' && (
+                <div className="rounded-xl px-4 py-3 text-sm font-medium flex items-center gap-2"
+                  style={ga4SyncStatus === 'done'
+                    ? { background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)' }
+                    : ga4SyncStatus === 'error'
+                    ? { background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }
+                    : { background: 'var(--acc-bg)', border: '1px solid var(--acc-bd)', color: 'var(--acc-tx)' }
+                  }>
+                  {ga4SyncStatus === 'syncing' && <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />}
+                  {ga4SyncStatus === 'done' && '✓'}
+                  {ga4SyncStatus === 'error' && '✕'}
+                  {ga4SyncStatus === 'syncing' ? 'GA4 verileri çekiliyor…' : ga4SyncMsg}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button onClick={handleGa4Sync}
+                  disabled={ga4SyncStatus === 'syncing'}
+                  className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-all"
+                  style={ga4SyncStatus === 'syncing'
+                    ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
+                    : { background: 'linear-gradient(135deg, #6366f1, #4f46e5)', boxShadow: '0 4px 20px rgba(99,102,241,0.3)' }
+                  }>
+                  {ga4SyncStatus === 'syncing' ? 'Senkronize ediliyor…' : 'Şimdi Senkronize Et'}
+                </button>
+                <button onClick={handleGa4Delete}
+                  className="px-5 py-3 rounded-xl text-sm font-semibold transition-all"
+                  style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
+                  Kaldır
+                </button>
+              </div>
+
+              {/* Metric info chips */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {(['GA4 · Görüntülenme', 'GA4 · Oturum', 'GA4 · CTR', 'GA4 · Dönüşüm Oranı'] as const).map(label => (
+                  <span key={label} className="px-2.5 py-1 rounded-full text-[11px] font-medium"
+                    style={{ background: 'var(--acc-bg)', border: '1px solid var(--acc-bd)', color: 'var(--acc-tx)' }}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+              <p className="text-[11px]" style={{ color: 'var(--tx3)' }}>
+                Senkronizasyondan sonra bu metrikler sıralama kriterlerinde kullanılabilir hale gelir.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Security note */}

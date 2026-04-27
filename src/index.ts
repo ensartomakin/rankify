@@ -9,6 +9,7 @@ import { configRouter } from './api/config.routes';
 import { auditRouter } from './api/audit.routes';
 import { catalogRouter } from './api/catalog.routes';
 import { usersRouter } from './api/users.routes';
+import { ga4Router } from './api/ga4.routes';
 import { startScheduler } from './scheduler/cron';
 import { runMigrations } from './db/migrate';
 
@@ -35,6 +36,7 @@ async function bootstrap() {
   app.use('/api/audit',    auditRouter);
   app.use('/api/catalog',  catalogRouter);
   app.use('/api/users',    usersRouter);
+  app.use('/api/ga4',      ga4Router);
 
   // Production'da Vite build çıktısını serve et
   if (process.env.NODE_ENV === 'production') {

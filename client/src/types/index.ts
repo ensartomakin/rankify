@@ -3,18 +3,30 @@ export type CriterionKey =
   | 'bestSeller'
   | 'reviewScore'
   | 'stockScore'
-  | 'availabilityScore';
+  | 'availabilityScore'
+  | 'ga4Views'
+  | 'ga4Sessions'
+  | 'ga4Ctr'
+  | 'ga4ConversionRate';
 
 export type SortDirection = 'desc' | 'asc';
 export type SalesPeriod = '1d' | '3d' | '7d' | '14d' | '21d' | '1m' | '2m' | '3m';
 
 export const CRITERION_LABELS: Record<CriterionKey, string> = {
-  newness:           'En yeniler',
-  bestSeller:        'Çok satanlar',
-  reviewScore:       'Yorum sayısı',
-  stockScore:        'Stoğa göre',
-  availabilityScore: 'Beden bulunurluğu',
+  newness:            'En yeniler',
+  bestSeller:         'Çok satanlar',
+  reviewScore:        'Yorum sayısı',
+  stockScore:         'Stoğa göre',
+  availabilityScore:  'Beden bulunurluğu',
+  ga4Views:           'GA4 · Görüntülenme',
+  ga4Sessions:        'GA4 · Oturum',
+  ga4Ctr:             'GA4 · Tıklama Oranı (CTR)',
+  ga4ConversionRate:  'GA4 · Dönüşüm Oranı',
 };
+
+export const GA4_CRITERION_KEYS = new Set<CriterionKey>([
+  'ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate',
+]);
 
 export const SALES_PERIOD_LABELS: Record<SalesPeriod, string> = {
   '1d':  'Dün',

@@ -1,5 +1,44 @@
+import { google } from 'googleapis';
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
 import type { Ga4ProductMetric } from '../db/ga4.repo';
+
+function makeOAuth2Client() {
+  return new google.auth.OAuth2(
+    process.env.GA4_CLIENT_ID,
+    process.env.GA4_CLIENT_SECRET,
+    process.env.GA4_REDIRECT_URI
+  );
+}
+
+export function getGa4AuthUrl(): string {
+  const client = makeOAuth2Client();
+  return client.generateAuthUrl({
+    access_type: 'offline',
+    prompt:      'consent',  // her seferinde refresh_token al
+    scope:       ['https://www.googleapis.com/auth/analytics.readonly'],
+  });
+}
+
+export async function exchangeCodeForTokens(
+  code: string
+): Promise<{ refreshToken: string; googleEmail: string }> {
+  const client = makeOAuth2Client();
+  const { tokens } = await client.getToken(code);
+
+  if (!tokens.refresh_token) {
+    throw new Error('Google refresh token alınamadı — "prompt: consent" ile tekrar deneyin');
+  }
+
+  // Hesap e-postasını öğren
+  client.setCredentials(tokens);
+  const oauth2   = google.oauth2({ version: 'v2', auth: client });
+  const userInfo = await oauth2.userinfo.get();
+
+  return {
+    refreshToken: tokens.refresh_token,
+    googleEmail:  userInfo.data.email ?? '',
+  };
+}
 
 function dateRangeToStartDate(range: string): string {
   switch (range) {
@@ -11,25 +50,18 @@ function dateRangeToStartDate(range: string): string {
   }
 }
 
-function makeClient(serviceAccountJson: string): BetaAnalyticsDataClient {
-  const sa = JSON.parse(serviceAccountJson);
-  return new BetaAnalyticsDataClient({
-    credentials: {
-      client_email: sa.client_email,
-      private_key:  sa.private_key,
-    },
-  });
-}
-
 export async function fetchGa4ProductMetrics(
   propertyId: string,
-  serviceAccountJson: string,
+  refreshToken: string,
   dateRange = '30d'
 ): Promise<Ga4ProductMetric[]> {
-  const client    = makeClient(serviceAccountJson);
-  const startDate = dateRangeToStartDate(dateRange);
+  const auth = makeOAuth2Client();
+  auth.setCredentials({ refresh_token: refreshToken });
 
-  const [response] = await client.runReport({
+  const analyticsClient = new BetaAnalyticsDataClient({ authClient: auth as any });
+  const startDate       = dateRangeToStartDate(dateRange);
+
+  const [response] = await analyticsClient.runReport({
     property:   `properties/${propertyId}`,
     dateRanges: [{ startDate, endDate: 'today' }],
     dimensions: [{ name: 'itemId' }],
@@ -53,11 +85,11 @@ export async function fetchGa4ProductMetrics(
       m => m.value ?? '0'
     );
 
-    const viewsVal     = parseInt(views, 10)    || 0;
-    const sessionsVal  = parseInt(sessions, 10) || 0;
-    const ctrVal       = parseFloat(ctr) * 100;            // GA4 oranı → yüzde
+    const viewsVal     = parseInt(views, 10)     || 0;
+    const sessionsVal  = parseInt(sessions, 10)  || 0;
+    const ctrVal       = parseFloat(ctr) * 100;
     const purchasesVal = parseInt(purchases, 10) || 0;
-    const revenueVal   = parseFloat(revenue) || 0;
+    const revenueVal   = parseFloat(revenue)     || 0;
     const convRate     = viewsVal > 0 ? (purchasesVal / viewsVal) * 100 : 0;
 
     metrics.push({
@@ -76,11 +108,14 @@ export async function fetchGa4ProductMetrics(
 
 export async function testGa4Connection(
   propertyId: string,
-  serviceAccountJson: string
+  refreshToken: string
 ): Promise<{ ok: boolean; message: string }> {
   try {
-    const client = makeClient(serviceAccountJson);
-    await client.runReport({
+    const auth = makeOAuth2Client();
+    auth.setCredentials({ refresh_token: refreshToken });
+
+    const analyticsClient = new BetaAnalyticsDataClient({ authClient: auth as any });
+    await analyticsClient.runReport({
       property:   `properties/${propertyId}`,
       dateRanges: [{ startDate: '7daysAgo', endDate: 'today' }],
       dimensions: [{ name: 'itemId' }],

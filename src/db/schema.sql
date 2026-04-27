@@ -73,15 +73,20 @@ CREATE INDEX IF NOT EXISTS idx_ranking_configs_user  ON ranking_configs (user_id
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user        ON audit_logs (user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_ran_at      ON audit_logs (ran_at DESC);
 
--- GA4 servis hesabı bilgileri (şifreli)
+-- GA4 OAuth bağlantı bilgileri (şifreli refresh token)
 CREATE TABLE IF NOT EXISTS ga4_credentials (
   id                  SERIAL PRIMARY KEY,
   user_id             INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
   property_id         VARCHAR(50) NOT NULL,
-  service_account_enc TEXT NOT NULL,
+  refresh_token_enc   TEXT NOT NULL,
+  google_email        VARCHAR(255),
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- Service account'tan OAuth'a geçiş migration
+ALTER TABLE ga4_credentials ADD COLUMN IF NOT EXISTS refresh_token_enc TEXT;
+ALTER TABLE ga4_credentials ADD COLUMN IF NOT EXISTS google_email VARCHAR(255);
+ALTER TABLE ga4_credentials DROP COLUMN IF EXISTS service_account_enc;
 
 DROP TRIGGER IF EXISTS trg_ga4_credentials_updated_at ON ga4_credentials;
 CREATE TRIGGER trg_ga4_credentials_updated_at

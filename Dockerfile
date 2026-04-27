@@ -5,11 +5,11 @@ WORKDIR /app
 
 # Backend bağımlılıkları
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # Frontend bağımlılıkları + build
 COPY client/package*.json ./client/
-RUN cd client && npm ci
+RUN cd client && npm install
 
 COPY . .
 RUN cd client && npm run build
@@ -24,7 +24,7 @@ ENV NODE_ENV=production
 
 # Sadece production bağımlılıkları
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Build çıktıları
 COPY --from=builder /app/dist ./dist

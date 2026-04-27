@@ -15,8 +15,24 @@ export function getGa4AuthUrl(): string {
   return client.generateAuthUrl({
     access_type: 'offline',
     prompt:      'consent',  // her seferinde refresh_token al
-    scope:       ['https://www.googleapis.com/auth/analytics.readonly'],
+    scope: [
+      'https://www.googleapis.com/auth/analytics.readonly',
+      'openid',
+      'email',
+    ],
   });
+}
+
+/** id_token JWT payload'ından email'i parse eder (ekstra API çağrısı gerektirmez) */
+function emailFromIdToken(idToken: string): string {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(idToken.split('.')[1], 'base64url').toString('utf8')
+    );
+    return payload.email ?? '';
+  } catch {
+    return '';
+  }
 }
 
 export async function exchangeCodeForTokens(
@@ -29,15 +45,9 @@ export async function exchangeCodeForTokens(
     throw new Error('Google refresh token alınamadı — "prompt: consent" ile tekrar deneyin');
   }
 
-  // Hesap e-postasını öğren
-  client.setCredentials(tokens);
-  const oauth2   = google.oauth2({ version: 'v2', auth: client });
-  const userInfo = await oauth2.userinfo.get();
+  const googleEmail = tokens.id_token ? emailFromIdToken(tokens.id_token) : '';
 
-  return {
-    refreshToken: tokens.refresh_token,
-    googleEmail:  userInfo.data.email ?? '',
-  };
+  return { refreshToken: tokens.refresh_token, googleEmail };
 }
 
 function dateRangeToStartDate(range: string): string {

@@ -11,7 +11,10 @@ rankingRouter.use(requireAuth);
 
 const criteriaSchema = z
   .array(z.object({
-    key:    z.enum(['newness', 'bestSeller', 'reviewScore', 'stockScore', 'availabilityScore']),
+    key: z.enum([
+      'newness', 'bestSeller', 'reviewScore', 'stockScore', 'availabilityScore',
+      'ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate',
+    ]),
     weight: z.number().min(0).max(100),
     direction: z.enum(['asc', 'desc']).optional(),
     salesPeriod: z.enum(['1d', '3d', '7d', '14d', '21d', '1m', '2m', '3m']).optional(),

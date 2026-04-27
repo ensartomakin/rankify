@@ -74,8 +74,12 @@ export async function previewRanking(req: PreviewRequest): Promise<PreviewRespon
     body: JSON.stringify(req),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error ?? `Hata: ${res.status}`);
+    const body = await res.json().catch(() => ({}));
+    const errVal = body?.error;
+    const msg = typeof errVal === 'string'
+      ? errVal
+      : errVal?.formErrors?.[0] ?? JSON.stringify(errVal) ?? `Hata: ${res.status}`;
+    throw new Error(msg);
   }
   return res.json();
 }

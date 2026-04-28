@@ -545,22 +545,34 @@ export class TSoftClient {
   async setKategoriSira(payload: TSoftRankPayload[]): Promise<void> {
     if (payload.length === 0) return;
 
+    const BATCH = 100;
     let ok = 0; let fail = 0;
-    for (const item of payload) {
+
+    for (let i = 0; i < payload.length; i += BATCH) {
+      const chunk = payload.slice(i, i + BATCH);
       try {
         const res = await this.post<{ success?: boolean; message?: unknown[] }>(
           'product/setCategorySortNumber',
-          { data: JSON.stringify([{ ProductCode: item.productCode, CategoryCode: `T${item.categoryId}`, ListNo: String(item.sortOrder) }]) }
+          { data: JSON.stringify(chunk.map(item => ({ ProductCode: item.productCode, CategoryCode: `T${item.categoryId}`, ListNo: String(item.sortOrder) }))) }
         );
         if (res?.success !== false) {
-          ok++;
+          ok += chunk.length;
         } else {
-          fail++;
-          logger.warn(`setCategorySortNumber [${item.productCode}]: ${this.extractMsg(res)}`);
+          // Batch reddedildi — tek tek dene
+          logger.warn(`setCategorySortNumber batch ${i}-${i + chunk.length} reddedildi, teker teker deneniyor`);
+          for (const item of chunk) {
+            try {
+              const r2 = await this.post<{ success?: boolean; message?: unknown[] }>(
+                'product/setCategorySortNumber',
+                { data: JSON.stringify([{ ProductCode: item.productCode, CategoryCode: `T${item.categoryId}`, ListNo: String(item.sortOrder) }]) }
+              );
+              if (r2?.success !== false) ok++; else { fail++; logger.warn(`setCategorySortNumber [${item.productCode}]: ${this.extractMsg(r2)}`); }
+            } catch (e) { fail++; logger.warn(`setCategorySortNumber hata [${item.productCode}]: ${e}`); }
+          }
         }
       } catch (err) {
-        fail++;
-        logger.warn(`setCategorySortNumber hata [${item.productCode}]: ${err}`);
+        fail += chunk.length;
+        logger.warn(`setCategorySortNumber batch hata [${i}-${i + chunk.length}]: ${err}`);
       }
     }
     logger.info(`SetKategoriSira tamamlandı — ${ok} başarılı, ${fail} hatalı (toplam ${payload.length})`);

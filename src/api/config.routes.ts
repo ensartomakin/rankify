@@ -12,8 +12,14 @@ const configSchema = z.object({
   availabilityThreshold: z.number().min(0).max(1).default(0.6),
   criteria: z
     .array(z.object({
-      key:    z.enum(['newness', 'bestSeller', 'reviewScore', 'stockScore', 'availabilityScore']),
-      weight: z.number().min(0).max(100),
+      key: z.enum([
+        'newness', 'bestSeller', 'reviewScore', 'stockScore', 'availabilityScore',
+        'discountRate',
+        'ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate',
+      ]),
+      weight:      z.number().min(0).max(100),
+      direction:   z.enum(['asc', 'desc']).optional(),
+      salesPeriod: z.enum(['1d', '3d', '7d', '14d', '21d', '1m', '2m', '3m']).optional(),
     }))
     .length(3)
     .refine(

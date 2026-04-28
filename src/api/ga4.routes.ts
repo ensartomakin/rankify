@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { requireAuth } from './auth.middleware';
+import { requireAuth, requireSuperAdmin } from './auth.middleware';
+import { getSuperAdminId } from '../db/user.repo';
 import {
   upsertGa4Credentials,
   getGa4Credentials,
@@ -20,6 +21,12 @@ import {
 import { logger } from '../utils/logger';
 
 export const ga4Router = Router();
+
+// GA4 credentials her zaman super_admin'in hesabından okunur (paylaşımlı)
+async function getGa4OwnerId(requestingUserId: number): Promise<number> {
+  const superAdminId = await getSuperAdminId();
+  return superAdminId ?? requestingUserId;
+}
 
 // OAuth callback — auth gerektirmez (Google'dan gelir), state ile userId taşınır
 ga4Router.get('/auth/callback', async (req, res) => {
@@ -62,8 +69,8 @@ ga4Router.get('/auth/callback', async (req, res) => {
 // Tüm diğer endpoint'ler auth gerektirir
 ga4Router.use(requireAuth);
 
-// GET /api/ga4/auth/url  — popup için Google auth URL'si
-ga4Router.get('/auth/url', (req, res) => {
+// GET /api/ga4/auth/url  — sadece super_admin bağlayabilir
+ga4Router.get('/auth/url', requireSuperAdmin, (req, res) => {
   if (!process.env.GA4_CLIENT_ID || !process.env.GA4_CLIENT_SECRET || !process.env.GA4_REDIRECT_URI) {
     return res.status(503).json({ error: 'GA4 OAuth yapılandırılmamış (env eksik)' });
   }
@@ -73,27 +80,27 @@ ga4Router.get('/auth/url', (req, res) => {
   res.json({ url });
 });
 
-// PUT /api/ga4/property  — property ID'yi ayrıca kaydet
-ga4Router.put('/property', async (req, res) => {
+// PUT /api/ga4/property  — sadece super_admin değiştirebilir
+ga4Router.put('/property', requireSuperAdmin, async (req, res) => {
   const { propertyId } = req.body as { propertyId?: string };
   if (!propertyId?.trim()) return res.status(400).json({ error: 'Property ID zorunlu' });
 
-  const userId = req.user!.userId;
-  const creds  = await getGa4Credentials(userId);
+  const ownerId = await getGa4OwnerId(req.user!.userId);
+  const creds   = await getGa4Credentials(ownerId);
   if (!creds) return res.status(404).json({ error: 'Önce Google hesabınızı bağlayın' });
 
-  await upsertGa4Credentials(userId, { ...creds, propertyId: propertyId.trim() });
+  await upsertGa4Credentials(ownerId, { ...creds, propertyId: propertyId.trim() });
   res.json({ ok: true });
 });
 
 // GET /api/ga4/status
 ga4Router.get('/status', async (req, res) => {
   try {
-    const userId     = req.user!.userId;
-    const configured = await hasGa4Credentials(userId);
-    const lastSync   = configured ? await getGa4LastSync(userId)    : null;
-    const propertyId = configured ? await getGa4PropertyId(userId)  : null;
-    const email      = configured ? await getGa4GoogleEmail(userId) : null;
+    const ownerId    = await getGa4OwnerId(req.user!.userId);
+    const configured = await hasGa4Credentials(ownerId);
+    const lastSync   = configured ? await getGa4LastSync(ownerId)    : null;
+    const propertyId = configured ? await getGa4PropertyId(ownerId)  : null;
+    const email      = configured ? await getGa4GoogleEmail(ownerId) : null;
     const ready      = configured && Boolean(propertyId);
     res.json({ configured, ready, propertyId, googleEmail: email, lastSync: lastSync?.toISOString() ?? null });
   } catch {
@@ -101,41 +108,42 @@ ga4Router.get('/status', async (req, res) => {
   }
 });
 
-// DELETE /api/ga4/credentials
-ga4Router.delete('/credentials', async (req, res) => {
+// DELETE /api/ga4/credentials — sadece super_admin kaldırabilir
+ga4Router.delete('/credentials', requireSuperAdmin, async (req, res) => {
   try {
-    await deleteGa4Credentials(req.user!.userId);
+    const ownerId = await getGa4OwnerId(req.user!.userId);
+    await deleteGa4Credentials(ownerId);
     res.json({ ok: true });
   } catch {
     res.status(500).json({ error: 'Silme başarısız' });
   }
 });
 
-// POST /api/ga4/sync
+// POST /api/ga4/sync — superadmin credentials kullanır, metrikler paylaşımlı kaydedilir
 ga4Router.post('/sync', async (req, res) => {
-  const userId    = req.user!.userId;
+  const ownerId   = await getGa4OwnerId(req.user!.userId);
   const dateRange = String(req.query.dateRange ?? '30d');
 
-  const creds = await getGa4Credentials(userId);
+  const creds = await getGa4Credentials(ownerId);
   if (!creds)            return res.status(404).json({ error: 'GA4 bağlı değil' });
   if (!creds.propertyId) return res.status(400).json({ error: 'Property ID girilmemiş' });
 
   try {
     const metrics = await fetchGa4ProductMetrics(creds.propertyId, creds.refreshToken, dateRange);
-    await upsertGa4Metrics(userId, metrics, dateRange);
-    logger.info(`[GA4 sync] userId=${userId} ${metrics.length} ürün metriği güncellendi`);
+    await upsertGa4Metrics(ownerId, metrics, dateRange);
+    logger.info(`[GA4 sync] ownerId=${ownerId} ${metrics.length} ürün metriği güncellendi`);
     res.json({ ok: true, count: metrics.length, dateRange });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    logger.error(`[GA4 sync] hata userId=${userId}: ${msg}`);
+    logger.error(`[GA4 sync] hata ownerId=${ownerId}: ${msg}`);
     res.status(500).json({ error: msg });
   }
 });
 
 // POST /api/ga4/test
 ga4Router.post('/test', async (req, res) => {
-  const userId = req.user!.userId;
-  const creds  = await getGa4Credentials(userId);
+  const ownerId = await getGa4OwnerId(req.user!.userId);
+  const creds   = await getGa4Credentials(ownerId);
   if (!creds)            return res.json({ ok: false, message: 'GA4 bağlı değil' });
   if (!creds.propertyId) return res.json({ ok: false, message: 'Property ID girilmemiş' });
 
@@ -143,12 +151,12 @@ ga4Router.post('/test', async (req, res) => {
   res.json(result);
 });
 
-// GET /api/ga4/metrics
+// GET /api/ga4/metrics — paylaşımlı metrikler (superadmin'in senkronize ettiği veriler)
 ga4Router.get('/metrics', async (req, res) => {
   try {
-    const userId    = req.user!.userId;
+    const ownerId   = await getGa4OwnerId(req.user!.userId);
     const dateRange = String(req.query.dateRange ?? '30d');
-    const map       = await getGa4Metrics(userId, dateRange);
+    const map       = await getGa4Metrics(ownerId, dateRange);
     res.json(Object.fromEntries(map));
   } catch {
     res.status(500).json({ error: 'Metrik sorgusu başarısız' });

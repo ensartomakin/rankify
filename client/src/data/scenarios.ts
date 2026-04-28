@@ -16,11 +16,11 @@ export const SCENARIOS: Scenario[] = [
     name: 'The Hero Strategy',
     tagline: 'Ana Vitrin Modu',
     description:
-      'Sosyal medyada aranan, en çok ilgi gören ve markayı temsil eden "yıldız" ürünleri öne çıkarır. Vitrin ürününün bedeni olmalı.',
+      'Sitenin en güvenilir, "amiral gemisi" ürünlerini sergiler. İstikrarlı popülarite ve uzun vadeli merak bir araya gelir.',
     criteria: [
-      { key: 'ga4Ctr',    weight: 40, direction: 'desc', salesPeriod: '1m' },
-      { key: 'bestSeller', weight: 40, direction: 'desc', salesPeriod: '14d' },
-      { key: 'newness',   weight: 20, direction: 'desc' },
+      { key: 'bestSeller',  weight: 40, direction: 'desc', salesPeriod: '1m' },
+      { key: 'ga4Ctr',      weight: 40, direction: 'desc', salesPeriod: '1m' },
+      { key: 'newness',     weight: 20, direction: 'desc' },
     ],
   },
   {
@@ -29,11 +29,11 @@ export const SCENARIOS: Scenario[] = [
     name: 'Rising Stars',
     tagline: 'Viral & Trend Yakalayıcı',
     description:
-      'Yeni gelen koleksiyon içinden sosyal medyanın ve müşterinin "anlık" tepki verdiği potansiyelleri parlatır.',
+      'Influencer paylaşımları veya ani trendlerle parlayan "yeni yıldızları" bulur. Son 72 saatin patlamasını yakalar.',
     criteria: [
-      { key: 'newness',          weight: 50, direction: 'desc' },
-      { key: 'ga4Ctr',           weight: 30, direction: 'desc', salesPeriod: '3d' },
-      { key: 'ga4ConversionRate', weight: 20, direction: 'desc', salesPeriod: '3d' },
+      { key: 'bestSeller',  weight: 40, direction: 'desc', salesPeriod: '3d' },
+      { key: 'ga4Ctr',      weight: 40, direction: 'desc', salesPeriod: '3d' },
+      { key: 'newness',     weight: 20, direction: 'desc' },
     ],
   },
   {
@@ -42,11 +42,11 @@ export const SCENARIOS: Scenario[] = [
     name: 'Conversion Maximizer',
     tagline: 'Verimli Ciro',
     description:
-      'Reklamla gelen trafiği "en kolay ve en hızlı" paraya çevirecek ürünleri dizer. Beden bulunurluğu kritik — aktif tutun.',
+      'Reklam trafiğini en yüksek satın alma ihtimali olan ürünle buluşturur. CR, satış hızı ve indirim oranı bir arada.',
     criteria: [
       { key: 'ga4ConversionRate', weight: 40, direction: 'desc', salesPeriod: '14d' },
-      { key: 'discountRate',      weight: 40, direction: 'desc' },
-      { key: 'stockScore',        weight: 20, direction: 'desc' },
+      { key: 'bestSeller',        weight: 30, direction: 'desc', salesPeriod: '7d' },
+      { key: 'discountRate',      weight: 30, direction: 'desc' },
     ],
   },
   {
@@ -55,7 +55,7 @@ export const SCENARIOS: Scenario[] = [
     name: 'Inventory Liquidation',
     tagline: 'Stok Eritme / Outlet',
     description:
-      'Depoda bekleyen sermayeyi (stok) hızla nakde çevirmek için tasarlanmıştır. En eski ürünler tepeye gelir.',
+      'Eski sezon ürünleri en hızlı şekilde nakde çevirir. En eski ürünler tepeye gelir.',
     criteria: [
       { key: 'stockScore',   weight: 40, direction: 'desc' },
       { key: 'discountRate', weight: 40, direction: 'desc' },
@@ -68,11 +68,11 @@ export const SCENARIOS: Scenario[] = [
     name: 'Social Proof Excellence',
     tagline: 'Müşteri Onayı',
     description:
-      'Kararsız yeni müşterilere "Başkaları bunu sevdi" mesajı vererek güven aşılar.',
+      'Klasikleşmiş ve kalitesi tescillenmiş ürünlerle güven tazeler. Yorum sayısı, uzun vadeli satış ve dönüşüm.',
     criteria: [
-      { key: 'reviewScore',      weight: 60, direction: 'desc' },
-      { key: 'bestSeller',       weight: 30, direction: 'desc', salesPeriod: '14d' },
-      { key: 'ga4ConversionRate', weight: 10, direction: 'desc', salesPeriod: '1m' },
+      { key: 'reviewScore',       weight: 60, direction: 'desc' },
+      { key: 'bestSeller',        weight: 30, direction: 'desc', salesPeriod: '1m' },
+      { key: 'ga4ConversionRate', weight: 10, direction: 'desc', salesPeriod: '2m' },
     ],
   },
   {
@@ -81,62 +81,62 @@ export const SCENARIOS: Scenario[] = [
     name: 'Hidden Gems',
     tagline: 'Fırsat Keşfi',
     description:
-      'İnsanların beğendiği (tıklanan) ama "tek bir dokunuşla" (indirim) satış rekoru kırabilecekleri bulur. Az satan ama ilgi çekenleri yukarı iter.',
+      'İnsanların beğendiği ama henüz satış rekoru kırmamış potansiyelleri parlatır. İlgi yüksek, satış az olanları bulur.',
     criteria: [
       { key: 'ga4Ctr',      weight: 40, direction: 'desc', salesPeriod: '14d' },
       { key: 'discountRate', weight: 40, direction: 'desc' },
-      { key: 'bestSeller',  weight: 20, direction: 'asc',  salesPeriod: '14d' },
+      { key: 'bestSeller',  weight: 20, direction: 'asc',  salesPeriod: '1m' },
     ],
   },
   {
-    id: 'brand-new',
+    id: 'fresh-performance',
     emoji: '✨',
-    name: 'Brand New Performance',
+    name: 'Fresh Performance',
     tagline: 'Yeni Sezon Odaklı',
     description:
-      'Mağazanın güncelliğini korurken, yeni gelenler arasından en başarılı olanları belirler.',
+      'Yeni koleksiyonda "ilk tepkisi" en iyi olanları belirler. Yeni gelip hemen satanları ön plana çıkarır.',
     criteria: [
       { key: 'newness',   weight: 50, direction: 'desc' },
-      { key: 'ga4Views',  weight: 30, direction: 'desc', salesPeriod: '7d' },
-      { key: 'stockScore', weight: 20, direction: 'desc' },
+      { key: 'bestSeller', weight: 30, direction: 'desc', salesPeriod: '3d' },
+      { key: 'ga4Views',  weight: 20, direction: 'desc', salesPeriod: '7d' },
     ],
   },
   {
-    id: 'campaign',
+    id: 'flash-campaign',
     emoji: '🔥',
-    name: 'Campaign Booster',
-    tagline: 'Büyük İndirim Dönemi',
+    name: 'Flash Campaign',
+    tagline: 'Anlık Patlama',
     description:
-      '11.11 veya Black Friday gibi trafik patlaması olan günlerde sepeti en çok dolduranları dizer.',
+      'Hafta sonu veya gece kampanyalarında sepeti en hızlı dolduranları dizer. İndirim + son 3 günün gücü.',
     criteria: [
       { key: 'discountRate',      weight: 50, direction: 'desc' },
-      { key: 'ga4ConversionRate', weight: 30, direction: 'desc', salesPeriod: '3d' },
-      { key: 'stockScore',        weight: 20, direction: 'desc' },
+      { key: 'bestSeller',        weight: 30, direction: 'desc', salesPeriod: '3d' },
+      { key: 'ga4ConversionRate', weight: 20, direction: 'desc', salesPeriod: '3d' },
     ],
   },
   {
-    id: 'loyalty',
+    id: 'smart-loyalty',
     emoji: '🤝',
     name: 'Smart Loyalty',
     tagline: 'Sadık Müşteri Vitrini',
     description:
-      'Siteye her gün giren sadık kitleye "bugünün popülerleri" hissini verir.',
+      'Siteyi sık ziyaret eden müşteriye "bu haftanın özeti" hissini verir. Yenilik, bu haftanın favorileri ve CTR.',
     criteria: [
-      { key: 'newness',  weight: 40, direction: 'desc' },
-      { key: 'ga4Ctr',   weight: 40, direction: 'desc', salesPeriod: '7d' },
-      { key: 'bestSeller', weight: 20, direction: 'desc', salesPeriod: '14d' },
+      { key: 'newness',    weight: 40, direction: 'desc' },
+      { key: 'bestSeller', weight: 30, direction: 'desc', salesPeriod: '7d' },
+      { key: 'ga4Ctr',     weight: 30, direction: 'desc', salesPeriod: '7d' },
     ],
   },
   {
-    id: 'steady',
+    id: 'balanced-matrix',
     emoji: '⚖️',
-    name: 'Steady Growth',
-    tagline: 'Genel Sağlık Ayarı',
+    name: 'The Balanced Matrix',
+    tagline: 'Mağaza Sağlığı',
     description:
-      'Riskleri dağıtan, ne sadece ucuz ne sadece yeni diyen, mağazanın genel dengeli modudur.',
+      'Mağazanın genel büyüme dengesini korur. Yenilik, uzun vadeli satış ve indirim eşit ağırlıkla.',
     criteria: [
       { key: 'newness',      weight: 34, direction: 'desc' },
-      { key: 'bestSeller',   weight: 33, direction: 'desc', salesPeriod: '14d' },
+      { key: 'bestSeller',   weight: 33, direction: 'desc', salesPeriod: '1m' },
       { key: 'discountRate', weight: 33, direction: 'desc' },
     ],
   },

@@ -334,14 +334,16 @@ export class TSoftClient {
   private mapProduct(p: Record<string, unknown>): TSoftProduct {
     if (!this._loggedProductKeys) {
       this._loggedProductKeys = true;
-      const priceKeys = Object.keys(p).filter(k =>
-        /price|Price|discount|Discount|rate|Rate|old|Old|market|Market|list|List|url|Url|seo|Seo/i.test(k)
-      );
-      logger.info(`[mapProduct] ilk ürün alan adları (fiyat/url): ${priceKeys.join(', ')}`);
-      logger.info(`[mapProduct] ilk ürün tüm anahtarlar: ${Object.keys(p).join(', ')}`);
+      logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
+      // Fiyat & URL değerlerini logla
+      const watched = ['Price','price','ListPrice','OldPrice','SalePrice','CampaignPrice',
+        'DiscountedPrice','SellingPrice','DiscountRate','SEOUrl','SeoUrl','SEOLink','SeoLink',
+        'Url','url','Link','link','DetailUrl','ProductUrl','Slug'];
+      for (const k of watched) {
+        if (p[k] !== undefined) logger.info(`[mapProduct] ${k} = ${JSON.stringify(p[k])}`);
+      }
     }
     const stock = Number(p.Stock ?? p.stock ?? 0);
-    // T-Soft'tan varyant verisi SubProducts veya Details altında gelebilir
     const rawVariants = (p.SubProducts ?? p.Variants ?? p.Details ?? []) as Record<string, unknown>[];
     const variants: import('../types/tsoft').TSoftVariant[] = Array.isArray(rawVariants) && rawVariants.length > 0
       ? rawVariants.map(v => ({
@@ -358,12 +360,23 @@ export class TSoftClient {
       p.Image        ?? p.image        ?? p.Photo    ?? p.photo    ?? ''
     );
 
-    const listPrice    = Number(p.ListPrice ?? p.listPrice ?? p.MarketPrice ?? p.marketPrice ?? p.OldPrice ?? p.oldPrice ?? 0);
-    const sellingPrice = Number(p.SellingPrice ?? p.sellingPrice ?? 0);
+    // T-Soft'ta liste fiyatı: Price veya ListPrice/OldPrice
+    // İndirimli fiyat: SalePrice / CampaignPrice / DiscountedPrice / SellingPrice
+    const listPrice    = Number(p.Price ?? p.ListPrice ?? p.listPrice ?? p.OldPrice ?? p.oldPrice ?? p.MarketPrice ?? p.marketPrice ?? 0);
+    const sellingPrice = Number(p.SalePrice ?? p.salePrice ?? p.CampaignPrice ?? p.campaignPrice ??
+                                p.DiscountedPrice ?? p.discountedPrice ?? p.SellingPrice ?? p.sellingPrice ?? 0);
     const discountRate = Number(p.DiscountRate ?? p.discountRate ?? p.Discount ?? p.discount ?? 0)
-      || (listPrice > 0 && sellingPrice < listPrice
+      || (listPrice > 0 && sellingPrice > 0 && sellingPrice < listPrice
           ? Math.round(((listPrice - sellingPrice) / listPrice) * 100)
           : 0);
+
+    const seoUrl = String(
+      p.SEOUrl ?? p.SeoUrl ?? p.seoUrl ??
+      p.SEOLink ?? p.SeoLink ?? p.seoLink ??
+      p.Url ?? p.url ?? p.Link ?? p.link ??
+      p.DetailUrl ?? p.detailUrl ?? p.ProductUrl ?? p.productUrl ??
+      p.Slug ?? p.slug ?? ''
+    );
 
     return {
       productId:        String(p.ProductId ?? p.productId ?? p.Id ?? p.id ?? ''),
@@ -380,7 +393,7 @@ export class TSoftClient {
       reviewCount:      Number(p.ReviewCount ?? p.reviewCount ?? p.CommentCount ?? p.commentCount ?? 0),
       variants,
       discountRate,
-      seoUrl: String(p.SEOUrl ?? p.SeoUrl ?? p.seoUrl ?? p.Url ?? p.url ?? p.ProductUrl ?? p.productUrl ?? p.PageUrl ?? p.pageUrl ?? ''),
+      seoUrl,
     };
   }
 

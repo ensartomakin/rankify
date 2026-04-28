@@ -706,28 +706,39 @@ export function Dashboard({ prefill }: Props) {
     }
   }
 
+  function syncPinsToOrder(newOrder: ProductPreviewItem[]) {
+    if (Object.keys(pinnedPositions).length === 0) return;
+    const updated: Record<string, number> = {};
+    for (const code of Object.keys(pinnedPositions)) {
+      const item = newOrder.find(p => p.productCode === code);
+      if (item) updated[code] = item.finalRank;
+    }
+    setPinnedPositions(updated);
+    localStorage.setItem(`rankify_pin_${categoryId}`, JSON.stringify(updated));
+  }
+
   // Preview drag end
   function handlePreviewDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    setPreviewOrder(items => {
-      const oldIdx = items.findIndex(p => p.productCode === active.id);
-      const newIdx = items.findIndex(p => p.productCode === over.id);
-      return arrayMove(items, oldIdx, newIdx).map((p, i) => ({ ...p, finalRank: i + 1 }));
-    });
+    const oldIdx = previewOrder.findIndex(p => p.productCode === active.id);
+    const newIdx = previewOrder.findIndex(p => p.productCode === over.id);
+    const newOrder = arrayMove(previewOrder, oldIdx, newIdx).map((p, i) => ({ ...p, finalRank: i + 1 }));
+    setPreviewOrder(newOrder);
+    syncPinsToOrder(newOrder);
   }
 
   // Preview rank input
   function handlePreviewRankEdit(code: string, newRank: number) {
-    setPreviewOrder(items => {
-      const clamped = Math.max(1, Math.min(items.length, newRank));
-      const idx = items.findIndex(p => p.productCode === code);
-      if (idx === -1) return items;
-      const next = [...items];
-      const [item] = next.splice(idx, 1);
-      next.splice(clamped - 1, 0, item);
-      return next.map((p, i) => ({ ...p, finalRank: i + 1 }));
-    });
+    const clamped = Math.max(1, Math.min(previewOrder.length, newRank));
+    const idx = previewOrder.findIndex(p => p.productCode === code);
+    if (idx === -1) return;
+    const next = [...previewOrder];
+    const [item] = next.splice(idx, 1);
+    next.splice(clamped - 1, 0, item);
+    const newOrder = next.map((p, i) => ({ ...p, finalRank: i + 1 }));
+    setPreviewOrder(newOrder);
+    syncPinsToOrder(newOrder);
   }
 
   async function handleTrigger() {

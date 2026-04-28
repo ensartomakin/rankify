@@ -120,28 +120,33 @@ export function getBaseName(productName: string): string {
   return words.slice(0, end).join(' ');
 }
 
+const SMART_MIX_GAP = 3; // aynı ürün tekrar görünmeden önce araya girecek minimum ürün sayısı
+
 /**
- * Smart Mix: aynı base name'e sahip ürünlerin yan yana gelmesini engeller.
- * Greedy: her pozisyon için öncekiyle farklı base name'li en iyi skoru seç.
+ * Smart Mix: aynı base name'e sahip ürünler arasına en az SMART_MIX_GAP ürün girer.
+ * Örnek: 1. sıradaki ürünün aynısı en erken 5. sıraya yerleşir (1+3+1).
  * Disqualified ürünlere dokunmaz; sona bırakır.
  */
 export function applySmartMix(products: NormalizedProduct[]): NormalizedProduct[] {
   const qualified    = products.filter(p => !p.isDisqualified);
   const disqualified = products.filter(p => p.isDisqualified);
 
-  if (qualified.length <= 1) return products;
+  if (qualified.length <= SMART_MIX_GAP) return products;
 
   const result: NormalizedProduct[] = [];
   const pool = [...qualified];
 
   while (pool.length > 0) {
-    const prevBase = result.length > 0
-      ? getBaseName(result[result.length - 1].productName)
-      : null;
+    // Son SMART_MIX_GAP pozisyonun base name'lerini al
+    const recentBases = new Set(
+      result.slice(-SMART_MIX_GAP).map(p => getBaseName(p.productName))
+    );
 
-    const idx = pool.findIndex(p => getBaseName(p.productName) !== prevBase);
+    // Pool'dan son GAP içinde görünmemiş ilk ürünü seç
+    const idx = pool.findIndex(p => !recentBases.has(getBaseName(p.productName)));
 
     if (idx === -1) {
+      // Tüm kalan ürünler son GAP içinde geçiyor — zorunlu çakışma, olduğu gibi ekle
       result.push(...pool.splice(0));
     } else {
       result.push(...pool.splice(idx, 1));

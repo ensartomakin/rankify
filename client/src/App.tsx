@@ -15,7 +15,7 @@ import type { SavedConfig } from './api/config';
 type Page = 'dashboard' | 'configs' | 'audit' | 'settings' | 'users';
 
 function AppShell() {
-  const { user } = useAuth();
+  const { user, sessionReady } = useAuth();
   const [page,       setPage]       = useState<Page>('dashboard');
   const [prefill,    setPrefill]    = useState<SavedConfig | undefined>();
   const [configured, setConfigured] = useState<boolean | null>(null);
@@ -29,6 +29,7 @@ function AppShell() {
       .catch(() => setConfigured(false));
   }, [user]);
 
+  if (!sessionReady) return null; // cookie doğrulanana kadar flash yok
   if (!user) return <Login />;
 
   function handleEdit(config: SavedConfig) {

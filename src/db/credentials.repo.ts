@@ -43,12 +43,27 @@ export async function getCredentials(userId: number): Promise<TsoftCredentials |
     );
     if (!rows[0]) return null;
     const r = rows[0];
-    return { apiUrl: r.api_url, storeCode: r.store_code, apiUser: r.api_user, apiPass: decrypt(r.api_pass_enc), apiToken: r.api_token_enc ? decrypt(r.api_token_enc) : undefined };
+    try {
+      return {
+        apiUrl:    r.api_url,
+        storeCode: r.store_code,
+        apiUser:   r.api_user,
+        apiPass:   decrypt(r.api_pass_enc),
+        apiToken:  r.api_token_enc ? decrypt(r.api_token_enc) : undefined,
+      };
+    } catch {
+      // Corrupted ciphertext — treat as missing (user must re-enter credentials)
+      return null;
+    }
   }
 
   const row = store.credentials.get(userId);
   if (!row) return null;
-  return { apiUrl: row.apiUrl, storeCode: row.storeCode, apiUser: row.apiUser, apiPass: decrypt(row.apiPassEnc), apiToken: row.apiToken };
+  try {
+    return { apiUrl: row.apiUrl, storeCode: row.storeCode, apiUser: row.apiUser, apiPass: decrypt(row.apiPassEnc), apiToken: row.apiToken };
+  } catch {
+    return null;
+  }
 }
 
 export async function hasCredentials(userId: number): Promise<boolean> {

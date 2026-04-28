@@ -6,6 +6,13 @@ import { signToken, requireAuth, setAuthCookie, clearAuthCookie } from './auth.m
 
 export const authRouter = Router();
 
+// Precomputed once at startup — prevents user-enumeration via timing differences
+let _dummyHash: string | null = null;
+async function getDummyHash(): Promise<string> {
+  if (!_dummyHash) _dummyHash = await bcrypt.hash('rankify-timing-protection-dummy', 12);
+  return _dummyHash;
+}
+
 const registerSchema = z.object({
   email:    z.string().email(),
   password: z.string().min(8),
@@ -56,7 +63,10 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   const { email, password } = parsed.data;
   const user = await findUserByEmail(email);
 
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  // Always run bcrypt to prevent timing-based user enumeration
+  const hashToCheck = user?.passwordHash ?? await getDummyHash();
+  const isMatch = await bcrypt.compare(password, hashToCheck);
+  if (!user || !isMatch) {
     res.status(401).json({ error: 'E-posta veya şifre hatalı' });
     return;
   }

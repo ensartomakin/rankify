@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import path from 'path';
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -29,6 +29,15 @@ if (!process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY.length < 32) {
 
 const isProd = process.env.NODE_ENV === 'production';
 
+if (isProd && !process.env.FRONTEND_URL) {
+  console.error('FATAL: FRONTEND_URL must be set in production');
+  process.exit(1);
+}
+
+if (!process.env.DATABASE_URL) {
+  logger.warn('DATABASE_URL tanımlı değil — in-memory dev store kullanılıyor, veriler kalıcı değil');
+}
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max:      20,
@@ -47,22 +56,21 @@ const apiLimiter = rateLimit({
 async function bootstrap() {
   if (process.env.DATABASE_URL) {
     await runMigrations();
-  } else {
-    logger.warn('DATABASE_URL tanımlı değil — DB migration atlandı');
   }
 
   const app  = express();
   const PORT = process.env.PORT ?? 3000;
 
+  // Trust the first proxy hop (Nginx/Cloudflare/Heroku) so rate limiting
+  // uses the real client IP via X-Forwarded-For, not the proxy's IP.
+  app.set('trust proxy', 1);
+
   app.use(helmet());
 
   const allowedOrigins = isProd
-    ? [process.env.FRONTEND_URL].filter(Boolean) as string[]
+    ? [process.env.FRONTEND_URL!]
     : ['http://localhost:5173', 'http://127.0.0.1:5173'];
-  app.use(cors({
-    origin: allowedOrigins,
-    credentials: true,
-  }));
+  app.use(cors({ origin: allowedOrigins, credentials: true }));
 
   app.use(cookieParser());
   app.use(express.json({ limit: '64kb' }));
@@ -86,6 +94,13 @@ async function bootstrap() {
     app.use(express.static(clientDist));
     app.get('*', (_req, res) => res.sendFile(path.join(clientDist, 'index.html')));
   }
+
+  // Global error handler — must be last; prevents stack trace leaks
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+    logger.error('Unhandled error:', err);
+    res.status(500).json({ error: 'İç sunucu hatası' });
+  });
 
   startScheduler();
 

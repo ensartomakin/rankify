@@ -24,6 +24,9 @@ export const ga4Router = Router();
 
 // OAuth callback — auth gerektirmez (Google'dan gelir), state = CSRF nonce
 ga4Router.get('/auth/callback', async (req, res) => {
+  // Override helmet's default CSP for this popup page — it needs unsafe-inline script
+  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'");
+
   const { code, state, error } = req.query as Record<string, string>;
 
   if (error || !code || !state) {

@@ -53,11 +53,16 @@ export async function getGa4Credentials(userId: number): Promise<Ga4OAuthCredent
     [userId]
   );
   if (!rows[0] || !rows[0].refresh_token_enc) return null;
-  return {
-    propertyId:   rows[0].property_id,
-    refreshToken: decrypt(rows[0].refresh_token_enc),
-    googleEmail:  rows[0].google_email,
-  };
+  try {
+    return {
+      propertyId:   rows[0].property_id,
+      refreshToken: decrypt(rows[0].refresh_token_enc),
+      googleEmail:  rows[0].google_email,
+    };
+  } catch {
+    // Corrupted ciphertext — treat as missing (user must re-connect GA4)
+    return null;
+  }
 }
 
 export async function hasGa4Credentials(userId: number): Promise<boolean> {

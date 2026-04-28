@@ -21,8 +21,11 @@ CREATE TABLE IF NOT EXISTS users (
   created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(32) NOT NULL DEFAULT 'user';
--- İlk kullanıcıyı super_admin yap (migration sırasında)
-UPDATE users SET role = 'super_admin' WHERE id = (SELECT MIN(id) FROM users) AND role = 'user';
+-- İlk kullanıcıyı super_admin yap — sadece hiç super_admin yoksa çalışır
+UPDATE users SET role = 'super_admin'
+  WHERE id = (SELECT MIN(id) FROM users)
+    AND role = 'user'
+    AND NOT EXISTS (SELECT 1 FROM users WHERE role = 'super_admin');
 
 -- ============================================================
 -- 3. T-Soft mağaza bilgileri (şifreli)

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { requireAuth } from './auth.middleware';
+import { requireAuth, requireSuperAdmin } from './auth.middleware';
 import { runRankingPipeline, previewRanking, getCurrentRanking, applyManualRanking } from '../pipeline/orchestrator';
 import { getConfigByCategoryId } from '../db/config.repo';
 import { getClientForUser } from '../services/tsoft-client';
@@ -62,8 +62,11 @@ rankingRouter.get('/current', async (req: Request, res: Response) => {
   }
 });
 
-// Fotoğraf URL debug: ham ürün alanlarını döndürür
-rankingRouter.get('/debug-product', async (req: Request, res: Response) => {
+// Fotoğraf URL debug: ham ürün alanlarını döndürür — prod'da kapalı
+rankingRouter.get('/debug-product', requireSuperAdmin, async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(404).json({ error: 'Not found' }); return;
+  }
   const { categoryId } = req.query;
   if (!categoryId || typeof categoryId !== 'string') {
     res.status(400).json({ error: 'categoryId query parametresi gerekli' });

@@ -42,7 +42,7 @@ function AppShell() {
   }
 
   return (
-    <div className="flex h-full w-full" style={{ background: 'var(--bg)', gap: '20px', padding: '12px 16px 12px 12px' }}>
+    <div className="flex h-full w-full" style={{ background: 'var(--bg)', gap: '20px', padding: 'clamp(6px,2vw,12px) clamp(6px,2vw,16px) clamp(6px,2vw,12px) clamp(6px,2vw,12px)' }}>
       <Sidebar
         current={page}
         onChange={handlePageChange}
@@ -50,7 +50,8 @@ function AppShell() {
         isSuperAdmin={isSuperAdmin}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden rounded-2xl"
+      {/* On mobile: full width, no left sidebar gap, add bottom padding for tab bar */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden rounded-2xl pb-[60px] md:pb-0"
         style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', boxShadow: '0 4px 24px rgba(226,50,96,0.12)' }}>
         {configured === false && page !== 'settings' && (
           <div className="shrink-0 flex items-center justify-between px-6 py-2.5 text-sm"

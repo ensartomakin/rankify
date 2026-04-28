@@ -94,7 +94,8 @@ export function Audit() {
           </div>
         ) : (
           <div style={{ border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden' }}>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm" style={{ minWidth: '640px' }}>
               <thead>
                 <tr style={{ background: 'var(--surface3)', borderBottom: '1px solid var(--border)' }}>
                   {['Tarih', 'Kategori', 'Tetikleyen', 'Toplam', 'Aktif', 'Dışlanan', 'Süre', 'Durum'].map(h => (
@@ -146,6 +147,7 @@ export function Audit() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>

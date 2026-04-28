@@ -131,6 +131,12 @@ body {
 .animate-fade-in { animation: fadeIn .2s ease both; }
 .animate-spin    { animation: spin .75s linear infinite; }
 
+/* ── Responsive ─────────────────────────── */
+@media (max-width: 767px) {
+  body { overflow: auto; }
+  html, body, #root { height: 100%; }
+}
+
 /* ── Range ──────────────────────────────── */
 input[type=range] {
   -webkit-appearance: none;

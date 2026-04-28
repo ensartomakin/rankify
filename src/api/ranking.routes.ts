@@ -57,9 +57,8 @@ rankingRouter.get('/current', async (req: Request, res: Response) => {
     const result = await getCurrentRanking(categoryId, req.user!.userId);
     res.json(result);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error(`getCurrentRanking hatası [${categoryId}]: ${msg}`);
-    res.status(500).json({ error: msg });
+    logger.error(`getCurrentRanking hatası [${categoryId}]: ${err}`);
+    res.status(500).json({ error: 'Mevcut sıralama alınamadı' });
   }
 });
 
@@ -88,25 +87,30 @@ rankingRouter.get('/debug-product', async (req: Request, res: Response) => {
     });
     res.json({ apiUrl, sample });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error(`debug-product hatası: ${msg}`);
-    res.status(500).json({ error: msg });
+    logger.error(`debug-product hatası: ${err}`);
+    res.status(500).json({ error: 'Ürün debug verisi alınamadı' });
   }
 });
 
+const manualSchema = z.object({
+  categoryId: z.string().min(1).max(100),
+  products:   z.array(z.object({
+    productCode: z.string().min(1).max(200),
+    rank:        z.number().int().min(1),
+  })).min(1).max(500),
+});
+
 rankingRouter.post('/manual', async (req: Request, res: Response) => {
-  const { categoryId, products } = req.body as { categoryId?: string; products?: { productCode: string; rank: number }[] };
-  if (!categoryId || !Array.isArray(products) || products.length === 0) {
-    res.status(400).json({ error: 'categoryId ve products[] gerekli' });
-    return;
-  }
+  const parsed = manualSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+
+  const { categoryId, products } = parsed.data;
   try {
     await applyManualRanking(categoryId, products, req.user!.userId);
     res.json({ success: true, count: products.length });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error(`applyManualRanking hatası [${categoryId}]: ${msg}`);
-    res.status(500).json({ error: msg });
+    logger.error(`applyManualRanking hatası [${categoryId}]: ${err}`);
+    res.status(500).json({ error: 'Manuel sıralama uygulanamadı' });
   }
 });
 
@@ -159,8 +163,7 @@ rankingRouter.post('/preview', async (req: Request, res: Response) => {
     const result = await previewRanking(config, userId);
     res.json(result);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Önizleme hatası';
-    logger.error(`Preview hatası [${categoryId}]: ${msg}`);
-    res.status(500).json({ error: msg });
+    logger.error(`Preview hatası [${categoryId}]: ${err}`);
+    res.status(500).json({ error: 'Önizleme hesaplaması başarısız' });
   }
 });

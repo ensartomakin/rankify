@@ -12,7 +12,9 @@ export function Login() {
   const [loading,  setLoading]  = useState(false);
 
   useEffect(() => {
-    getSetupStatus().then(s => setNeedsSetup(s.needsSetup));
+    getSetupStatus()
+      .then(s => setNeedsSetup(s.needsSetup))
+      .catch(() => setNeedsSetup(false));
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

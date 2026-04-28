@@ -9,8 +9,18 @@ import { getSuperAdminId } from '../db/user.repo';
 export const settingsRouter = Router();
 settingsRouter.use(requireAuth);
 
+const PRIVATE_IP = /^(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.)/i;
+
+function validateSsrfSafeUrl(raw: string): string {
+  let u: URL;
+  try { u = new URL(raw); } catch { throw new Error('Geçersiz URL formatı'); }
+  if (u.protocol !== 'https:') throw new Error('Yalnızca HTTPS URL kabul edilir');
+  if (PRIVATE_IP.test(u.hostname)) throw new Error('Özel veya yerel IP adreslerine bağlantı yasak');
+  return raw;
+}
+
 const credsSchema = z.object({
-  apiUrl:    z.string().url('Geçerli bir URL girin'),
+  apiUrl:    z.string().url('Geçerli bir URL girin').refine(v => { validateSsrfSafeUrl(v); return true; }, { message: 'Güvenli olmayan URL' }),
   storeCode: z.string().min(1),
   apiUser:   z.string().min(1),
   apiPass:   z.string().min(1),
@@ -18,7 +28,7 @@ const credsSchema = z.object({
 });
 
 const testSchema = z.object({
-  apiUrl:    z.string().url('Geçerli bir URL girin'),
+  apiUrl:    z.string().url('Geçerli bir URL girin').refine(v => { validateSsrfSafeUrl(v); return true; }, { message: 'Güvenli olmayan URL' }),
   storeCode: z.string().min(1),
   apiUser:   z.string().min(1),
   apiPass:   z.string().optional(),

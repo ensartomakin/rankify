@@ -19,16 +19,17 @@ function loadUser(): AuthUser | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(loadUser);
 
-  const setAuth = useCallback((token: string, u: AuthUser) => {
-    localStorage.setItem('token', token);
+  const setAuth = useCallback((_token: string, u: AuthUser) => {
+    // token artık localStorage'da saklanmıyor — httpOnly cookie ile yönetiliyor
     localStorage.setItem('user', JSON.stringify(u));
     setUser(u);
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    // Server-side cookie'yi temizle
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
   }, []);
 
   return (

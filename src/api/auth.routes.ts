@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { createUser, findUserByEmail, countUsers } from '../db/user.repo';
-import { signToken, requireAuth } from './auth.middleware';
+import { signToken, requireAuth, setAuthCookie, clearAuthCookie } from './auth.middleware';
 
 export const authRouter = Router();
 
@@ -44,8 +44,9 @@ authRouter.post('/register', async (req: Request, res: Response) => {
   // İlk kullanıcı her zaman super_admin
   const user = await createUser(email, passwordHash, name, 'super_admin');
   const token = signToken({ userId: user.id, email: user.email, role: user.role });
+  setAuthCookie(res, token);
 
-  res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  res.status(201).json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
 });
 
 authRouter.post('/login', async (req: Request, res: Response) => {
@@ -61,7 +62,13 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   }
 
   const token = signToken({ userId: user.id, email: user.email, role: user.role });
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  setAuthCookie(res, token);
+  res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+});
+
+authRouter.post('/logout', (_req: Request, res: Response) => {
+  clearAuthCookie(res);
+  res.json({ ok: true });
 });
 
 authRouter.get('/me', requireAuth, (req: Request, res: Response) => {

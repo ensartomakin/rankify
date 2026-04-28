@@ -1,9 +1,8 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
 
-// ENCRYPTION_KEY env'den türetilir; dev'de JWT_SECRET kullanılır
+// ENCRYPTION_KEY validated at boot in index.ts — safe to assert here
 function getKey(): Buffer {
-  const secret = process.env.ENCRYPTION_KEY ?? process.env.JWT_SECRET ?? 'dev-secret';
-  return scryptSync(secret, 'rankify-salt', 32);
+  return scryptSync(process.env.ENCRYPTION_KEY!, 'rankify-salt', 32);
 }
 
 export function encrypt(plaintext: string): string {

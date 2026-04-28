@@ -38,7 +38,19 @@ CREATE TABLE IF NOT EXISTS tsoft_credentials (
   created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
-ALTER TABLE tsoft_credentials ADD COLUMN IF NOT EXISTS api_token TEXT;
+-- Rename api_token to api_token_enc (AES-256-GCM encrypted) — idempotent
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'tsoft_credentials' AND column_name = 'api_token'
+  ) THEN
+    ALTER TABLE tsoft_credentials RENAME COLUMN api_token TO api_token_enc;
+    -- Clear plaintext values; users must re-enter the V3 Bearer token
+    UPDATE tsoft_credentials SET api_token_enc = NULL;
+  END IF;
+END $$;
+ALTER TABLE tsoft_credentials ADD COLUMN IF NOT EXISTS api_token_enc TEXT;
 
 DROP TRIGGER IF EXISTS trg_tsoft_credentials_updated_at ON tsoft_credentials;
 CREATE TRIGGER trg_tsoft_credentials_updated_at

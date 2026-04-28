@@ -1,7 +1,46 @@
 import { getClientForUser } from '../services/tsoft-client';
 import { computeSizeAvailability } from '../scoring/availability';
-import { getGa4Credentials, getGa4Metrics } from '../db/ga4.repo';
+import { getGa4Credentials, getGa4Metrics, upsertGa4Metrics } from '../db/ga4.repo';
 import { fetchGa4ProductMetrics, } from '../services/ga4-client';
+
+const GA4_KEYS = new Set(['ga4Views','ga4Sessions','ga4Ctr','ga4ConversionRate']);
+
+function salesPeriodToGa4Range(period?: string): string {
+  switch (period) {
+    case '3d':  return '3d';
+    case '7d':  return '7d';
+    case '14d': return '14d';
+    case '21d': return '21d';
+    case '1m':  return '30d';
+    case '2m':  return '60d';
+    case '3m':  return '90d';
+    default:    return '30d';
+  }
+}
+
+async function resolveGa4Map(
+  config: WeightConfig,
+  userId: number
+): Promise<Map<string, import('../db/ga4.repo').Ga4ProductMetric>> {
+  const ga4Criterion = config.criteria.find(c => GA4_KEYS.has(c.key));
+  if (!ga4Criterion) return new Map();
+  const dateRange = salesPeriodToGa4Range(ga4Criterion.salesPeriod);
+  let map = await getGa4Metrics(userId, dateRange).catch(() => new Map());
+  if (map.size === 0) {
+    try {
+      const creds = await getGa4Credentials(userId);
+      if (creds) {
+        const metrics = await fetchGa4ProductMetrics(creds.propertyId, creds.refreshToken, dateRange);
+        await upsertGa4Metrics(userId, metrics, dateRange);
+        map = new Map(metrics.map(m => [m.itemId, m]));
+        logger.info(`[GA4] auto-sync ${dateRange}: ${metrics.length} ürün`);
+      }
+    } catch (e) {
+      logger.warn(`[GA4] auto-sync başarısız: ${e}`);
+    }
+  }
+  return map;
+}
 
 function salesPeriodToDays(period?: string): number {
   switch (period) {
@@ -126,8 +165,8 @@ export async function runRankingPipeline(
     const salesDays = salesPeriodToDays(bestSellerCriterion?.salesPeriod);
     const salesData    = await client.getSalesReport(productCodes, salesDays);
 
-    // GA4 metrikleri — varsa önbellekten yükle
-    const ga4Map = await getGa4Metrics(userId).catch(() => new Map());
+    // GA4 metrikleri — periyoda göre önbellekten veya auto-sync
+    const ga4Map = await resolveGa4Map(config, userId);
 
     // Phase 2: Normalleştirme
     const salesMap = new Map<string, TSoftSalesData>(
@@ -226,8 +265,8 @@ export async function previewRanking(
   const salesData    = await client.getSalesReport(productCodes, salesDays);
   const salesMap     = new Map<string, TSoftSalesData>(salesData.map(s => [s.productCode, s]));
 
-  // GA4 metrikleri — önbellekten, hata olursa boş map
-  const ga4Map = await getGa4Metrics(userId).catch(() => new Map());
+  // GA4 metrikleri — periyoda göre önbellekten veya auto-sync
+  const ga4Map = await resolveGa4Map(config, userId);
 
   // imageCount is stored per-product alongside normalized data
   const imageCountMap = new Map<string, number>(products.map(p => [p.productCode, p.imageCount]));

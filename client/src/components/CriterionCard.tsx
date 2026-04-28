@@ -100,7 +100,7 @@ export function CriterionCard({ index, criterion, usedKeys, onChange, ga4Connect
         </div>
 
         {/* Sıralama Yönü */}
-        <div style={{ marginBottom: criterion.key === 'bestSeller' ? '12px' : '0' }}>
+        <div style={{ marginBottom: (criterion.key === 'bestSeller' || GA4_CRITERION_KEYS.has(criterion.key)) ? '12px' : '0' }}>
           <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--tx3)', marginBottom: '5px' }}>
             Sıralama Yönü
           </label>
@@ -126,6 +126,25 @@ export function CriterionCard({ index, criterion, usedKeys, onChange, ga4Connect
                 onChange={e => onChange({ ...criterion, salesPeriod: e.target.value as SalesPeriod })}
                 style={selectSt}>
                 {(Object.keys(SALES_PERIOD_LABELS) as SalesPeriod[]).map(k => (
+                  <option key={k} value={k}>{SALES_PERIOD_LABELS[k]}</option>
+                ))}
+              </select>
+              <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '9px', color: 'var(--tx3)', pointerEvents: 'none' }}>▼</span>
+            </div>
+          </div>
+        )}
+
+        {/* GA4 veri dönemi */}
+        {GA4_CRITERION_KEYS.has(criterion.key) && (
+          <div style={{ borderRadius: '10px', padding: '10px 12px', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+            <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--tx3)', marginBottom: '5px' }}>
+              Veri Dönemi
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select value={criterion.salesPeriod ?? '1m'}
+                onChange={e => onChange({ ...criterion, salesPeriod: e.target.value as SalesPeriod })}
+                style={selectSt}>
+                {(['3d','7d','14d','1m','3m'] as SalesPeriod[]).map(k => (
                   <option key={k} value={k}>{SALES_PERIOD_LABELS[k]}</option>
                 ))}
               </select>

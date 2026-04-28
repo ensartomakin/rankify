@@ -51,13 +51,10 @@ export async function exchangeCodeForTokens(
 }
 
 function dateRangeToStartDate(range: string): string {
-  switch (range) {
-    case '7d':  return '7daysAgo';
-    case '14d': return '14daysAgo';
-    case '30d': return '30daysAgo';
-    case '90d': return '90daysAgo';
-    default:    return '30daysAgo';
-  }
+  // Nd formatını doğrudan GA4 formatına çevir (3d→3daysAgo, 90d→90daysAgo vs.)
+  const m = range.match(/^(\d+)d$/);
+  if (m) return `${m[1]}daysAgo`;
+  return '30daysAgo';
 }
 
 export async function fetchGa4ProductMetrics(

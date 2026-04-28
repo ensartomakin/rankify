@@ -460,7 +460,7 @@ export function Dashboard({ prefill }: Props) {
   const [criteria,     setCriteria]     = useState<[WeightCriterion, WeightCriterion, WeightCriterion]>(
     prefill?.criteria ?? DEFAULT_CRITERIA
   );
-  const [smartMix,      setSmartMix]      = useState(false);
+  const [smartMix,      setSmartMix]      = useState(true);
   const [ga4Connected,  setGa4Connected]  = useState(false);
 
   const [saveStatus,    setSaveStatus]    = useState<Status>('idle');

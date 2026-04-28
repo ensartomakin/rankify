@@ -360,23 +360,17 @@ export class TSoftClient {
       p.Image        ?? p.image        ?? p.Photo    ?? p.photo    ?? ''
     );
 
-    // T-Soft'ta liste fiyatı: Price veya ListPrice/OldPrice
-    // İndirimli fiyat: SalePrice / CampaignPrice / DiscountedPrice / SellingPrice
-    const listPrice    = Number(p.Price ?? p.ListPrice ?? p.listPrice ?? p.OldPrice ?? p.oldPrice ?? p.MarketPrice ?? p.marketPrice ?? 0);
-    const sellingPrice = Number(p.SalePrice ?? p.salePrice ?? p.CampaignPrice ?? p.campaignPrice ??
-                                p.DiscountedPrice ?? p.discountedPrice ?? p.SellingPrice ?? p.sellingPrice ?? 0);
-    const discountRate = Number(p.DiscountRate ?? p.discountRate ?? p.Discount ?? p.discount ?? 0)
-      || (listPrice > 0 && sellingPrice > 0 && sellingPrice < listPrice
-          ? Math.round(((listPrice - sellingPrice) / listPrice) * 100)
+    // T-Soft: SellingPrice = liste/taban fiyat, DiscountedPrice = indirimli fiyat
+    const listPrice      = Number(p.SellingPrice ?? p.sellingPrice ?? 0);
+    const discountedPrice = Number(p.DiscountedPrice ?? p.discountedPrice ?? 0);
+    const discountRate = Number(p.DiscountRate ?? p.discountRate ?? 0)
+      || (listPrice > 0 && discountedPrice > 0 && discountedPrice < listPrice
+          ? Math.round(((listPrice - discountedPrice) / listPrice) * 100)
           : 0);
 
-    const seoUrl = String(
-      p.SEOUrl ?? p.SeoUrl ?? p.seoUrl ??
-      p.SEOLink ?? p.SeoLink ?? p.seoLink ??
-      p.Url ?? p.url ?? p.Link ?? p.link ??
-      p.DetailUrl ?? p.detailUrl ?? p.ProductUrl ?? p.productUrl ??
-      p.Slug ?? p.slug ?? ''
-    );
+    // T-Soft: SeoLink = ürün slug'ı ("modal-basic-sweat-kemik")
+    const seoLink = String(p.SeoLink ?? p.seoLink ?? p.SEOLink ??
+      p.SEOUrl ?? p.SeoUrl ?? p.seoUrl ?? p.Url ?? p.url ?? p.Slug ?? p.slug ?? '');
 
     return {
       productId:        String(p.ProductId ?? p.productId ?? p.Id ?? p.id ?? ''),
@@ -393,7 +387,7 @@ export class TSoftClient {
       reviewCount:      Number(p.ReviewCount ?? p.reviewCount ?? p.CommentCount ?? p.commentCount ?? 0),
       variants,
       discountRate,
-      seoUrl,
+      seoUrl: seoLink,
     };
   }
 

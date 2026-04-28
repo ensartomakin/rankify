@@ -199,7 +199,7 @@ function CurrentCard({
           </div>
         )}
         <a href={p.seoUrl
-            ? (p.seoUrl.startsWith('http') ? p.seoUrl : `${apiUrl.replace(/\/$/, '')}/${p.seoUrl.replace(/^\//, '')}`)
+            ? (p.seoUrl.startsWith('http') ? p.seoUrl : `${apiUrl.replace(/\/$/, '')}/urun-detay/${p.seoUrl.replace(/^\//, '')}`)
             : `${apiUrl.replace(/\/$/, '')}/urun-detay/${p.productCode}`}
           target="_blank" rel="noopener noreferrer"
           className="text-sm font-semibold leading-snug line-clamp-2 hover:underline"

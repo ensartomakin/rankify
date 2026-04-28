@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import { logger } from '../utils/logger';
 import { chunk, sleep } from '../utils/helpers';
 import { getCredentials, type TsoftCredentials } from '../db/credentials.repo';
+import { getSuperAdminId } from '../db/user.repo';
 import type { TSoftProduct, TSoftSalesData, TSoftRankPayload } from '../types/tsoft';
 
 const BATCH_SIZE  = 50;
@@ -567,7 +568,9 @@ export class TSoftClient {
 }
 
 export async function getClientForUser(userId: number): Promise<TSoftClient> {
-  const creds = await getCredentials(userId);
+  const superAdminId = await getSuperAdminId();
+  const ownerId = superAdminId ?? userId;
+  const creds = await getCredentials(ownerId);
   if (!creds) throw new Error('T-Soft bağlantı bilgileri tanımlı değil. Lütfen Ayarlar sayfasından ekleyin.');
   return new TSoftClient(creds);
 }

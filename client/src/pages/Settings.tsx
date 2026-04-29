@@ -75,7 +75,7 @@ export function Settings({ onSaved }: Props) {
     try {
       const r = await testCredentials(form);
       setTestStatus(r.ok ? 'ok' : 'fail'); setTestMsg(r.message); setTestDebug(r.debug ?? '');
-    } catch { setTestStatus('fail'); setTestMsg('Bağlantı testi başarısız'); }
+    } catch (err) { setTestStatus('fail'); setTestMsg(err instanceof Error ? err.message : 'Bağlantı testi başarısız'); }
   }
 
   async function handleSave() {

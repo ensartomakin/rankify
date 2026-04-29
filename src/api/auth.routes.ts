@@ -32,15 +32,8 @@ authRouter.get('/setup', async (_req: Request, res: Response) => {
   res.json({ needsSetup: count === 0 });
 });
 
-// Kayıt — sadece hiç kullanıcı yoksa (ilk kurulum) çalışır
-// Sonraki kullanıcılar /api/users endpoint'i üzerinden super admin tarafından eklenir
+// Kayıt — açık kayıt: her yeni kullanıcı kendi mağazasını yönetebilen super_admin olarak oluşturulur
 authRouter.post('/register', async (req: Request, res: Response) => {
-  const count = await countUsers();
-  if (count > 0) {
-    res.status(403).json({ error: 'Kayıt kapalı. Kullanıcılar yönetici tarafından eklenir.' });
-    return;
-  }
-
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
@@ -50,7 +43,6 @@ authRouter.post('/register', async (req: Request, res: Response) => {
   if (existing) { res.status(409).json({ error: 'Bu e-posta zaten kayıtlı' }); return; }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  // İlk kullanıcı her zaman super_admin
   const user = await createUser(email, passwordHash, name, 'super_admin');
   const token = signToken({ userId: user.id, email: user.email, role: user.role });
   setAuthCookie(res, token);

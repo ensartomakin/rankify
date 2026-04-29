@@ -16,8 +16,7 @@ catalogRouter.get('/categories', async (req: Request, res: Response) => {
     res.json({ categories });
   } catch (err) {
     logger.error(`Kategori listesi hatası: ${err}`);
-    const msg = err instanceof Error ? err.message : 'Kategori listesi alınamadı';
-    res.status(502).json({ error: msg });
+    res.status(502).json({ error: 'T-Soft kategori listesi alınamadı' });
   }
 });
 
@@ -50,7 +49,6 @@ catalogRouter.get('/categories/:categoryId/products', async (req: Request, res: 
     res.json({ products, total: productCodes.length });
   } catch (err) {
     logger.error(`Kategori ürünleri hatası: ${err}`);
-    const msg = err instanceof Error ? err.message : 'Ürün listesi alınamadı';
-    res.status(502).json({ error: msg });
+    res.status(502).json({ error: 'T-Soft ürün listesi alınamadı' });
   }
 });

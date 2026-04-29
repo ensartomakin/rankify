@@ -6,11 +6,13 @@ import { signToken, requireAuth, setAuthCookie, clearAuthCookie } from './auth.m
 
 export const authRouter = Router();
 
-// Precomputed once at startup — prevents user-enumeration via timing differences
-let _dummyHash: string | null = null;
-async function getDummyHash(): Promise<string> {
-  if (!_dummyHash) _dummyHash = await bcrypt.hash('rankify-timing-protection-dummy', 12);
-  return _dummyHash;
+// Promise singleton — concurrent first-time calls share one bcrypt computation, no race
+let _dummyHashPromise: Promise<string> | null = null;
+function getDummyHash(): Promise<string> {
+  if (!_dummyHashPromise) {
+    _dummyHashPromise = bcrypt.hash('rankify-timing-protection-dummy', 12);
+  }
+  return _dummyHashPromise;
 }
 
 const registerSchema = z.object({

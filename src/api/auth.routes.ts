@@ -55,7 +55,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
   const token = signToken({ userId: user.id, email: user.email, role: user.role });
   setAuthCookie(res, token);
 
-  res.status(201).json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
 });
 
 authRouter.post('/login', async (req: Request, res: Response) => {
@@ -75,7 +75,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 
   const token = signToken({ userId: user.id, email: user.email, role: user.role });
   setAuthCookie(res, token);
-  res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
 });
 
 authRouter.post('/logout', (_req: Request, res: Response) => {

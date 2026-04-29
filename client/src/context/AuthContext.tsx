@@ -42,14 +42,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setSessionReady(true));
   }, []);
 
-  const setAuth = useCallback((_token: string, u: AuthUser) => {
-    // token artık localStorage'da saklanmıyor — httpOnly cookie ile yönetiliyor
+  const setAuth = useCallback((token: string, u: AuthUser) => {
+    if (token) localStorage.setItem('auth_token', token);
     localStorage.setItem('user', JSON.stringify(u));
     setUser(u);
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem('user');
+    localStorage.removeItem('auth_token');
     setUser(null);
     fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
   }, []);

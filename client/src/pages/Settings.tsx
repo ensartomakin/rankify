@@ -421,7 +421,7 @@ export function Settings({ onSaved }: Props) {
                   {/* Saat seçici — sadece gün aktifse */}
                   {enabled && (
                     <div className="px-4 pb-3">
-                      <div className="grid grid-cols-8 gap-1.5">
+                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
                         {Array.from({ length: 24 }, (_, h) => {
                           const sel = hours.includes(h);
                           return (

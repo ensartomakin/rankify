@@ -706,28 +706,39 @@ export function Dashboard({ prefill }: Props) {
     }
   }
 
+  function syncPinsToOrder(newOrder: ProductPreviewItem[]) {
+    if (Object.keys(pinnedPositions).length === 0) return;
+    const updated: Record<string, number> = {};
+    for (const code of Object.keys(pinnedPositions)) {
+      const item = newOrder.find(p => p.productCode === code);
+      if (item) updated[code] = item.finalRank;
+    }
+    setPinnedPositions(updated);
+    localStorage.setItem(`rankify_pin_${categoryId}`, JSON.stringify(updated));
+  }
+
   // Preview drag end
   function handlePreviewDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    setPreviewOrder(items => {
-      const oldIdx = items.findIndex(p => p.productCode === active.id);
-      const newIdx = items.findIndex(p => p.productCode === over.id);
-      return arrayMove(items, oldIdx, newIdx).map((p, i) => ({ ...p, finalRank: i + 1 }));
-    });
+    const oldIdx = previewOrder.findIndex(p => p.productCode === active.id);
+    const newIdx = previewOrder.findIndex(p => p.productCode === over.id);
+    const newOrder = arrayMove(previewOrder, oldIdx, newIdx).map((p, i) => ({ ...p, finalRank: i + 1 }));
+    setPreviewOrder(newOrder);
+    syncPinsToOrder(newOrder);
   }
 
   // Preview rank input
   function handlePreviewRankEdit(code: string, newRank: number) {
-    setPreviewOrder(items => {
-      const clamped = Math.max(1, Math.min(items.length, newRank));
-      const idx = items.findIndex(p => p.productCode === code);
-      if (idx === -1) return items;
-      const next = [...items];
-      const [item] = next.splice(idx, 1);
-      next.splice(clamped - 1, 0, item);
-      return next.map((p, i) => ({ ...p, finalRank: i + 1 }));
-    });
+    const clamped = Math.max(1, Math.min(previewOrder.length, newRank));
+    const idx = previewOrder.findIndex(p => p.productCode === code);
+    if (idx === -1) return;
+    const next = [...previewOrder];
+    const [item] = next.splice(idx, 1);
+    next.splice(clamped - 1, 0, item);
+    const newOrder = next.map((p, i) => ({ ...p, finalRank: i + 1 }));
+    setPreviewOrder(newOrder);
+    syncPinsToOrder(newOrder);
   }
 
   async function handleTrigger() {
@@ -785,9 +796,9 @@ export function Dashboard({ prefill }: Props) {
   return (
     <div className="h-full flex flex-col">
       {/* Başlık */}
-      <div className="shrink-0 pt-5 pb-4 flex items-center justify-between gap-6"
-        style={{ borderBottom: '1px solid var(--border)', paddingLeft: '28px', paddingRight: '28px' }}>
-        <h1 className="font-serif" style={{ fontSize: '28px', fontWeight: 700, color: 'var(--tx1)', lineHeight: 1.2 }}>
+      <div className="shrink-0 pt-5 pb-4 flex items-center justify-between gap-4 px-4 md:px-7"
+        style={{ borderBottom: '1px solid var(--border)' }}>
+        <h1 className="font-serif" style={{ fontSize: 'clamp(18px,4vw,28px)', fontWeight: 700, color: 'var(--tx1)', lineHeight: 1.2 }}>
           Sıralama Yöneticisi
         </h1>
         <div className="shrink-0 flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-semibold"
@@ -801,7 +812,7 @@ export function Dashboard({ prefill }: Props) {
       </div>
 
       {/* Kaydırılabilir içerik */}
-      <div className="flex-1 overflow-y-auto pb-8 space-y-6" style={{ paddingTop: '20px', paddingLeft: '28px', paddingRight: '28px' }}>
+      <div className="flex-1 overflow-y-auto pb-8 space-y-6 px-4 md:px-7" style={{ paddingTop: '20px' }}>
 
         {/* Hero kategori arama alanı */}
         <div>
@@ -923,7 +934,7 @@ export function Dashboard({ prefill }: Props) {
           </div>
 
           {/* Senaryo ızgarası */}
-          <div style={{ padding: '14px 16px', background: 'var(--surface)', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2" style={{ padding: '14px 16px', background: 'var(--surface)' }}>
             {SCENARIOS.map(s => {
               const isSelected = selectedScenario?.id === s.id;
               return (
@@ -980,7 +991,7 @@ export function Dashboard({ prefill }: Props) {
           </div>
           {/* Kart içeriği */}
           <div style={{ padding: '24px 24.3px' }}>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {criteria.map((c, i) => (
                 <CriterionCard key={i} index={i as 0 | 1 | 2} criterion={c}
                   usedKeys={criteria.map(x => x.key)}
@@ -1083,7 +1094,7 @@ export function Dashboard({ prefill }: Props) {
             {/* Liste başlığı / araç çubuğu */}
             <div style={{ padding: '12px 20px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', borderRadius: '16px 16px 0 0' }}>
               {/* Üst satır: sekmeler + arama */}
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 {/* Sol: görünüm sekmeleri */}
                 <div className="flex items-center gap-2">
                   {previewResult ? (
@@ -1106,7 +1117,7 @@ export function Dashboard({ prefill }: Props) {
                 </div>
 
                 {/* Sağ: export + toggle + arama */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2">
                   {(manualOrder.length > 0 || previewOrder.length > 0) && (
                     <button onClick={handleExportCsv}
                       className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors"
@@ -1141,7 +1152,7 @@ export function Dashboard({ prefill }: Props) {
                     <input type="text" placeholder="Ara…" value={filter}
                       onChange={e => setFilter(e.target.value)}
                       className="pl-8 pr-3 py-1.5 rounded-lg text-sm focus:outline-none"
-                      style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)', width: 160 }} />
+                      style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)', width: 'clamp(100px, 30vw, 160px)' }} />
                   </div>
                 </div>
               </div>
@@ -1193,7 +1204,7 @@ export function Dashboard({ prefill }: Props) {
               {view === 'current' && currentStatus !== 'loading' && filteredCurrent.length > 0 && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={filteredCurrent.map(p => p.productCode)} strategy={rectSortingStrategy}>
-                    <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {filteredCurrent.map(p => (
                         <SortableCurrentCard key={p.productCode} p={p} apiUrl={apiUrl} onRankEdit={handleRankEdit}
                           isPinned={pinnedPositions[p.productCode] !== undefined}
@@ -1208,7 +1219,7 @@ export function Dashboard({ prefill }: Props) {
               {view === 'preview' && previewStatus !== 'loading' && filteredPreview.length > 0 && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePreviewDragEnd}>
                   <SortableContext items={filteredPreview.map(p => p.productCode)} strategy={rectSortingStrategy}>
-                    <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {filteredPreview.map(p => (
                         <SortablePreviewCard key={p.productCode} p={p} displayRank={p.finalRank}
                           criteria={previewResult!.criteria} apiUrl={apiUrl}

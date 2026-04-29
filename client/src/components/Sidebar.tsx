@@ -62,10 +62,48 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
   const { theme, toggle } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
   const initials = (user?.name ?? user?.email ?? 'U').slice(0, 2).toUpperCase();
+  const visibleNav = NAV.filter(item => !item.adminOnly || isSuperAdmin);
 
   return (
+    <>
+    {/* ── Mobile bottom tab bar ─────────────── */}
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center"
+      style={{
+        height: '60px',
+        background: 'var(--sb-bg)',
+        borderTop: '1px solid var(--sb-border)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}>
+      {visibleNav.map(item => {
+        const active = current === item.key;
+        return (
+          <button key={item.key} onClick={() => onChange(item.key)}
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors"
+            style={{ color: active ? 'var(--acc)' : 'var(--sb-tx)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            {item.icon}
+            <span className="text-[9px] font-semibold">{item.label}</span>
+          </button>
+        );
+      })}
+      <button onClick={toggle}
+        className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
+        style={{ color: 'var(--sb-tx)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+        {theme === 'dark' ? (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-[17px] h-[17px]">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-[17px] h-[17px]">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+          </svg>
+        )}
+        <span className="text-[9px] font-semibold">{theme === 'dark' ? 'Açık' : 'Koyu'}</span>
+      </button>
+    </nav>
+
+    {/* ── Desktop sidebar ───────────────────── */}
     <aside
-      className="h-full flex flex-col shrink-0 overflow-hidden transition-all duration-300 rounded-2xl"
+      className="hidden md:flex h-full flex-col shrink-0 overflow-hidden transition-all duration-300 rounded-2xl"
       style={{
         width: collapsed ? '68px' : '230px',
         background: 'var(--sb-bg)',
@@ -304,5 +342,6 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
         )}
       </div>
     </aside>
+    </>
   );
 }

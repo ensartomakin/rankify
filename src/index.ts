@@ -102,10 +102,16 @@ async function bootstrap() {
     res.status(500).json({ error: 'İç sunucu hatası' });
   });
 
-  startScheduler();
-
-  app.listen(PORT, () => {
+  app.listen(PORT, async () => {
     logger.info(`Rankify ayakta → http://localhost:${PORT}`);
+    if (process.env.DATABASE_URL) {
+      try {
+        await runMigrations();
+      } catch (err) {
+        logger.error('Migration hatası:', err);
+      }
+    }
+    startScheduler();
   });
 }
 

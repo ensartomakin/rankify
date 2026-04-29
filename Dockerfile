@@ -1,4 +1,5 @@
 # --- Build aşaması ---
+# cache-bust: 2026-04-29
 FROM node:20-alpine AS builder
 
 WORKDIR /app

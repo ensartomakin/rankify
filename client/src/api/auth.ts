@@ -10,7 +10,7 @@ export interface AuthUser {
 }
 
 export interface AuthResponse {
-  token: string;
+  token?: string; // deprecated: artık cookie ile yönetiliyor
   user: AuthUser;
 }
 

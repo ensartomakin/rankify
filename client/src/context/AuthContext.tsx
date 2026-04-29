@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { AuthUser } from '../api/auth';
 
 interface AuthContextValue {
   user: AuthUser | null;
+  sessionReady: boolean;
   setAuth: (token: string, user: AuthUser) => void;
   logout: () => void;
 }
@@ -18,21 +19,43 @@ function loadUser(): AuthUser | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(loadUser);
+  // sessionReady: false until the server-side cookie is verified (prevents stale localStorage flash)
+  const [sessionReady, setSessionReady] = useState(false);
 
-  const setAuth = useCallback((token: string, u: AuthUser) => {
-    localStorage.setItem('token', token);
+  useEffect(() => {
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { userId: number; email: string; role: string } | null) => {
+        if (data) {
+          const fresh: AuthUser = { id: data.userId, email: data.email, role: data.role as AuthUser['role'] };
+          localStorage.setItem('user', JSON.stringify(fresh));
+          setUser(fresh);
+        } else {
+          localStorage.removeItem('user');
+          setUser(null);
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem('user');
+        setUser(null);
+      })
+      .finally(() => setSessionReady(true));
+  }, []);
+
+  const setAuth = useCallback((_token: string, u: AuthUser) => {
+    // token artık localStorage'da saklanmıyor — httpOnly cookie ile yönetiliyor
     localStorage.setItem('user', JSON.stringify(u));
     setUser(u);
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, setAuth, logout }}>
+    <AuthContext.Provider value={{ user, sessionReady, setAuth, logout }}>
       {children}
     </AuthContext.Provider>
   );

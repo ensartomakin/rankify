@@ -2,9 +2,18 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { createUser, findUserByEmail, countUsers } from '../db/user.repo';
-import { signToken, requireAuth } from './auth.middleware';
+import { signToken, requireAuth, setAuthCookie, clearAuthCookie } from './auth.middleware';
 
 export const authRouter = Router();
+
+// Promise singleton — concurrent first-time calls share one bcrypt computation, no race
+let _dummyHashPromise: Promise<string> | null = null;
+function getDummyHash(): Promise<string> {
+  if (!_dummyHashPromise) {
+    _dummyHashPromise = bcrypt.hash('rankify-timing-protection-dummy', 12);
+  }
+  return _dummyHashPromise;
+}
 
 const registerSchema = z.object({
   email:    z.string().email(),
@@ -44,8 +53,9 @@ authRouter.post('/register', async (req: Request, res: Response) => {
   // İlk kullanıcı her zaman super_admin
   const user = await createUser(email, passwordHash, name, 'super_admin');
   const token = signToken({ userId: user.id, email: user.email, role: user.role });
+  setAuthCookie(res, token);
 
-  res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  res.status(201).json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
 });
 
 authRouter.post('/login', async (req: Request, res: Response) => {
@@ -55,13 +65,22 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   const { email, password } = parsed.data;
   const user = await findUserByEmail(email);
 
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  // Always run bcrypt to prevent timing-based user enumeration
+  const hashToCheck = user?.passwordHash ?? await getDummyHash();
+  const isMatch = await bcrypt.compare(password, hashToCheck);
+  if (!user || !isMatch) {
     res.status(401).json({ error: 'E-posta veya şifre hatalı' });
     return;
   }
 
   const token = signToken({ userId: user.id, email: user.email, role: user.role });
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  setAuthCookie(res, token);
+  res.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+});
+
+authRouter.post('/logout', (_req: Request, res: Response) => {
+  clearAuthCookie(res);
+  res.json({ ok: true });
 });
 
 authRouter.get('/me', requireAuth, (req: Request, res: Response) => {

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth } from './auth.middleware';
+import { requireAuth, requireSuperAdmin } from './auth.middleware';
 import { getClientForUser } from '../services/tsoft-client';
 import { logger } from '../utils/logger';
 
@@ -16,13 +16,15 @@ catalogRouter.get('/categories', async (req: Request, res: Response) => {
     res.json({ categories });
   } catch (err) {
     logger.error(`Kategori listesi hatası: ${err}`);
-    const msg = err instanceof Error ? err.message : 'Kategori listesi alınamadı';
-    res.status(502).json({ error: msg });
+    res.status(502).json({ error: 'T-Soft kategori listesi alınamadı' });
   }
 });
 
-// Ham T-Soft yanıtını döndüren debug endpoint
-catalogRouter.get('/debug/categories', async (req: Request, res: Response) => {
+// Ham T-Soft yanıtını döndüren debug endpoint — prod'da kapalı
+catalogRouter.get('/debug/categories', requireSuperAdmin, async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(404).json({ error: 'Not found' }); return;
+  }
   const client = await getClientForUser(req.user!.userId);
   const c      = client as unknown as { post: (ep: string, p: Record<string,unknown>) => Promise<unknown>; creds: { storeCode: string } };
   const results: Record<string, unknown> = {};
@@ -47,7 +49,6 @@ catalogRouter.get('/categories/:categoryId/products', async (req: Request, res: 
     res.json({ products, total: productCodes.length });
   } catch (err) {
     logger.error(`Kategori ürünleri hatası: ${err}`);
-    const msg = err instanceof Error ? err.message : 'Ürün listesi alınamadı';
-    res.status(502).json({ error: msg });
+    res.status(502).json({ error: 'T-Soft ürün listesi alınamadı' });
   }
 });

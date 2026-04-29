@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, requireSuperAdmin } from './auth.middleware';
 import { getSuperAdminId } from '../db/user.repo';
+import { createNonce, consumeNonce } from '../utils/nonce-store';
 import {
   upsertGa4Credentials,
   getGa4Credentials,
@@ -28,28 +29,27 @@ async function getGa4OwnerId(requestingUserId: number): Promise<number> {
   return superAdminId ?? requestingUserId;
 }
 
-// OAuth callback — auth gerektirmez (Google'dan gelir), state ile userId taşınır
+// OAuth callback — auth gerektirmez (Google'dan gelir), state = CSRF nonce
+
 ga4Router.get('/auth/callback', async (req, res) => {
+  // Override helmet's default CSP for this popup page — it needs unsafe-inline script
+  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'");
+
   const { code, state, error } = req.query as Record<string, string>;
-  const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 
   if (error || !code || !state) {
     return res.send(closePopupHtml('error', 'Google yetkilendirmesi iptal edildi'));
   }
 
-  let userId: number;
-  try {
-    userId = Number(Buffer.from(state, 'base64').toString('utf8'));
-    if (!userId || isNaN(userId)) throw new Error('geçersiz state');
-  } catch {
-    return res.send(closePopupHtml('error', 'Geçersiz oturum — tekrar deneyin'));
+  // consumeNonce validates the nonce, returns userId, and deletes it (single-use)
+  const userId = consumeNonce(state);
+  if (!userId) {
+    return res.send(closePopupHtml('error', 'Geçersiz veya süresi dolmuş oturum — tekrar deneyin'));
   }
 
   try {
     const { refreshToken, googleEmail } = await exchangeCodeForTokens(code);
 
-    // property_id henüz yok — callback'te gelmiyor, sonra ayrıca kaydedilecek
-    // Geçici olarak boş string ile kaydet, kullanıcı property ID'yi sonra girer
     const existing = await getGa4Credentials(userId);
     await upsertGa4Credentials(userId, {
       propertyId:   existing?.propertyId ?? '',
@@ -62,7 +62,7 @@ ga4Router.get('/auth/callback', async (req, res) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error(`[GA4 OAuth callback] hata: ${msg}`);
-    return res.send(closePopupHtml('error', msg));
+    return res.send(closePopupHtml('error', 'Google bağlantısı sırasında hata oluştu'));
   }
 });
 
@@ -74,9 +74,9 @@ ga4Router.get('/auth/url', requireSuperAdmin, (req, res) => {
   if (!process.env.GA4_CLIENT_ID || !process.env.GA4_CLIENT_SECRET || !process.env.GA4_REDIRECT_URI) {
     return res.status(503).json({ error: 'GA4 OAuth yapılandırılmamış (env eksik)' });
   }
-  // state = base64(userId) — callback'te kim olduğumuzu bilmek için
-  const state = Buffer.from(String(req.user!.userId)).toString('base64');
-  const url   = getGa4AuthUrl() + `&state=${encodeURIComponent(state)}`;
+  // state = cryptographically random nonce bound to userId (server-side)
+  const nonce = createNonce(req.user!.userId);
+  const url   = getGa4AuthUrl() + `&state=${encodeURIComponent(nonce)}`;
   res.json({ url });
 });
 
@@ -134,9 +134,8 @@ ga4Router.post('/sync', async (req, res) => {
     logger.info(`[GA4 sync] ownerId=${ownerId} ${metrics.length} ürün metriği güncellendi`);
     res.json({ ok: true, count: metrics.length, dateRange });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error(`[GA4 sync] hata ownerId=${ownerId}: ${msg}`);
-    res.status(500).json({ error: msg });
+    logger.error(`[GA4 sync] hata ownerId=${ownerId}: ${err}`);
+    res.status(500).json({ error: 'GA4 senkronizasyonu başarısız' });
   }
 });
 
@@ -163,21 +162,32 @@ ga4Router.get('/metrics', async (req, res) => {
   }
 });
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Popup'ı kapatan ve parent window'a mesaj gönderen HTML
 function closePopupHtml(status: 'success' | 'error', detail: string): string {
+  const targetOrigin = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+  const safeDetail   = escapeHtml(detail);
   return `<!DOCTYPE html><html><body><script>
     try {
       window.opener && window.opener.postMessage(
         { type: 'ga4_oauth', status: '${status}', detail: ${JSON.stringify(detail)} },
-        '*'
+        ${JSON.stringify(targetOrigin)}
       );
     } catch(e) {}
     window.close();
   </script>
   <p style="font-family:sans-serif;padding:24px">
     ${status === 'success'
-      ? `✅ <b>${detail}</b> hesabı bağlandı. Bu sekmeyi kapatabilirsiniz.`
-      : `❌ Hata: ${detail}`}
+      ? `✅ <b>${safeDetail}</b> hesabı bağlandı. Bu sekmeyi kapatabilirsiniz.`
+      : `❌ Bağlantı tamamlanamadı. Bu sekmeyi kapatabilirsiniz.`}
   </p>
   </body></html>`;
 }

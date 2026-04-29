@@ -53,11 +53,16 @@ export async function getGa4Credentials(userId: number): Promise<Ga4OAuthCredent
     [userId]
   );
   if (!rows[0] || !rows[0].refresh_token_enc) return null;
-  return {
-    propertyId:   rows[0].property_id,
-    refreshToken: decrypt(rows[0].refresh_token_enc),
-    googleEmail:  rows[0].google_email,
-  };
+  try {
+    return {
+      propertyId:   rows[0].property_id,
+      refreshToken: decrypt(rows[0].refresh_token_enc),
+      googleEmail:  rows[0].google_email,
+    };
+  } catch {
+    // Corrupted ciphertext — treat as missing (user must re-connect GA4)
+    return null;
+  }
 }
 
 export async function hasGa4Credentials(userId: number): Promise<boolean> {
@@ -94,19 +99,37 @@ export async function upsertGa4Metrics(
   metrics: Ga4ProductMetric[],
   dateRange: string
 ): Promise<void> {
-  for (const m of metrics) {
-    await query(
-      `INSERT INTO ga4_product_metrics
-         (user_id, item_id, date_range, views, sessions, ctr, conversion_rate, purchases, revenue, cached_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, NOW())
-       ON CONFLICT (user_id, item_id, date_range) DO UPDATE
-         SET views = EXCLUDED.views, sessions = EXCLUDED.sessions,
-             ctr = EXCLUDED.ctr, conversion_rate = EXCLUDED.conversion_rate,
-             purchases = EXCLUDED.purchases, revenue = EXCLUDED.revenue,
-             cached_at = NOW()`,
-      [userId, m.itemId, dateRange, m.views, m.sessions, m.ctr, m.conversionRate, m.purchases, m.revenue]
-    );
-  }
+  if (metrics.length === 0) return;
+
+  // Single bulk upsert instead of N individual queries
+  await query(
+    `INSERT INTO ga4_product_metrics
+       (user_id, item_id, date_range, views, sessions, ctr, conversion_rate, purchases, revenue, cached_at)
+     SELECT $1, unnest($2::text[]), $3,
+            unnest($4::int[]), unnest($5::int[]),
+            unnest($6::numeric[]), unnest($7::numeric[]),
+            unnest($8::int[]), unnest($9::numeric[]),
+            NOW()
+     ON CONFLICT (user_id, item_id, date_range) DO UPDATE
+       SET views           = EXCLUDED.views,
+           sessions        = EXCLUDED.sessions,
+           ctr             = EXCLUDED.ctr,
+           conversion_rate = EXCLUDED.conversion_rate,
+           purchases       = EXCLUDED.purchases,
+           revenue         = EXCLUDED.revenue,
+           cached_at       = NOW()`,
+    [
+      userId,
+      metrics.map(m => m.itemId),
+      dateRange,
+      metrics.map(m => m.views),
+      metrics.map(m => m.sessions),
+      metrics.map(m => m.ctr),
+      metrics.map(m => m.conversionRate),
+      metrics.map(m => m.purchases),
+      metrics.map(m => m.revenue),
+    ]
+  );
 }
 
 export async function getGa4Metrics(

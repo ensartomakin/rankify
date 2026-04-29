@@ -15,7 +15,8 @@ export function Settings({ onSaved }: Props) {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super_admin';
   const [form,       setForm]       = useState<CredentialsPayload>({ apiUrl: '', storeCode: '', apiUser: '', apiPass: '', apiToken: '' });
-  const [configured, setConfigured] = useState(false);
+  const [configured,      setConfigured]      = useState(false);
+  const [tokenConfigured, setTokenConfigured] = useState(false);
   const [loading,    setLoading]    = useState(true);
   const [testStatus, setTestStatus] = useState<TestStatus>('idle');
   const [testMsg,    setTestMsg]    = useState('');
@@ -46,7 +47,10 @@ export function Settings({ onSaved }: Props) {
     Promise.all([
       fetchCredentials().then(data => {
         setConfigured(data.configured);
-        if (data.configured) setForm({ apiUrl: data.apiUrl, storeCode: data.storeCode, apiUser: data.apiUser, apiPass: '' });
+        if (data.configured) {
+          setForm({ apiUrl: data.apiUrl, storeCode: data.storeCode, apiUser: data.apiUser, apiPass: '', apiToken: '' });
+          setTokenConfigured(data.apiToken === '••••••••');
+        }
       }),
       fetchSchedule().then(s => setSchedule(s)).catch(() => {}),
       fetchGa4Status().then(s => {
@@ -271,8 +275,9 @@ export function Settings({ onSaved }: Props) {
               <span className="ml-2 normal-case font-normal" style={{ color: 'var(--tx3)' }}>
                 T-Soft admin → Ayarlar → API Token
               </span>
+              {tokenConfigured && <span className="ml-2 font-normal" style={{ color: 'var(--tx3)' }}>(kayıtlı — değiştirmek için doldurun)</span>}
             </label>
-            <input type="text" placeholder="Kalıcı API token — 2FA olmadan V3 erişimi"
+            <input type="text" placeholder={tokenConfigured ? '••••••••' : 'Kalıcı API token — 2FA olmadan V3 erişimi'}
               value={form.apiToken ?? ''} onChange={e => set('apiToken' as keyof CredentialsPayload, e.target.value)}
               disabled={!isSuperAdmin}
               className={inputCls} style={{ ...inputSt, opacity: isSuperAdmin ? 1 : 0.6 }} />

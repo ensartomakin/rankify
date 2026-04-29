@@ -44,7 +44,7 @@ const credsSchema = z.object({
   apiUrl:    z.string().url('Geçerli bir URL girin'),
   storeCode: z.string().min(1),
   apiUser:   z.string().min(1),
-  apiPass:   z.string().min(1),
+  apiPass:   z.string().optional(), // Boş ise mevcut şifre korunur
   apiToken:  z.string().optional(),
 });
 
@@ -81,6 +81,7 @@ settingsRouter.get('/credentials', async (req: Request, res: Response) => {
     storeCode: creds.storeCode,
     apiUser:   creds.apiUser,
     apiPass:   '••••••••',
+    apiToken:  creds.apiToken ? '••••••••' : '',
   });
 });
 
@@ -92,7 +93,23 @@ settingsRouter.put('/credentials', requireSuperAdmin, async (req: Request, res: 
   try { await validateSsrfSafeUrl(parsed.data.apiUrl); }
   catch (err) { res.status(400).json({ error: err instanceof Error ? err.message : 'Geçersiz URL' }); return; }
 
-  await upsertCredentials(req.user!.userId, parsed.data);
+  let { apiPass, apiToken } = parsed.data;
+
+  // Boş apiPass veya apiToken varsa mevcut değerleri DB'den al
+  if (!apiPass || !apiToken) {
+    const stored = await getCredentials(req.user!.userId);
+    if (!apiPass) {
+      if (!stored) {
+        res.status(400).json({ error: 'API şifresi gerekli (ilk kayıt)' }); return;
+      }
+      apiPass = stored.apiPass;
+    }
+    if (!apiToken && stored?.apiToken) {
+      apiToken = stored.apiToken;
+    }
+  }
+
+  await upsertCredentials(req.user!.userId, { ...parsed.data, apiPass: apiPass!, apiToken });
   res.json({ message: 'Bağlantı bilgileri kaydedildi' });
 });
 
@@ -137,6 +154,7 @@ settingsRouter.post('/credentials/test', requireSuperAdmin, async (req: Request,
       return;
     }
     apiPass = stored.apiPass;
+    if (!apiToken && stored.apiToken) apiToken = stored.apiToken;
   }
 
   const result = await testConnection({ apiUrl, storeCode, apiUser, apiPass: apiPass!, apiToken });

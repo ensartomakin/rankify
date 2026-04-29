@@ -27,7 +27,6 @@ export async function saveCredentials(payload: CredentialsPayload): Promise<void
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    if (res.status === 401) throw new Error('Oturum süresi doldu, lütfen tekrar giriş yapın');
     if (res.status === 403) throw new Error('Bu işlem için süper admin yetkisi gerekli');
     throw new Error(err?.error?.formErrors?.[0] ?? err?.error ?? `Hata: ${res.status}`);
   }
@@ -42,7 +41,6 @@ export async function testCredentials(
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok && !('ok' in data)) {
-    if (res.status === 401) throw new Error('Oturum süresi doldu, lütfen tekrar giriş yapın');
     if (res.status === 403) throw new Error('Bu işlem için süper admin yetkisi gerekli');
     throw new Error(data?.error ?? `Hata: ${res.status}`);
   }

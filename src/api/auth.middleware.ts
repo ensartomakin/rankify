@@ -30,7 +30,9 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   const token = cookieToken ?? headerToken;
 
   if (!token) {
-    res.status(401).json({ error: 'Kimlik doğrulama gerekli' });
+    const cookieKeys = Object.keys(req.cookies ?? {}).join(',') || 'none';
+    const hasHeader  = !!req.headers.authorization;
+    res.status(401).json({ error: `Kimlik doğrulama gerekli [cookies:${cookieKeys}|header:${hasHeader}]` });
     return;
   }
 

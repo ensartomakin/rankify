@@ -34,21 +34,27 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return;
   }
 
+  let payload: AuthPayload;
   try {
-    const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
+    payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
+  } catch {
+    res.status(401).json({ error: 'Geçersiz veya süresi dolmuş token' });
+    return;
+  }
 
+  try {
     // Verify user still exists and fetch fresh role (catches deleted/demoted users)
     const dbUser = await findUserById(payload.userId);
     if (!dbUser) {
       res.status(401).json({ error: 'Kullanıcı bulunamadı' });
       return;
     }
-
     req.user = { userId: payload.userId, email: payload.email, role: dbUser.role };
-    next();
   } catch {
-    res.status(401).json({ error: 'Geçersiz veya süresi dolmuş token' });
+    // DB geçici olarak erişilemez — JWT payload'daki role ile devam et
+    req.user = { userId: payload.userId, email: payload.email, role: payload.role };
   }
+  next();
 }
 
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction): void {

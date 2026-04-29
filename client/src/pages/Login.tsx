@@ -24,7 +24,7 @@ export function Login() {
       const res = needsSetup
         ? await register(email, password, name || undefined)
         : await login(email, password);
-      setAuth(res.token, res.user);
+      setAuth(res.token ?? '', res.user);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bir hata oluştu');
     } finally {

@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { login, register, getSetupStatus } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 
+type Mode = 'login' | 'register';
+
 export function Login() {
   const { setAuth } = useAuth();
-  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
+  const [mode,     setMode]     = useState<Mode>('login');
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [name,     setName]     = useState('');
@@ -13,15 +15,23 @@ export function Login() {
 
   useEffect(() => {
     getSetupStatus()
-      .then(s => setNeedsSetup(s.needsSetup))
-      .catch(() => setNeedsSetup(false));
+      .then(s => { if (s.needsSetup) setMode('register'); })
+      .catch(() => {});
   }, []);
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError('');
+    setEmail('');
+    setPassword('');
+    setName('');
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const res = needsSetup
+      const res = mode === 'register'
         ? await register(email, password, name || undefined)
         : await login(email, password);
       setAuth(res.token ?? '', res.user);
@@ -32,14 +42,12 @@ export function Login() {
     }
   }
 
-  if (needsSetup === null) {
-    return (
-      <div className="h-full flex items-center justify-center" style={{ background: 'var(--bg)' }}>
-        <span className="w-6 h-6 border-2 rounded-full animate-spin"
-          style={{ borderColor: 'var(--border)', borderTopColor: '#E23260' }} />
-      </div>
-    );
-  }
+  const inputStyle: React.CSSProperties = {
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+    color: 'var(--tx1)',
+    fontFamily: 'Inter, sans-serif',
+  };
 
   return (
     <div className="h-full flex" style={{ background: 'var(--bg)' }}>
@@ -106,24 +114,31 @@ export function Login() {
             <span className="text-sm font-semibold font-serif" style={{ color: 'var(--tx1)' }}>Rankify</span>
           </div>
 
-          {needsSetup ? (
+          {/* Sekme geçişi */}
+          <div className="flex mb-8 rounded-xl p-1" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            {(['login', 'register'] as Mode[]).map(m => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => switchMode(m)}
+                className="flex-1 py-2.5 rounded-lg text-[13px] font-semibold transition-all"
+                style={mode === m
+                  ? { background: '#E23260', color: '#FFFFFF', boxShadow: '0 2px 8px rgba(226,50,96,0.3)' }
+                  : { background: 'transparent', color: 'var(--tx2)', cursor: 'pointer' }
+                }
+              >
+                {m === 'login' ? 'Giriş Yap' : 'Üye Ol'}
+              </button>
+            ))}
+          </div>
+
+          {mode === 'register' ? (
             <>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: 'rgba(226,50,96,0.12)' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#E23260" strokeWidth="2" className="w-3.5 h-3.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                  </svg>
-                </div>
-                <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#E23260' }}>
-                  İlk Kurulum
-                </span>
-              </div>
               <h2 className="font-serif mb-1" style={{ fontSize: '28px', fontWeight: 400, color: 'var(--tx1)', lineHeight: 1.2 }}>
-                Süper Admin Oluştur
+                Hesap Oluştur
               </h2>
               <p className="text-[13px] mb-8" style={{ color: 'var(--tx2)' }}>
-                İlk hesap süper admin olarak oluşturulacak
+                Kendi mağazanızı yönetmek için üye olun
               </p>
             </>
           ) : (
@@ -138,16 +153,11 @@ export function Login() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-3">
-            {needsSetup && (
+            {mode === 'register' && (
               <input type="text" placeholder="Ad Soyad"
                 value={name} onChange={e => setName(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all"
-                style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--tx1)',
-                  fontFamily: 'Inter, sans-serif',
-                }}
+                style={inputStyle}
                 onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E23260'; }}
                 onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
               />
@@ -155,24 +165,14 @@ export function Login() {
             <input type="email" placeholder="E-posta adresi" required
               value={email} onChange={e => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all"
-              style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                color: 'var(--tx1)',
-                fontFamily: 'Inter, sans-serif',
-              }}
+              style={inputStyle}
               onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E23260'; }}
               onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
             />
             <input type="password" placeholder="Şifre" required
               value={password} onChange={e => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all"
-              style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                color: 'var(--tx1)',
-                fontFamily: 'Inter, sans-serif',
-              }}
+              style={inputStyle}
               onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E23260'; }}
               onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
             />
@@ -190,7 +190,7 @@ export function Login() {
                 ? { background: 'var(--surface3)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
                 : { background: '#E23260', color: '#FFFFFF', border: 'none', cursor: 'pointer', boxShadow: '0 3px 16px rgba(226,50,96,0.38)' }
               }>
-              {loading ? 'Bekleniyor…' : needsSetup ? 'Süper Admin Oluştur' : 'Giriş Yap'}
+              {loading ? 'Bekleniyor…' : mode === 'register' ? 'Üye Ol' : 'Giriş Yap'}
             </button>
           </form>
 

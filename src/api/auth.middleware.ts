@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { findUserById, type UserRole } from '../db/user.repo';
+import type { UserRole } from '../db/user.repo';
 
 export interface AuthPayload {
   userId: number;
@@ -34,27 +34,13 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return;
   }
 
-  let payload: AuthPayload;
   try {
-    payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
+    const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
+    req.user = { userId: payload.userId, email: payload.email, role: payload.role };
+    next();
   } catch {
     res.status(401).json({ error: 'Geçersiz veya süresi dolmuş token' });
-    return;
   }
-
-  try {
-    // Verify user still exists and fetch fresh role (catches deleted/demoted users)
-    const dbUser = await findUserById(payload.userId);
-    if (!dbUser) {
-      res.status(401).json({ error: 'Kullanıcı bulunamadı' });
-      return;
-    }
-    req.user = { userId: payload.userId, email: payload.email, role: dbUser.role };
-  } catch {
-    // DB geçici olarak erişilemez — JWT payload'daki role ile devam et
-    req.user = { userId: payload.userId, email: payload.email, role: payload.role };
-  }
-  next();
 }
 
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction): void {

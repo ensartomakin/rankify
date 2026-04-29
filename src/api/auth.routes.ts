@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { createUser, findUserByEmail, countUsers } from '../db/user.repo';
+import { createUser, findUserByEmail } from '../db/user.repo';
 import { signToken, requireAuth, setAuthCookie, clearAuthCookie } from './auth.middleware';
 
 export const authRouter = Router();

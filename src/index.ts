@@ -54,10 +54,6 @@ const apiLimiter = rateLimit({
 });
 
 async function bootstrap() {
-  if (process.env.DATABASE_URL) {
-    await runMigrations();
-  }
-
   const app  = express();
   const PORT = process.env.PORT ?? 3000;
 

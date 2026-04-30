@@ -589,6 +589,21 @@ export function Dashboard({ prefill }: Props) {
     return result.map((p, i) => ({ ...p, finalRank: i + 1 }));
   }
 
+  function applyPinnedPositionsCurrent(items: CurrentRankItem[], pins = pinnedPositions): CurrentRankItem[] {
+    const pinCodes = Object.keys(pins);
+    if (pinCodes.length === 0) return items;
+    const pinnedInResult = items.filter(p => pins[p.productCode] !== undefined);
+    const unpinned       = items.filter(p => pins[p.productCode] === undefined);
+    if (pinnedInResult.length === 0) return items;
+    const sortedPinned = [...pinnedInResult].sort((a, b) => pins[a.productCode] - pins[b.productCode]);
+    const result: CurrentRankItem[] = [...unpinned];
+    for (const p of sortedPinned) {
+      const idx = Math.max(0, Math.min(result.length, pins[p.productCode] - 1));
+      result.splice(idx, 0, p);
+    }
+    return result.map((p, i) => ({ ...p, currentRank: i + 1 }));
+  }
+
   function handleCriterionChange(i: number, updated: WeightCriterion) {
     setCriteria(prev => { const n = [...prev] as typeof prev; n[i] = updated; return n; });
   }
@@ -597,24 +612,37 @@ export function Dashboard({ prefill }: Props) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+    const pins = pinnedPositions;
     setManualOrder(items => {
       const oldIdx = items.findIndex(p => p.productCode === active.id);
       const newIdx = items.findIndex(p => p.productCode === over.id);
-      return arrayMove(items, oldIdx, newIdx).map((p, i) => ({ ...p, currentRank: i + 1 }));
+      let newOrder = arrayMove(items, oldIdx, newIdx).map((p, i) => ({ ...p, currentRank: i + 1 }));
+      if (Object.keys(pins).length > 0) newOrder = applyPinnedPositionsCurrent(newOrder, pins);
+      return newOrder;
     });
     setManualDirty(true);
   }
 
   // Rank numarası manuel değişince
   function handleRankEdit(code: string, newRank: number) {
+    const clamped = Math.max(1, Math.min(manualOrder.length, newRank));
+    if (pinnedPositions[code] !== undefined) {
+      const newPins = { ...pinnedPositions, [code]: clamped };
+      setPinnedPositions(newPins);
+      localStorage.setItem(`rankify_pin_${categoryId}`, JSON.stringify(newPins));
+      setManualOrder(applyPinnedPositionsCurrent(manualOrder, newPins));
+      setManualDirty(true);
+      return;
+    }
     setManualOrder(items => {
-      const clamped = Math.max(1, Math.min(items.length, newRank));
       const idx = items.findIndex(p => p.productCode === code);
       if (idx === -1) return items;
       const next = [...items];
       const [item] = next.splice(idx, 1);
       next.splice(clamped - 1, 0, item);
-      return next.map((p, i) => ({ ...p, currentRank: i + 1 }));
+      let newOrder = next.map((p, i) => ({ ...p, currentRank: i + 1 }));
+      if (Object.keys(pinnedPositions).length > 0) newOrder = applyPinnedPositionsCurrent(newOrder, pinnedPositions);
+      return newOrder;
     });
     setManualDirty(true);
   }

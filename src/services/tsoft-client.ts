@@ -579,8 +579,8 @@ export class TSoftClient {
   }
 }
 
-export async function getClientForUser(userId: number): Promise<TSoftClient> {
-  const superAdminId = await getSuperAdminId();
+export async function getClientForUser(userId: number, tenantId?: number): Promise<TSoftClient> {
+  const superAdminId = await getSuperAdminId(tenantId);
   const ownerId = superAdminId ?? userId;
   const creds = await getCredentials(ownerId);
   if (!creds) throw new Error('T-Soft bağlantı bilgileri tanımlı değil. Lütfen Ayarlar sayfasından ekleyin.');

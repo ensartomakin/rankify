@@ -8,7 +8,7 @@ catalogRouter.use(requireAuth);
 
 catalogRouter.get('/categories', async (req: Request, res: Response) => {
   try {
-    const client     = await getClientForUser(req.user!.userId);
+    const client     = await getClientForUser(req.user!.userId, req.user!.tenantId);
     const categories = await client.getCategories();
     logger.info(`[catalog] Kategori sayısı: ${categories.length}`);
     if (categories.length > 0) logger.info(`[catalog] İlk kategori: ${JSON.stringify(categories[0])}`);
@@ -25,7 +25,7 @@ catalogRouter.get('/debug/categories', requireSuperAdmin, async (req: Request, r
   if (process.env.NODE_ENV === 'production') {
     res.status(404).json({ error: 'Not found' }); return;
   }
-  const client = await getClientForUser(req.user!.userId);
+  const client = await getClientForUser(req.user!.userId, req.user!.tenantId);
   const c      = client as unknown as { post: (ep: string, p: Record<string,unknown>) => Promise<unknown>; creds: { storeCode: string } };
   const results: Record<string, unknown> = {};
   for (const ep of ['Category/getCategories', 'category/getCategories', 'Category/getCategoryTree', 'category/tree/0']) {
@@ -41,7 +41,7 @@ catalogRouter.get('/debug/categories', requireSuperAdmin, async (req: Request, r
 
 catalogRouter.get('/categories/:categoryId/products', async (req: Request, res: Response) => {
   try {
-    const client       = await getClientForUser(req.user!.userId);
+    const client       = await getClientForUser(req.user!.userId, req.user!.tenantId);
     const productCodes = await client.getCategoryProducts(req.params.categoryId);
     if (!productCodes.length) { res.json({ products: [] }); return; }
     const codes    = productCodes.map(p => p.productCode);

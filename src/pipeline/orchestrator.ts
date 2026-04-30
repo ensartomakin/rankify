@@ -85,9 +85,10 @@ export interface CurrentRankingResult {
 
 export async function getCurrentRanking(
   categoryId: string,
-  userId = 0
+  userId = 0,
+  tenantId?: number
 ): Promise<CurrentRankingResult> {
-  const client   = await getClientForUser(userId);
+  const client   = await getClientForUser(userId, tenantId);
   const apiUrl   = client.getBaseUrl();
   // T-Soft'un ListNo'ya göre sıralanmış ürünlerini iste
   const products = await client.getCategoryProductsSorted(categoryId);
@@ -141,7 +142,8 @@ export interface PreviewResult {
 export async function runRankingPipeline(
   config: WeightConfig,
   triggeredBy: 'cron' | 'manual' = 'manual',
-  userId = 0
+  userId = 0,
+  tenantId?: number
 ): Promise<void> {
   const { categoryId, availabilityThreshold } = config;
   const startedAt = Date.now();
@@ -149,7 +151,7 @@ export async function runRankingPipeline(
 
   try {
     // Phase 1: Veri toplama
-    const client   = await getClientForUser(userId);
+    const client   = await getClientForUser(userId, tenantId);
     const products = await client.getCategoryProductsFull(categoryId);
 
     if (products.length === 0) {
@@ -246,12 +248,13 @@ export async function runRankingPipeline(
 
 export async function previewRanking(
   config: WeightConfig,
-  userId = 0
+  userId = 0,
+  tenantId?: number
 ): Promise<PreviewResult> {
   const { categoryId, availabilityThreshold } = config;
   logger.info(`Preview başladı — kategori: ${categoryId}`);
 
-  const client   = await getClientForUser(userId);
+  const client   = await getClientForUser(userId, tenantId);
   const apiUrl   = client.getBaseUrl();
   const products = await client.getCategoryProductsFull(categoryId);
 
@@ -338,9 +341,10 @@ export async function previewRanking(
 export async function applyManualRanking(
   categoryId: string,
   items: { productCode: string; rank: number }[],
-  userId = 0
+  userId = 0,
+  tenantId?: number
 ): Promise<void> {
-  const client = await getClientForUser(userId);
+  const client = await getClientForUser(userId, tenantId);
   await client.setKategoriSira(
     items.map(item => ({ productCode: item.productCode, categoryId, sortOrder: item.rank }))
   );
@@ -353,11 +357,11 @@ export async function applyManualRanking(
 }
 
 export async function runAllCategories(
-  configs: (WeightConfig & { userId?: number })[],
+  configs: (WeightConfig & { userId?: number; tenantId?: number })[],
   triggeredBy: 'cron' | 'manual' = 'cron'
 ): Promise<void> {
   for (const config of configs) {
-    await runRankingPipeline(config, triggeredBy, config.userId ?? 0);
+    await runRankingPipeline(config, triggeredBy, config.userId ?? 0, config.tenantId);
     await sleep(2000);
   }
 }

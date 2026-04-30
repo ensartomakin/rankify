@@ -3,7 +3,10 @@ import { logger } from '../utils/logger';
 import { chunk, sleep } from '../utils/helpers';
 import { getCredentials, type TsoftCredentials } from '../db/credentials.repo';
 import { getSuperAdminId } from '../db/user.repo';
+import { getTenantById } from '../db/tenant.repo';
 import type { TSoftProduct, TSoftSalesData, TSoftRankPayload } from '../types/tsoft';
+import type { TSoftClientApi } from './tsoft-client-api';
+import { createDemoTSoftClient } from './demo-tsoft-client';
 
 const BATCH_SIZE  = 50;
 const RATE_DELAY  = 500;
@@ -579,7 +582,17 @@ export class TSoftClient {
   }
 }
 
-export async function getClientForUser(userId: number, tenantId?: number): Promise<TSoftClient> {
+export async function getClientForUser(userId: number, tenantId?: number): Promise<TSoftClientApi> {
+  // Demo tenant: T-Soft yerine statik demo katalog kullan.
+  if (process.env.DATABASE_URL && tenantId) {
+    try {
+      const tenant = await getTenantById(tenantId);
+      if (tenant?.slug === 'demo') return createDemoTSoftClient();
+    } catch {
+      // Tenant sorgusu hata verirse gerçek T-Soft client'a düş.
+    }
+  }
+
   const superAdminId = await getSuperAdminId(tenantId);
   const ownerId = superAdminId ?? userId;
   const creds = await getCredentials(ownerId);

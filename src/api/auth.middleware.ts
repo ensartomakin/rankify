@@ -6,6 +6,7 @@ export interface AuthPayload {
   userId: number;
   email: string;
   role: UserRole;
+  tenantId?: number;
 }
 
 declare global {
@@ -17,12 +18,10 @@ declare global {
 }
 
 function getJwtSecret(): string {
-  // Validated at boot in index.ts — safe to assert here
   return process.env.JWT_SECRET!;
 }
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  // Accept httpOnly cookie first, then fall back to Authorization header (for API clients)
   const cookieToken = req.cookies?.['token'] as string | undefined;
   const headerToken = req.headers.authorization?.startsWith('Bearer ')
     ? req.headers.authorization.slice(7)
@@ -36,11 +35,19 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
   try {
     const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
-    req.user = { userId: payload.userId, email: payload.email, role: payload.role };
+    req.user = { userId: payload.userId, email: payload.email, role: payload.role, tenantId: payload.tenantId };
     next();
   } catch {
     res.status(401).json({ error: 'Geçersiz veya süresi dolmuş token' });
   }
+}
+
+export function requireProducer(req: Request, res: Response, next: NextFunction): void {
+  if (req.user?.role !== 'producer') {
+    res.status(403).json({ error: 'Bu işlem için üretici (producer) yetkisi gerekli' });
+    return;
+  }
+  next();
 }
 
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction): void {
@@ -55,7 +62,7 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure:   process.env.NODE_ENV === 'production',
   sameSite: 'strict' as const,
-  maxAge:   24 * 60 * 60 * 1000, // 1 gün
+  maxAge:   24 * 60 * 60 * 1000,
 };
 
 export function signToken(payload: AuthPayload): string {

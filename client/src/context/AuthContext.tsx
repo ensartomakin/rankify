@@ -19,15 +19,19 @@ function loadUser(): AuthUser | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(loadUser);
-  // sessionReady: false until the server-side cookie is verified (prevents stale localStorage flash)
   const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
-      .then((data: { userId: number; email: string; role: string } | null) => {
+      .then((data: { userId: number; email: string; role: string; tenantId?: number } | null) => {
         if (data) {
-          const fresh: AuthUser = { id: data.userId, email: data.email, role: data.role as AuthUser['role'] };
+          const fresh: AuthUser = {
+            id: data.userId,
+            email: data.email,
+            role: data.role as AuthUser['role'],
+            tenantId: data.tenantId,
+          };
           localStorage.setItem('user', JSON.stringify(fresh));
           setUser(fresh);
         } else {

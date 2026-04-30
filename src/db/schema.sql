@@ -157,3 +157,42 @@ CREATE INDEX IF NOT EXISTS idx_ranking_configs_user ON ranking_configs (user_id)
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user       ON audit_logs (user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_ran_at     ON audit_logs (ran_at DESC);
 CREATE INDEX IF NOT EXISTS idx_ga4_metrics_user      ON ga4_product_metrics (user_id, date_range);
+
+-- ============================================================
+-- 10. Tenant (Marka) sistemi — multi-tenant SaaS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS tenants (
+  id         SERIAL      PRIMARY KEY,
+  name       VARCHAR(255) NOT NULL,
+  slug       VARCHAR(100) NOT NULL UNIQUE,
+  is_active  BOOLEAN      NOT NULL DEFAULT TRUE,
+  max_users  INTEGER      NOT NULL DEFAULT 5,
+  created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+DROP TRIGGER IF EXISTS trg_tenants_updated_at ON tenants;
+CREATE TRIGGER trg_tenants_updated_at
+  BEFORE UPDATE ON tenants
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- users tablosuna tenant_id ekle (producer rolü için NULL kalır)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE;
+
+-- Mevcut super_admin / user hesaplarını varsayılan bir tenant'a taşı
+DO $$
+DECLARE v_tid INTEGER;
+BEGIN
+  IF EXISTS (SELECT 1 FROM users WHERE tenant_id IS NULL AND role IN ('super_admin','user'))
+     AND NOT EXISTS (SELECT 1 FROM tenants) THEN
+    INSERT INTO tenants (name, slug)
+    VALUES ('Varsayılan Marka', 'varsayilan-marka')
+    RETURNING id INTO v_tid;
+    UPDATE users SET tenant_id = v_tid
+    WHERE tenant_id IS NULL AND role IN ('super_admin','user');
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_users_tenant   ON users   (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tenants_slug   ON tenants (slug);
+CREATE INDEX IF NOT EXISTS idx_tenants_active ON tenants (is_active);

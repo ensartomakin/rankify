@@ -9,6 +9,7 @@ import { Configs } from './pages/Configs';
 import { Audit } from './pages/Audit';
 import { Settings } from './pages/Settings';
 import { Users } from './pages/Users';
+import { ProducerDashboard } from './pages/ProducerDashboard';
 import { fetchCredentials } from './api/settings';
 import type { SavedConfig } from './api/config';
 
@@ -23,14 +24,17 @@ function AppShell() {
   const isSuperAdmin = user?.role === 'super_admin';
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.role === 'producer') return;
     fetchCredentials()
       .then(d => setConfigured(d.configured))
       .catch(() => setConfigured(false));
   }, [user]);
 
-  if (!sessionReady) return null; // cookie doğrulanana kadar flash yok
+  if (!sessionReady) return null;
   if (!user) return <Login />;
+
+  // Producer kendi özel dashboardunu görür
+  if (user.role === 'producer') return <ProducerDashboard />;
 
   function handleEdit(config: SavedConfig) {
     setPrefill(config);
@@ -51,7 +55,6 @@ function AppShell() {
         isSuperAdmin={isSuperAdmin}
       />
 
-      {/* On mobile: full width, no left sidebar gap, add bottom padding for tab bar */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden rounded-2xl pb-[60px] md:pb-0"
         style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', boxShadow: '0 4px 24px rgba(226,50,96,0.12)' }}>
         {configured === false && page !== 'settings' && (

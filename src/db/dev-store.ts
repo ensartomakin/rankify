@@ -6,7 +6,7 @@ export interface DevUser {
   email: string;
   passwordHash: string;
   name?: string;
-  role: 'super_admin' | 'user';
+  role: 'producer' | 'super_admin' | 'user';
 }
 
 export interface DevConfig {

@@ -1,12 +1,13 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { createUser, findUserByEmail, countUsers } from '../db/user.repo';
+import {
+  createUser, findUserByEmail, countUsers, producerExists,
+} from '../db/user.repo';
 import { signToken, requireAuth, setAuthCookie, clearAuthCookie } from './auth.middleware';
 
 export const authRouter = Router();
 
-// Promise singleton — concurrent first-time calls share one bcrypt computation, no race
 let _dummyHashPromise: Promise<string> | null = null;
 function getDummyHash(): Promise<string> {
   if (!_dummyHashPromise) {
@@ -16,9 +17,11 @@ function getDummyHash(): Promise<string> {
 }
 
 const registerSchema = z.object({
-  email:    z.string().email(),
-  password: z.string().min(8),
-  name:     z.string().min(1).optional(),
+  email:          z.string().email(),
+  password:       z.string().min(8),
+  name:           z.string().min(1).optional(),
+  // Mevcut veritabanlarında producer yoksa, bu alanla producer kurulumu yapılabilir
+  producerSecret: z.string().optional(),
 });
 
 const loginSchema = z.object({
@@ -26,25 +29,46 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-// İlk kurulum gerekip gerekmediğini döner (kimlik doğrulama gerektirmez)
+// Kurulum durumu: producer yoksa needsSetup=true
 authRouter.get('/setup', async (_req: Request, res: Response) => {
   const count = await countUsers();
-  res.json({ needsSetup: count === 0 });
+  const hasProducer = await producerExists();
+  res.json({ needsSetup: count === 0 || !hasProducer });
 });
 
-// Kayıt — açık kayıt: her yeni kullanıcı kendi mağazasını yönetebilen super_admin olarak oluşturulur
+// Kayıt — sadece producer hesabı oluşturmak için kullanılır:
+//   1. Hiç kullanıcı yoksa: direkt producer oluştur
+//   2. Kullanıcı var ama producer yoksa: PRODUCER_SETUP_KEY env ile doğrulama gerekir
+//   3. Producer zaten varsa: 403
 authRouter.post('/register', async (req: Request, res: Response) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
-  const { email, password, name } = parsed.data;
+  const { email, password, name, producerSecret } = parsed.data;
+
+  const hasProducer = await producerExists();
+  if (hasProducer) {
+    res.status(403).json({ error: 'Sistem zaten kurulu. Yeni hesaplar üretici paneli üzerinden oluşturulur.' });
+    return;
+  }
+
+  // Mevcut kullanıcılar varsa producer secret gerekli
+  const totalUsers = await countUsers();
+  if (totalUsers > 0) {
+    const setupKey = process.env.PRODUCER_SETUP_KEY;
+    if (!setupKey || producerSecret !== setupKey) {
+      res.status(403).json({ error: 'Producer kurulumu için geçerli PRODUCER_SETUP_KEY gerekli' });
+      return;
+    }
+  }
 
   const existing = await findUserByEmail(email);
   if (existing) { res.status(409).json({ error: 'Bu e-posta zaten kayıtlı' }); return; }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const user = await createUser(email, passwordHash, name, 'super_admin');
-  const token = signToken({ userId: user.id, email: user.email, role: user.role });
+  // Producer'ın tenant_id'si yoktur (tüm tenant'lara erişir)
+  const user = await createUser(email, passwordHash, name, 'producer', undefined);
+  const token = signToken({ userId: user.id, email: user.email, role: user.role, tenantId: undefined });
   setAuthCookie(res, token);
 
   res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
@@ -57,7 +81,6 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   const { email, password } = parsed.data;
   const user = await findUserByEmail(email);
 
-  // Always run bcrypt to prevent timing-based user enumeration
   const hashToCheck = user?.passwordHash ?? await getDummyHash();
   const isMatch = await bcrypt.compare(password, hashToCheck);
   if (!user || !isMatch) {
@@ -65,9 +88,9 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     return;
   }
 
-  const token = signToken({ userId: user.id, email: user.email, role: user.role });
+  const token = signToken({ userId: user.id, email: user.email, role: user.role, tenantId: user.tenantId });
   setAuthCookie(res, token);
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, tenantId: user.tenantId } });
 });
 
 authRouter.post('/logout', (_req: Request, res: Response) => {

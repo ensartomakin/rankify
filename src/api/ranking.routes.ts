@@ -54,7 +54,7 @@ rankingRouter.get('/current', async (req: Request, res: Response) => {
     return;
   }
   try {
-    const result = await getCurrentRanking(categoryId, req.user!.userId);
+    const result = await getCurrentRanking(categoryId, req.user!.userId, req.user!.tenantId);
     res.json(result);
   } catch (err) {
     logger.error(`getCurrentRanking hatası [${categoryId}]: ${err}`);
@@ -73,7 +73,7 @@ rankingRouter.get('/debug-product', requireSuperAdmin, async (req: Request, res:
     return;
   }
   try {
-    const client = await getClientForUser(req.user!.userId);
+    const client = await getClientForUser(req.user!.userId, req.user!.tenantId);
     const apiUrl  = client.getBaseUrl();
     const rawProducts = await client.getCategoryProductsRawSample(categoryId, 3);
     // Her üründen sadece ID ve görsel ile ilgili alanları al
@@ -109,7 +109,7 @@ rankingRouter.post('/manual', async (req: Request, res: Response) => {
 
   const { categoryId, products } = parsed.data;
   try {
-    await applyManualRanking(categoryId, products, req.user!.userId);
+    await applyManualRanking(categoryId, products, req.user!.userId, req.user!.tenantId);
     res.json({ success: true, count: products.length });
   } catch (err) {
     logger.error(`applyManualRanking hatası [${categoryId}]: ${err}`);
@@ -123,18 +123,20 @@ rankingRouter.post('/trigger', (req: Request, res: Response) => {
 
   const config   = parsed.data as Parameters<typeof runRankingPipeline>[0];
   const userId   = req.user!.userId;
-  runRankingPipeline(config, 'manual', userId).catch(err =>
+  const tenantId = req.user!.tenantId;
+  runRankingPipeline(config, 'manual', userId, tenantId).catch(err =>
     logger.error(`Manuel sıralama hatası: ${err}`)
   );
   res.status(202).json({ message: 'Sıralama başlatıldı', categoryId: config.categoryId });
 });
 
 rankingRouter.post('/trigger/:categoryId', async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
-  const config  = await getConfigByCategoryId(userId, req.params.categoryId);
+  const userId   = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+  const config   = await getConfigByCategoryId(userId, req.params.categoryId);
   if (!config) { res.status(404).json({ error: 'Kategori konfigürasyonu bulunamadı' }); return; }
 
-  runRankingPipeline(config, 'manual', userId).catch(err =>
+  runRankingPipeline(config, 'manual', userId, tenantId).catch(err =>
     logger.error(`Manuel sıralama hatası: ${err}`)
   );
   res.status(202).json({ message: 'Sıralama başlatıldı', categoryId: config.categoryId });
@@ -163,7 +165,7 @@ rankingRouter.post('/preview', async (req: Request, res: Response) => {
       config = { ...base, smartMix: smartMix ?? false };
     }
 
-    const result = await previewRanking(config, userId);
+    const result = await previewRanking(config, userId, req.user!.tenantId);
     res.json(result);
   } catch (err) {
     logger.error(`Preview hatası [${categoryId}]: ${err}`);

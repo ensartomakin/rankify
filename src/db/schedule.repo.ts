@@ -41,15 +41,18 @@ export async function setSchedule(userId: number, s: ScheduleSettings): Promise<
   store.schedules.set(userId, { ...s });
 }
 
-export async function getAllEnabledSchedules(): Promise<Array<ScheduleSettings & { userId: number }>> {
+export async function getAllEnabledSchedules(): Promise<Array<ScheduleSettings & { userId: number; tenantId?: number }>> {
   if (usePg()) {
-    const rows = await query<{ user_id: number; is_enabled: boolean; day_hours: Record<string, number[]> }>(
-      'SELECT user_id, is_enabled, day_hours FROM schedule_settings WHERE is_enabled = TRUE'
+    const rows = await query<{ user_id: number; is_enabled: boolean; day_hours: Record<string, number[]>; tenant_id: number | null }>(
+      `SELECT ss.user_id, ss.is_enabled, ss.day_hours, u.tenant_id
+       FROM schedule_settings ss
+       JOIN users u ON u.id = ss.user_id
+       WHERE ss.is_enabled = TRUE`
     );
     return rows.map(r => {
       const dayHours: Record<number, number[]> = {};
       for (const [k, v] of Object.entries(r.day_hours)) dayHours[Number(k)] = v;
-      return { userId: r.user_id, isEnabled: r.is_enabled, dayHours };
+      return { userId: r.user_id, isEnabled: r.is_enabled, dayHours, tenantId: r.tenant_id ?? undefined };
     });
   }
   return [...store.schedules.entries()]

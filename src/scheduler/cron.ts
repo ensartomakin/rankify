@@ -36,10 +36,10 @@ export function startScheduler(): void {
         return;
       }
 
-      for (const { userId } of dueUsers) {
+      for (const { userId, tenantId } of dueUsers) {
         const userConfigs = allConfigs
           .filter(c => c.userId === userId)
-          .map(c => ({ ...c, userId }));
+          .map(c => ({ ...c, userId, tenantId }));
 
         if (userConfigs.length === 0) {
           logger.warn(`Kullanıcı ${userId} için aktif kategori konfigürasyonu bulunamadı`);

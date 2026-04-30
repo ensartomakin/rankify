@@ -56,15 +56,15 @@ const testSchema = z.object({
   apiToken:  z.string().optional(),
 });
 
-// Credentials her zaman super_admin'in hesabından okunur (paylaşımlı)
-async function getCredentialsOwnerId(requestingUserId: number): Promise<number> {
-  const superAdminId = await getSuperAdminId();
+// Credentials her zaman tenant'ın super_admin'inden okunur (paylaşımlı)
+async function getCredentialsOwnerId(requestingUserId: number, tenantId?: number): Promise<number> {
+  const superAdminId = await getSuperAdminId(tenantId);
   return superAdminId ?? requestingUserId;
 }
 
 // GET — super_admin tam özet alır; diğer roller sadece configured:boolean
 settingsRouter.get('/credentials', async (req: Request, res: Response) => {
-  const ownerId = await getCredentialsOwnerId(req.user!.userId);
+  const ownerId = await getCredentialsOwnerId(req.user!.userId, req.user!.tenantId);
   const configured = await hasCredentials(ownerId);
 
   if (req.user!.role !== 'super_admin') {

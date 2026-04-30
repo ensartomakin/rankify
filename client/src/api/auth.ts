@@ -1,16 +1,17 @@
 import { apiFetch } from './http';
 
-export type UserRole = 'super_admin' | 'user';
+export type UserRole = 'producer' | 'super_admin' | 'user';
 
 export interface AuthUser {
   id: number;
   email: string;
   name?: string;
   role: UserRole;
+  tenantId?: number;
 }
 
 export interface AuthResponse {
-  token?: string; // deprecated: artık cookie ile yönetiliyor
+  token?: string;
   user: AuthUser;
 }
 
@@ -20,10 +21,10 @@ export async function getSetupStatus(): Promise<{ needsSetup: boolean }> {
   return res.json();
 }
 
-export async function register(email: string, password: string, name?: string): Promise<AuthResponse> {
+export async function register(email: string, password: string, name?: string, producerSecret?: string): Promise<AuthResponse> {
   const res = await apiFetch('/api/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ email, password, name }),
+    body: JSON.stringify({ email, password, name, producerSecret }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

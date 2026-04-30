@@ -574,8 +574,7 @@ export function Dashboard({ prefill }: Props) {
     });
   }
 
-  function applyPinnedPositions(items: ProductPreviewItem[]): ProductPreviewItem[] {
-    const pins = pinnedPositions;
+  function applyPinnedPositions(items: ProductPreviewItem[], pins = pinnedPositions): ProductPreviewItem[] {
     const pinCodes = Object.keys(pins);
     if (pinCodes.length === 0) return items;
     const pinnedInResult  = items.filter(p => pins[p.productCode] !== undefined);
@@ -706,39 +705,36 @@ export function Dashboard({ prefill }: Props) {
     }
   }
 
-  function syncPinsToOrder(newOrder: ProductPreviewItem[]) {
-    if (Object.keys(pinnedPositions).length === 0) return;
-    const updated: Record<string, number> = {};
-    for (const code of Object.keys(pinnedPositions)) {
-      const item = newOrder.find(p => p.productCode === code);
-      if (item) updated[code] = item.finalRank;
-    }
-    setPinnedPositions(updated);
-    localStorage.setItem(`rankify_pin_${categoryId}`, JSON.stringify(updated));
-  }
-
   // Preview drag end
   function handlePreviewDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIdx = previewOrder.findIndex(p => p.productCode === active.id);
     const newIdx = previewOrder.findIndex(p => p.productCode === over.id);
-    const newOrder = arrayMove(previewOrder, oldIdx, newIdx).map((p, i) => ({ ...p, finalRank: i + 1 }));
+    let newOrder = arrayMove(previewOrder, oldIdx, newIdx).map((p, i) => ({ ...p, finalRank: i + 1 }));
+    if (Object.keys(pinnedPositions).length > 0) newOrder = applyPinnedPositions(newOrder);
     setPreviewOrder(newOrder);
-    syncPinsToOrder(newOrder);
   }
 
   // Preview rank input
   function handlePreviewRankEdit(code: string, newRank: number) {
     const clamped = Math.max(1, Math.min(previewOrder.length, newRank));
+    if (pinnedPositions[code] !== undefined) {
+      // Pinlenmiş ürünün konumu değişiyor — pin pozisyonunu güncelle
+      const newPins = { ...pinnedPositions, [code]: clamped };
+      setPinnedPositions(newPins);
+      localStorage.setItem(`rankify_pin_${categoryId}`, JSON.stringify(newPins));
+      setPreviewOrder(applyPinnedPositions(previewOrder, newPins));
+      return;
+    }
     const idx = previewOrder.findIndex(p => p.productCode === code);
     if (idx === -1) return;
     const next = [...previewOrder];
     const [item] = next.splice(idx, 1);
     next.splice(clamped - 1, 0, item);
-    const newOrder = next.map((p, i) => ({ ...p, finalRank: i + 1 }));
+    let newOrder = next.map((p, i) => ({ ...p, finalRank: i + 1 }));
+    if (Object.keys(pinnedPositions).length > 0) newOrder = applyPinnedPositions(newOrder);
     setPreviewOrder(newOrder);
-    syncPinsToOrder(newOrder);
   }
 
   async function handleTrigger() {

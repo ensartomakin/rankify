@@ -21,7 +21,7 @@ const configSchema = z.object({
       direction:   z.enum(['asc', 'desc']).optional(),
       salesPeriod: z.enum(['1d', '3d', '7d', '14d', '21d', '1m', '2m', '3m']).optional(),
     }))
-    .length(3)
+    .length(4)
     .refine(
       items => Math.abs(items.reduce((s, c) => s + c.weight, 0) - 100) < 0.001,
       { message: 'Ağırlık toplamı 100 olmalı' }

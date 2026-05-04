@@ -41,10 +41,11 @@ export const SALES_PERIOD_LABELS: Record<SalesPeriod, string> = {
   '3m':  'Son 3 Ay',
 };
 
-export const CRITERION_COLORS: [string, string, string] = [
+export const CRITERION_COLORS: [string, string, string, string] = [
   '#E23260', // K1 — Cerise
   '#849A28', // K2 — Citron
   '#F2678E', // K3 — Deep Blush
+  '#6366F1', // K4 — Indigo
 ];
 
 export interface WeightCriterion {
@@ -57,7 +58,7 @@ export interface WeightCriterion {
 export interface WeightConfig {
   categoryId: string;
   availabilityThreshold: number;
-  criteria: [WeightCriterion, WeightCriterion, WeightCriterion];
+  criteria: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion];
   smartMix?: boolean;
 }
 

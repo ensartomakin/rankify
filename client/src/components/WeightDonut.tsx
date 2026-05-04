@@ -2,7 +2,7 @@ import { PieChart, Pie, Cell } from 'recharts';
 import { CRITERION_COLORS, CRITERION_LABELS, SALES_PERIOD_LABELS, type WeightCriterion, type SalesPeriod } from '../types';
 
 interface Props {
-  criteria: [WeightCriterion, WeightCriterion, WeightCriterion];
+  criteria: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion];
 }
 
 export function WeightDonut({ criteria }: Props) {

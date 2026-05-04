@@ -6,7 +6,7 @@ export interface SavedConfig {
   categoryId: string;
   categoryName?: string;
   availabilityThreshold: number;
-  criteria: [WeightCriterion, WeightCriterion, WeightCriterion];
+  criteria: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion];
   isActive: boolean;
 }
 

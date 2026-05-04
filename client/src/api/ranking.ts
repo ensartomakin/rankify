@@ -73,7 +73,7 @@ export interface PreviewResponse {
 export interface PreviewRequest {
   categoryId:             string;
   availabilityThreshold?: number;
-  criteria?:              [WeightCriterion, WeightCriterion, WeightCriterion];
+  criteria?:              [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion];
   smartMix?:              boolean;
 }
 

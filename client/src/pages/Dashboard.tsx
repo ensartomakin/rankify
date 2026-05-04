@@ -27,10 +27,11 @@ import type { SavedConfig } from '../api/config';
 import { SCENARIOS } from '../data/scenarios';
 import type { Scenario } from '../data/scenarios';
 
-const DEFAULT_CRITERIA: [WeightCriterion, WeightCriterion, WeightCriterion] = [
-  { key: 'stockScore',  weight: 33, direction: 'desc' },
-  { key: 'bestSeller',  weight: 33, direction: 'desc', salesPeriod: '14d' },
-  { key: 'newness',     weight: 34, direction: 'desc' },
+const DEFAULT_CRITERIA: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion] = [
+  { key: 'stockScore',  weight: 25, direction: 'desc' },
+  { key: 'bestSeller',  weight: 25, direction: 'desc', salesPeriod: '14d' },
+  { key: 'newness',     weight: 25, direction: 'desc' },
+  { key: 'reviewScore', weight: 25, direction: 'desc' },
 ];
 
 /* ─── Fotoğraf URL yardımcısı ─── */
@@ -459,7 +460,7 @@ export function Dashboard({ prefill }: Props) {
   const categoryId   = selectedCategories[0]?.id   ?? '';
   const categoryName = selectedCategories[0]?.name ?? '';
   const [threshold,    setThreshold]    = useState(prefill ? prefill.availabilityThreshold : getStoredThreshold());
-  const [criteria,     setCriteria]     = useState<[WeightCriterion, WeightCriterion, WeightCriterion]>(
+  const [criteria,     setCriteria]     = useState<[WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion]>(
     prefill?.criteria ?? DEFAULT_CRITERIA
   );
   const [smartMix,        setSmartMix]        = useState(true);
@@ -1015,9 +1016,9 @@ export function Dashboard({ prefill }: Props) {
           </div>
           {/* Kart içeriği */}
           <div style={{ padding: '24px 24.3px' }}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {criteria.map((c, i) => (
-                <CriterionCard key={i} index={i as 0 | 1 | 2} criterion={c}
+                <CriterionCard key={i} index={i as 0 | 1 | 2 | 3} criterion={c}
                   usedKeys={criteria.map(x => x.key)}
                   onChange={u => handleCriterionChange(i, u)}
                   ga4Connected={ga4Connected} />

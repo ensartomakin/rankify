@@ -12,14 +12,14 @@ export type CriterionKey =
 
 export interface WeightCriterion {
   key: CriterionKey;
-  weight: number; // 0-100, toplam 3 kriterin toplamı = 100
+  weight: number; // 0-100, toplam 4 kriterin toplamı = 100
   direction?: 'asc' | 'desc';
   salesPeriod?: '1d' | '3d' | '7d' | '14d' | '21d' | '1m' | '2m' | '3m';
 }
 
 export interface WeightConfig {
   categoryId: string;
-  criteria: [WeightCriterion, WeightCriterion, WeightCriterion];
+  criteria: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion];
   availabilityThreshold: number; // 0.0 - 1.0
   smartMix?: boolean;
 }

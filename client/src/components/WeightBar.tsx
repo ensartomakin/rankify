@@ -2,18 +2,18 @@ import { useRef, useCallback } from 'react';
 import { CRITERION_COLORS, type WeightCriterion } from '../types';
 
 interface Props {
-  criteria: [WeightCriterion, WeightCriterion, WeightCriterion];
-  onChange: (criteria: [WeightCriterion, WeightCriterion, WeightCriterion]) => void;
+  criteria: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion];
+  onChange: (criteria: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion]) => void;
 }
 
 const MIN_WEIGHT = 5;
 
 export function WeightBar({ criteria, onChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const weights = criteria.map(c => c.weight) as [number, number, number];
+  const weights = criteria.map(c => c.weight) as [number, number, number, number];
   const total   = weights.reduce((s, w) => s + w, 0);
 
-  const startDrag = useCallback((dividerIdx: 0 | 1, e: React.MouseEvent) => {
+  const startDrag = useCallback((dividerIdx: 0 | 1 | 2, e: React.MouseEvent) => {
     e.preventDefault();
     const container = containerRef.current;
     if (!container) return;
@@ -21,22 +21,17 @@ export function WeightBar({ criteria, onChange }: Props) {
 
     const onMove = (mv: MouseEvent) => {
       const pct = Math.round(((mv.clientX - rect.left) / rect.width) * 100);
-      const next: [number, number, number] = [weights[0], weights[1], weights[2]];
-      if (dividerIdx === 0) {
-        const newK1 = Math.max(MIN_WEIGHT, Math.min(100 - next[2] - MIN_WEIGHT, pct));
-        const newK2 = 100 - newK1 - next[2];
-        if (newK2 < MIN_WEIGHT) return;
-        next[0] = newK1; next[1] = newK2;
-      } else {
-        const newK3 = Math.max(MIN_WEIGHT, Math.min(100 - next[0] - MIN_WEIGHT, 100 - pct));
-        const newK2 = 100 - next[0] - newK3;
-        if (newK2 < MIN_WEIGHT) return;
-        next[1] = newK2; next[2] = newK3;
-      }
+      const next: [number, number, number, number] = [...weights] as [number, number, number, number];
+      const cumBefore = next.slice(0, dividerIdx).reduce((s, w) => s + w, 0);
+      const combined  = next[dividerIdx] + next[dividerIdx + 1];
+      const newLeft   = Math.max(MIN_WEIGHT, Math.min(combined - MIN_WEIGHT, pct - cumBefore));
+      next[dividerIdx]     = newLeft;
+      next[dividerIdx + 1] = combined - newLeft;
       onChange([
         { ...criteria[0], weight: next[0] },
         { ...criteria[1], weight: next[1] },
         { ...criteria[2], weight: next[2] },
+        { ...criteria[3], weight: next[3] },
       ]);
     };
 
@@ -70,10 +65,10 @@ export function WeightBar({ criteria, onChange }: Props) {
             className="relative flex items-center justify-center text-white text-xs font-bold transition-none"
             style={{ width: `${c.weight}%`, background: CRITERION_COLORS[i] + 'cc' }}>
             K{i + 1} · {c.weight}%
-            {i < 2 && (
+            {i < 3 && (
               <div className="absolute right-0 top-0 bottom-0 w-4 z-10 flex items-center justify-center"
                 style={{ cursor: 'col-resize' }}
-                onMouseDown={e => startDrag(i as 0 | 1, e)}>
+                onMouseDown={e => startDrag(i as 0 | 1 | 2, e)}>
                 <div className="w-px h-5 rounded-full" style={{ background: 'rgba(255,255,255,0.4)' }} />
               </div>
             )}
@@ -85,7 +80,7 @@ export function WeightBar({ criteria, onChange }: Props) {
       <div className="flex items-center gap-4 rounded-xl"
         style={{ padding: '12px 20.3px', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
         <span className="text-xs font-medium shrink-0" style={{ color: 'var(--tx3)' }}>Ağırlıklar</span>
-        <div className="flex items-center gap-4 ml-auto">
+        <div className="flex items-center gap-4 ml-auto flex-wrap">
           {criteria.map((c, i) => (
             <div key={i} className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CRITERION_COLORS[i] }} />
@@ -93,19 +88,25 @@ export function WeightBar({ criteria, onChange }: Props) {
                 value={c.weight}
                 onChange={e => {
                   const val = Math.max(MIN_WEIGHT, Math.min(100, Number(e.target.value)));
-                  const next: [number, number, number] = [weights[0], weights[1], weights[2]];
+                  const next: [number, number, number, number] = [...weights] as [number, number, number, number];
                   next[i] = val;
-                  const remaining = 100 - val;
-                  const otherIdx = i === 0 ? [1, 2] : i === 1 ? [0, 2] : [0, 1];
-                  const otherSum = next[otherIdx[0]] + next[otherIdx[1]];
+                  const remaining  = 100 - val;
+                  const otherIdxs  = ([0, 1, 2, 3] as const).filter(j => j !== i);
+                  const otherSum   = otherIdxs.reduce((s, j) => s + next[j], 0);
                   if (otherSum > 0) {
-                    next[otherIdx[0]] = Math.round((next[otherIdx[0]] / otherSum) * remaining);
-                    next[otherIdx[1]] = 100 - val - next[otherIdx[0]];
+                    let allocated = 0;
+                    for (let k = 0; k < otherIdxs.length - 1; k++) {
+                      const j = otherIdxs[k];
+                      next[j] = Math.round((weights[j] / otherSum) * remaining);
+                      allocated += next[j];
+                    }
+                    next[otherIdxs[otherIdxs.length - 1]] = remaining - allocated;
                   }
                   onChange([
                     { ...criteria[0], weight: next[0] },
                     { ...criteria[1], weight: next[1] },
                     { ...criteria[2], weight: next[2] },
+                    { ...criteria[3], weight: next[3] },
                   ]);
                 }}
                 className="w-14 text-center text-sm font-bold rounded-lg py-1.5 focus:outline-none transition-all"

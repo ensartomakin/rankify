@@ -20,7 +20,7 @@ const criteriaSchema = z
     direction: z.enum(['asc', 'desc']).optional(),
     salesPeriod: z.enum(['1d', '3d', '7d', '14d', '21d', '1m', '2m', '3m']).optional(),
   }))
-  .length(3)
+  .length(4)
   .refine(
     items => Math.abs(items.reduce((s, c) => s + c.weight, 0) - 100) < 0.001,
     { message: 'Ağırlık toplamı 100 olmalı' }
@@ -41,10 +41,16 @@ const previewSchema = z.object({
 });
 
 const DEFAULT_CRITERIA = [
-  { key: 'stockScore'  as const, weight: 34 },
-  { key: 'bestSeller'  as const, weight: 33 },
-  { key: 'newness'     as const, weight: 33 },
-] as [{ key: 'stockScore'; weight: number }, { key: 'bestSeller'; weight: number }, { key: 'newness'; weight: number }];
+  { key: 'stockScore'  as const, weight: 25 },
+  { key: 'bestSeller'  as const, weight: 25 },
+  { key: 'newness'     as const, weight: 25 },
+  { key: 'reviewScore' as const, weight: 25 },
+] as [
+  { key: 'stockScore';  weight: number },
+  { key: 'bestSeller';  weight: number },
+  { key: 'newness';     weight: number },
+  { key: 'reviewScore'; weight: number },
+];
 
 // Kategorinin mevcut T-Soft sıralamasını döndürür
 rankingRouter.get('/current', async (req: Request, res: Response) => {

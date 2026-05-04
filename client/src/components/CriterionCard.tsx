@@ -7,7 +7,7 @@ const BASE_KEYS: CriterionKey[] = ['stockScore', 'bestSeller', 'newness', 'revie
 const GA4_KEYS:  CriterionKey[] = ['ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate'];
 
 interface Props {
-  index: 0 | 1 | 2;
+  index: 0 | 1 | 2 | 3;
   criterion: WeightCriterion;
   usedKeys: CriterionKey[];
   onChange: (c: WeightCriterion) => void;

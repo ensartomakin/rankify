@@ -87,26 +87,26 @@ export function WeightBar({ criteria, onChange }: Props) {
               <input type="number" min={MIN_WEIGHT} max={100} step={1}
                 value={c.weight}
                 onChange={e => {
-                  const val = Math.max(MIN_WEIGHT, Math.min(100, Number(e.target.value)));
-                  const next: [number, number, number, number] = [...weights] as [number, number, number, number];
-                  next[i] = val;
-                  const remaining  = 100 - val;
-                  const otherIdxs  = ([0, 1, 2, 3] as const).filter(j => j !== i);
-                  const otherSum   = otherIdxs.reduce((s, j) => s + next[j], 0);
+                  const val       = Math.max(MIN_WEIGHT, Math.min(100, Number(e.target.value)));
+                  const remaining = 100 - val;
+                  const otherIdxs = [0, 1, 2, 3].filter(j => j !== i);
+                  const otherSum  = otherIdxs.reduce((s, j) => s + weights[j], 0);
+                  const ws        = [...weights] as [number, number, number, number];
+                  ws[i] = val;
                   if (otherSum > 0) {
                     let allocated = 0;
                     for (let k = 0; k < otherIdxs.length - 1; k++) {
                       const j = otherIdxs[k];
-                      next[j] = Math.round((weights[j] / otherSum) * remaining);
-                      allocated += next[j];
+                      ws[j] = Math.round((weights[j] / otherSum) * remaining);
+                      allocated += ws[j];
                     }
-                    next[otherIdxs[otherIdxs.length - 1]] = remaining - allocated;
+                    ws[otherIdxs[otherIdxs.length - 1]] = remaining - allocated;
                   }
                   onChange([
-                    { ...criteria[0], weight: next[0] },
-                    { ...criteria[1], weight: next[1] },
-                    { ...criteria[2], weight: next[2] },
-                    { ...criteria[3], weight: next[3] },
+                    { ...criteria[0], weight: ws[0] },
+                    { ...criteria[1], weight: ws[1] },
+                    { ...criteria[2], weight: ws[2] },
+                    { ...criteria[3], weight: ws[3] },
                   ]);
                 }}
                 className="w-14 text-center text-sm font-bold rounded-lg py-1.5 focus:outline-none transition-all"

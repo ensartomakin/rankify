@@ -91,7 +91,7 @@ async function getToken(cacheKey: string, http: AxiosInstance, creds: TsoftCrede
   const cached = tokenCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now() + 60_000) return cached.token;
   const token = await fetchToken(http, creds);
-  tokenCache.set(cacheKey, { token, expiresAt: Date.now() + 60 * 60 * 1000 });
+  tokenCache.set(cacheKey, { token, expiresAt: Date.now() + 24 * 60 * 60 * 1000 });
   return token;
 }
 
@@ -101,7 +101,7 @@ async function getTokenV3(cacheKey: string, http: AxiosInstance, creds: TsoftCre
   const cached = tokenCacheV3.get(cacheKey);
   if (cached && cached.expiresAt > Date.now() + 60_000) return cached.token;
   const token = await fetchTokenV3(http, creds);
-  tokenCacheV3.set(cacheKey, { token, expiresAt: Date.now() + 60 * 60 * 1000 });
+  tokenCacheV3.set(cacheKey, { token, expiresAt: Date.now() + 24 * 60 * 60 * 1000 });
   return token;
 }
 

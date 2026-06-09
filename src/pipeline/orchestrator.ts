@@ -309,7 +309,9 @@ export async function previewRanking(
   const items: ProductPreviewItem[] = ranked.map(p => {
     const contributions: Partial<Record<CriterionKey, number>> = {};
     for (const c of config.criteria) {
-      contributions[c.key] = ((p.scores[c.key] ?? 0) * c.weight) / 100;
+      const raw = p.scores[c.key] ?? 0;
+      const directed = c.direction === 'asc' ? (100 - raw) : raw;
+      contributions[c.key] = (directed * c.weight) / 100;
     }
     return {
       finalRank:             p.finalRank,

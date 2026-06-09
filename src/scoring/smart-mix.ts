@@ -8,7 +8,7 @@ const COLOR_PHRASES = new Set<string>([
   // ── Nötr / Bej ailesi ──
   'krem', 'bej', 'vizon', 'taş', 'bisküvi', 'latte', 'beji', 'kemik', 'nude', 'kaju',
   'natural', 'naturel', 'ten', 'ekru', 'tebeşir', 'parşömen', 'fildişi', 'kırçıllı',
-  'fındık kabuğu', 'deniz kabuğu', 'bal köpüğü', 'ten rengi', 'kum beji',
+  'fındık kabuğu', 'deniz kabuğu', 'bal köpüğü', 'balköpüğü', 'ten rengi', 'kum beji',
   'açık badem', 'soft kaşmir', 'bej-vizon', 'çakıl taşı', 'açık taş', 'açık kil',
   'mat vizon', 'tozlu vizon', 'küllü bej', 'istiridye',
   'koyu vizon', 'koyu bej', 'açık vizon', 'açık bej',
@@ -96,6 +96,14 @@ const COLOR_PHRASES = new Set<string>([
  * Önce 3 kelimelik, sonra 2, sonra 1 kelimelik sona bakılır — en uzun eşleşme önce sıyrılır.
  * Döngülü: birden fazla trailing token sıyrılabilir (ör. "Şal Açık Vizon Kemik" → "şal").
  */
+// Çok kelimeli renk ifadelerinin boşluksuz (bitişik) yazılmış halleri —
+// örn. "bal köpüğü" → "balköpüğü", "lavanta mavi" → "lavantamavi"
+const COLOR_PHRASES_NOSPACE = new Set<string>(
+  Array.from(COLOR_PHRASES)
+    .filter(p => p.includes(' '))
+    .map(p => p.replace(/\s+/g, ''))
+);
+
 export function getBaseName(productName: string): string {
   const lower = productName.toLowerCase().trim();
   const words = lower.split(/\s+/);
@@ -109,7 +117,8 @@ export function getBaseName(productName: string): string {
     changed = false;
     for (let len = Math.min(3, end - 1); len >= 1; len--) {
       const phrase = words.slice(end - len, end).join(' ');
-      if (COLOR_PHRASES.has(phrase)) {
+      // Önce boşluklu hali dene, sonra boşluksuz (bitişik yazım) hali dene
+      if (COLOR_PHRASES.has(phrase) || (len === 1 && COLOR_PHRASES_NOSPACE.has(phrase))) {
         end -= len;
         changed = true;
         break;

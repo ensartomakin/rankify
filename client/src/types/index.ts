@@ -8,26 +8,36 @@ export type CriterionKey =
   | 'ga4Views'
   | 'ga4Sessions'
   | 'ga4Ctr'
-  | 'ga4ConversionRate';
+  | 'ga4ConversionRate'
+  | 'tsoftViews'
+  | 'tsoftCartAdds'
+  | 'tsoftConversionRate';
 
 export type SortDirection = 'desc' | 'asc';
 export type SalesPeriod = '1d' | '3d' | '7d' | '14d' | '21d' | '1m' | '2m' | '3m';
 
 export const CRITERION_LABELS: Record<CriterionKey, string> = {
-  newness:            'En yeniler',
-  bestSeller:         'Çok satanlar',
-  reviewScore:        'Yorum sayısı',
-  stockScore:         'Stoğa göre',
-  availabilityScore:  'Beden bulunurluğu',
-  discountRate:       'İndirim oranı',
-  ga4Views:           'GA4 · Görüntülenme',
-  ga4Sessions:        'GA4 · Oturum',
-  ga4Ctr:             'GA4 · Tıklama Oranı (CTR)',
-  ga4ConversionRate:  'GA4 · Dönüşüm Oranı',
+  newness:               'En yeniler',
+  bestSeller:            'Çok satanlar',
+  reviewScore:           'Yorum sayısı',
+  stockScore:            'Stoğa göre',
+  availabilityScore:     'Beden bulunurluğu',
+  discountRate:          'İndirim oranı',
+  ga4Views:              'GA4 · Görüntülenme',
+  ga4Sessions:           'GA4 · Oturum',
+  ga4Ctr:                'GA4 · Tıklama Oranı (CTR)',
+  ga4ConversionRate:     'GA4 · Dönüşüm Oranı',
+  tsoftViews:            'T-Soft · Görüntülenme',
+  tsoftCartAdds:         'T-Soft · Sepete Ekleme',
+  tsoftConversionRate:   'T-Soft · Dönüşüm Oranı',
 };
 
 export const GA4_CRITERION_KEYS = new Set<CriterionKey>([
   'ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate',
+]);
+
+export const TSOFT_STAT_KEYS = new Set<CriterionKey>([
+  'tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate',
 ]);
 
 export const SALES_PERIOD_LABELS: Record<SalesPeriod, string> = {

@@ -34,3 +34,9 @@ export interface TSoftRankPayload {
   categoryId:  string;
   sortOrder:   number;
 }
+
+export interface TSoftProductStats {
+  productCode:  string;
+  views:        number; // ürün sayfası görüntülenme
+  cartAdds:     number; // sepete ekleme adedi
+}

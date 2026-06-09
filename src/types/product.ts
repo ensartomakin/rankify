@@ -8,7 +8,10 @@ export type CriterionKey =
   | 'ga4Views'
   | 'ga4Sessions'
   | 'ga4Ctr'
-  | 'ga4ConversionRate';
+  | 'ga4ConversionRate'
+  | 'tsoftViews'
+  | 'tsoftCartAdds'
+  | 'tsoftConversionRate';
 
 export interface WeightCriterion {
   key: CriterionKey;
@@ -33,6 +36,12 @@ export interface SizeAvailability {
   passesThreshold: boolean;
 }
 
+export interface TsoftRawStats {
+  views:            number; // ürün sayfası görüntülenme
+  cartAdds:         number; // sepete ekleme
+  conversionRate:   number; // satış / görüntülenme (0-100)
+}
+
 export interface ProductScores {
   newness: number;
   bestSeller: number;
@@ -44,6 +53,9 @@ export interface ProductScores {
   ga4Sessions?: number;
   ga4Ctr?: number;
   ga4ConversionRate?: number;
+  tsoftViews?: number;
+  tsoftCartAdds?: number;
+  tsoftConversionRate?: number;
 }
 
 export interface Ga4RawMetrics {
@@ -65,6 +77,7 @@ export interface NormalizedProduct {
   isActive: boolean;
   sizeAvailability: SizeAvailability;
   ga4?: Ga4RawMetrics;
+  tsoftStats?: TsoftRawStats;
   scores: ProductScores;
   rankingScore: number;
   isDisqualified: boolean;

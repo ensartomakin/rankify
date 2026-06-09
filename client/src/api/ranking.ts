@@ -103,8 +103,15 @@ export async function applyManualRanking(
     body: JSON.stringify({ categoryId, products }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error ?? `Hata: ${res.status}`);
+    const body = await res.json().catch(() => ({}));
+    const errVal = body?.error;
+    const msg = typeof errVal === 'string'
+      ? errVal
+      : errVal?.formErrors?.[0]
+        ?? (errVal?.fieldErrors ? Object.values(errVal.fieldErrors).flat()[0] : undefined)
+        ?? JSON.stringify(errVal)
+        ?? `Hata: ${res.status}`;
+    throw new Error(msg);
   }
 }
 
@@ -115,8 +122,15 @@ export async function triggerRanking(config: WeightConfig): Promise<TriggerRespo
     body: JSON.stringify(config),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.formErrors?.[0] ?? `Hata: ${res.status}`);
+    const body = await res.json().catch(() => ({}));
+    const errVal = body?.error;
+    const msg = typeof errVal === 'string'
+      ? errVal
+      : errVal?.formErrors?.[0]
+        ?? (errVal?.fieldErrors ? Object.values(errVal.fieldErrors).flat()[0] : undefined)
+        ?? JSON.stringify(errVal)
+        ?? `Hata: ${res.status}`;
+    throw new Error(msg);
   }
   return res.json();
 }

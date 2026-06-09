@@ -354,10 +354,11 @@ export class TSoftClient {
     if (!this._loggedProductKeys) {
       this._loggedProductKeys = true;
       logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
-      // Fiyat & URL değerlerini logla
+      // Fiyat & URL & görünürlük değerlerini logla
       const watched = ['Price','price','ListPrice','OldPrice','SalePrice','CampaignPrice',
         'DiscountedPrice','SellingPrice','DiscountRate','SEOUrl','SeoUrl','SEOLink','SeoLink',
-        'Url','url','Link','link','DetailUrl','ProductUrl','Slug'];
+        'Url','url','Link','link','DetailUrl','ProductUrl','Slug',
+        'IsActive','isActive','Active','active','IsVisible','isVisible','Visible','visible','Status','status'];
       for (const k of watched) {
         if (p[k] !== undefined) logger.info(`[mapProduct] ${k} = ${JSON.stringify(p[k])}`);
       }
@@ -391,6 +392,15 @@ export class TSoftClient {
     const seoLink = String(p.SeoLink ?? p.seoLink ?? p.SEOLink ??
       p.SEOUrl ?? p.SeoUrl ?? p.seoUrl ?? p.Url ?? p.url ?? p.Slug ?? p.slug ?? '');
 
+    // Görünürlük: T-Soft çeşitli alan adları kullanabilir; yoksa aktif kabul et
+    const rawActive = p.IsActive ?? p.isActive ?? p.Active ?? p.active
+      ?? p.IsVisible ?? p.isVisible ?? p.Visible ?? p.visible;
+    const isActive = rawActive === undefined
+      ? true
+      : typeof rawActive === 'boolean'
+        ? rawActive
+        : rawActive === 1 || rawActive === '1' || String(rawActive).toLowerCase() === 'true';
+
     return {
       productId:        String(p.ProductId ?? p.productId ?? p.Id ?? p.id ?? ''),
       productCode:      String(p.ProductCode ?? p.productCode ?? ''),
@@ -407,6 +417,7 @@ export class TSoftClient {
       variants,
       discountRate,
       seoUrl: seoLink,
+      isActive,
     };
   }
 

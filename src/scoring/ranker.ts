@@ -19,6 +19,9 @@ export function applyDisqualification(
   threshold: number
 ): NormalizedProduct[] {
   return products.map(p => {
+    if (!p.isActive) {
+      return { ...p, isDisqualified: true, disqualifyReason: 'Görünürlük kapalı' };
+    }
     if (p.sizeAvailability.totalStock === 0) {
       return { ...p, isDisqualified: true, disqualifyReason: 'Stok yok' };
     }

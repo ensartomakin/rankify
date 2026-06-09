@@ -20,6 +20,7 @@ export interface TSoftProduct {
   variants:         TSoftVariant[];
   discountRate:     number;   // 0-100, indirim yüzdesi
   seoUrl:           string;   // T-Soft ürün sayfası URL'si (SEOUrl / Url)
+  isActive:         boolean;  // T-Soft görünürlük durumu — false ise sıralamadan dışlanır
 }
 
 export interface TSoftSalesData {

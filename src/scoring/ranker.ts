@@ -48,6 +48,8 @@ export function computeRankingScores(
   const sales    = minMaxNormalize(products.map(p => p.sales14Days));
   const reviews  = minMaxNormalize(products.map(p => p.reviewCount));
   const stock    = minMaxNormalize(products.map(p => p.sizeAvailability.totalStock));
+  // newnessScore'u tüm ürünler üzerinden min-max normalize et — mutlak ölçek değil
+  const newness  = minMaxNormalize(products.map(p => newnessScore(p.registrationDate)));
   const discount = usedKeys.has('discountRate')
     ? minMaxNormalize(products.map(p => p.discountRate))
     : null;
@@ -68,7 +70,7 @@ export function computeRankingScores(
 
   return products.map((p, i) => {
     const scores: NormalizedProduct['scores'] = {
-      newness:           newnessScore(p.registrationDate),
+      newness:           newness[i],
       bestSeller:        sales[i],
       reviewScore:       reviews[i],
       stockScore:        stock[i],

@@ -46,6 +46,7 @@ function makeProduct(input: {
     reviewCount: input.reviewCount,
     variants: input.variants,
     discountRate: input.discountRate,
+    isActive: true,
     seoUrl: `${DEMO_BASE_URL}/urun-detay/${encodeURIComponent(input.productCode)}`,
     baseDailySales: input.baseDailySales,
   };
@@ -484,6 +485,7 @@ export class DemoTSoftClient implements TSoftClientApi {
         reviewCount: p.reviewCount,
         variants: p.variants,
         discountRate: p.discountRate,
+        isActive: true,
         seoUrl: p.seoUrl,
       }))
       .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -512,6 +514,7 @@ export class DemoTSoftClient implements TSoftClientApi {
         reviewCount: p.reviewCount,
         variants: p.variants,
         discountRate: p.discountRate,
+        isActive: true,
         seoUrl: p.seoUrl,
       });
     }

@@ -62,6 +62,7 @@ export interface NormalizedProduct {
   reviewCount: number;
   sales14Days: number;
   discountRate: number;
+  isActive: boolean;
   sizeAvailability: SizeAvailability;
   ga4?: Ga4RawMetrics;
   scores: ProductScores;

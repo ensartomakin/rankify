@@ -1,5 +1,5 @@
 import type { TSoftClientApi } from './tsoft-client-api';
-import type { TSoftProduct, TSoftRankPayload, TSoftSalesData, TSoftVariant } from '../types/tsoft';
+import type { TSoftProduct, TSoftRankPayload, TSoftSalesData, TSoftProductStats, TSoftVariant } from '../types/tsoft';
 
 type DemoCategory = { categoryId: string; name: string; parentCategoryId: string };
 type DemoProductSpec = Omit<TSoftProduct, 'sortOrder'> & { baseDailySales: number };
@@ -536,6 +536,15 @@ export class DemoTSoftClient implements TSoftClientApi {
       });
     }
     return result;
+  }
+
+  async getProductStats(days: number): Promise<TSoftProductStats[]> {
+    const safeDays = clampInt(days, 1, 180);
+    return DEMO_PRODUCTS.map(p => {
+      const views    = clampInt(p.baseDailySales * safeDays * 20, 0, 500_000);
+      const cartAdds = clampInt(p.baseDailySales * safeDays * 4,  0, 100_000);
+      return { productCode: p.productCode, views, cartAdds };
+    });
   }
 
   async setKategoriSira(payload: TSoftRankPayload[]): Promise<void> {

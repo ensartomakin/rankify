@@ -3,7 +3,8 @@ import { computeSizeAvailability } from '../scoring/availability';
 import { getGa4Credentials, getGa4Metrics, upsertGa4Metrics } from '../db/ga4.repo';
 import { fetchGa4ProductMetrics, } from '../services/ga4-client';
 
-const GA4_KEYS = new Set(['ga4Views','ga4Sessions','ga4Ctr','ga4ConversionRate']);
+const GA4_KEYS   = new Set(['ga4Views','ga4Sessions','ga4Ctr','ga4ConversionRate']);
+const TSOFT_STAT_KEYS = new Set(['tsoftViews','tsoftCartAdds','tsoftConversionRate']);
 
 function salesPeriodToGa4Range(period?: string): string {
   switch (period) {
@@ -42,6 +43,23 @@ async function resolveGa4Map(
   return map;
 }
 
+async function resolveTsoftStatsMap(
+  config: WeightConfig,
+  client: import('../services/tsoft-client-api').TSoftClientApi,
+  salesDays: number
+): Promise<Map<string, TSoftProductStats>> {
+  const needsStats = config.criteria.some(c => TSOFT_STAT_KEYS.has(c.key));
+  if (!needsStats) return new Map();
+  try {
+    const stats = await client.getProductStats(salesDays);
+    logger.info(`[tsoftStats] ${stats.length} ürün için görüntülenme/sepet verisi alındı`);
+    return new Map(stats.map(s => [s.productCode, s]));
+  } catch (err) {
+    logger.warn(`[tsoftStats] veri alınamadı: ${err}`);
+    return new Map();
+  }
+}
+
 function salesPeriodToDays(period?: string): number {
   switch (period) {
     case '1d':  return 1;
@@ -65,7 +83,7 @@ import { logger } from '../utils/logger';
 import { sleep } from '../utils/helpers';
 import { insertAuditLog } from '../db/audit.repo';
 import type { WeightConfig, NormalizedProduct, CriterionKey } from '../types/product';
-import type { TSoftProduct, TSoftSalesData } from '../types/tsoft';
+import type { TSoftProduct, TSoftSalesData, TSoftProductStats } from '../types/tsoft';
 
 export interface CurrentRankItem {
   currentRank: number;
@@ -128,6 +146,7 @@ export interface ProductPreviewItem {
   imageCount:           number;
   imageUrl:             string;
   ga4?: NormalizedProduct['ga4'];
+  tsoftStats?: NormalizedProduct['tsoftStats'];
 }
 
 export interface PreviewResult {
@@ -170,6 +189,9 @@ export async function runRankingPipeline(
     // GA4 metrikleri — periyoda göre önbellekten veya auto-sync
     const ga4Map = await resolveGa4Map(config, userId);
 
+    // T-Soft görüntülenme + sepete ekleme
+    const tsoftStatsMap = await resolveTsoftStatsMap(config, client, salesDays);
+
     // Phase 2: Normalleştirme
     const salesMap = new Map<string, TSoftSalesData>(
       salesData.map(s => [s.productCode, s])
@@ -179,6 +201,15 @@ export async function runRankingPipeline(
       const sales = salesMap.get(p.productCode);
       const sizeAvailability = computeSizeAvailability(p.variants, availabilityThreshold);
       const ga4 = ga4Map.get(p.productId) ?? ga4Map.get(p.productCode);
+      const rawStats = tsoftStatsMap.get(p.productCode);
+      const soldQty  = sales?.soldQuantity14Days ?? 0;
+      const tsoftStats = rawStats
+        ? {
+            views:          rawStats.views,
+            cartAdds:       rawStats.cartAdds,
+            conversionRate: rawStats.views > 0 ? Math.min(100, (soldQty / rawStats.views) * 100) : 0,
+          }
+        : undefined;
 
       return {
         productId:        p.productId,
@@ -187,11 +218,12 @@ export async function runRankingPipeline(
         categoryId:       p.categoryId,
         registrationDate: new Date(p.registrationDate),
         reviewCount:      p.reviewCount,
-        sales14Days:      sales?.soldQuantity14Days ?? 0,
+        sales14Days:      soldQty,
         discountRate:     p.discountRate,
         isActive:         p.isActive,
         sizeAvailability,
         ga4: ga4 ? { views: ga4.views, sessions: ga4.sessions, ctr: ga4.ctr, conversionRate: ga4.conversionRate } : undefined,
+        tsoftStats,
         scores: { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
         rankingScore:   0,
         isDisqualified: false,
@@ -274,6 +306,9 @@ export async function previewRanking(
   // GA4 metrikleri — periyoda göre önbellekten veya auto-sync
   const ga4Map = await resolveGa4Map(config, userId);
 
+  // T-Soft görüntülenme + sepete ekleme
+  const tsoftStatsMap = await resolveTsoftStatsMap(config, client, salesDays);
+
   // imageCount is stored per-product alongside normalized data
   const imageCountMap = new Map<string, number>(products.map(p => [p.productCode, p.imageCount]));
   const imageUrlMap   = new Map<string, string>(products.map(p => [p.productCode, p.imageUrl]));
@@ -284,6 +319,15 @@ export async function previewRanking(
     const sales            = salesMap.get(p.productCode);
     const sizeAvailability = computeSizeAvailability(p.variants, availabilityThreshold);
     const ga4 = ga4Map.get(p.productId) ?? ga4Map.get(p.productCode);
+    const rawStats = tsoftStatsMap.get(p.productCode);
+    const soldQty  = sales?.soldQuantity14Days ?? 0;
+    const tsoftStats = rawStats
+      ? {
+          views:          rawStats.views,
+          cartAdds:       rawStats.cartAdds,
+          conversionRate: rawStats.views > 0 ? Math.min(100, (soldQty / rawStats.views) * 100) : 0,
+        }
+      : undefined;
     return {
       productId:        p.productId,
       productCode:      p.productCode,
@@ -291,11 +335,12 @@ export async function previewRanking(
       categoryId:       p.categoryId,
       registrationDate: new Date(p.registrationDate),
       reviewCount:      p.reviewCount,
-      sales14Days:      sales?.soldQuantity14Days ?? 0,
+      sales14Days:      soldQty,
       discountRate:     p.discountRate,
       isActive:         p.isActive,
       sizeAvailability,
       ga4: ga4 ? { views: ga4.views, sessions: ga4.sessions, ctr: ga4.ctr, conversionRate: ga4.conversionRate } : undefined,
+      tsoftStats,
       scores:        { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
       rankingScore:   0,
       isDisqualified: false,
@@ -337,6 +382,7 @@ export async function previewRanking(
       imageCount:            imageCountMap.get(p.productCode) ?? 0,
       imageUrl:              imageUrlMap.get(p.productCode) ?? '',
       ga4:                   p.ga4,
+      tsoftStats:            p.tsoftStats,
     };
   });
 

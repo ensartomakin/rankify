@@ -8,13 +8,21 @@ import type { TSoftProduct, TSoftSalesData, TSoftRankPayload } from '../types/ts
 import type { TSoftClientApi } from './tsoft-client-api';
 import { createDemoTSoftClient } from './demo-tsoft-client';
 
-const BATCH_SIZE  = 50;
-const RATE_DELAY  = 500;
-const MAX_RETRIES = 3;
+const BATCH_SIZE       = 50;
+const RATE_DELAY       = 500;
+const MAX_RETRIES      = 3;
+const SALES_CACHE_TTL  = 15 * 60 * 1000; // 15 dakika
 
 // Token önbelleği — cacheKey → { token, expiresAt }
 const tokenCache   = new Map<string, { token: string; expiresAt: number }>();
 const tokenCacheV3 = new Map<string, { token: string; expiresAt: number }>();
+
+// Satış verisi önbelleği — `${cacheKey}::${days}` → { data, expiresAt }
+const salesCache = new Map<string, { data: TSoftSalesData[]; expiresAt: number }>();
+
+// Kategori ürün listesi önbelleği — `${cacheKey}::cat::${categoryId}` → { data, expiresAt }
+const categoryProductsCache = new Map<string, { data: TSoftProduct[]; expiresAt: number }>();
+const CATEGORY_CACHE_TTL = 5 * 60 * 1000; // 5 dakika
 
 async function withRetry<T>(fn: () => Promise<T>, attempt = 1): Promise<T> {
   try {
@@ -291,6 +299,12 @@ export class TSoftClient {
   }
 
   async getCategoryProductsFull(categoryId: string): Promise<TSoftProduct[]> {
+    const key = `${this.cacheKey}::cat::${categoryId}`;
+    const cached = categoryProductsCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) {
+      logger.info(`[getCategoryProductsFull] önbellekten döndü — kategori=${categoryId} toplam=${cached.data.length}`);
+      return cached.data;
+    }
     const results: TSoftProduct[] = [];
     let start = 0;
     const limit = 500;
@@ -311,6 +325,7 @@ export class TSoftClient {
       start += limit;
     }
     logger.info(`[getCategoryProductsFull] kategori=${categoryId} toplam=${results.length}`);
+    categoryProductsCache.set(key, { data: results, expiresAt: Date.now() + CATEGORY_CACHE_TTL });
     return results;
   }
 
@@ -397,8 +412,16 @@ export class TSoftClient {
 
   async getSalesReport(productCodes: string[], days: number): Promise<TSoftSalesData[]> {
     // report/getSalesReport bu hesapta kapalı ("Controller is not allowed!")
-    // order/get + OrderDetails ile satış verisi çekiyoruz
-    return this.getSalesViaOrders(days);
+    // order/get + OrderDetails ile satış verisi çekiyoruz — sonuç önbelleğe alınır
+    const key = `${this.cacheKey}::${days}`;
+    const cached = salesCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) {
+      logger.info(`[getSalesReport] önbellekten döndü — days=${days} ürün=${cached.data.length}`);
+      return cached.data;
+    }
+    const data = await this.getSalesViaOrders(days);
+    salesCache.set(key, { data, expiresAt: Date.now() + SALES_CACHE_TTL });
+    return data;
   }
 
   private async getSalesViaReport(

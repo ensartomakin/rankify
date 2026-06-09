@@ -208,8 +208,10 @@ export async function runRankingPipeline(
     const disqualifiedCount = ranked.filter(p => p.isDisqualified).length;
     const qualifiedCount    = ranked.length - disqualifiedCount;
 
+    // Sadece aktif ürünleri gönder — T-Soft dışlananları zaten sona alır
+    const toRank = ranked.filter(p => !p.isDisqualified);
     await client.setKategoriSira(
-      ranked.map(p => ({ productCode: p.productCode, categoryId, sortOrder: p.finalRank }))
+      toRank.map((p, i) => ({ productCode: p.productCode, categoryId, sortOrder: i + 1 }))
     );
 
     const durationMs = Date.now() - startedAt;

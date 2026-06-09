@@ -23,6 +23,7 @@ import { saveConfig } from '../api/config';
 import { fetchGa4Status } from '../api/ga4';
 import { getStoredThreshold } from '../utils/threshold';
 import type { WeightCriterion, CriterionKey } from '../types';
+import { TSOFT_STAT_KEYS } from '../types';
 import type { SavedConfig } from '../api/config';
 import { SCENARIOS } from '../data/scenarios';
 import type { Scenario } from '../data/scenarios';
@@ -1091,6 +1092,16 @@ export function Dashboard({ prefill }: Props) {
             </button>
           </div>
         </div>
+
+        {/* T-Soft istatistik verisi uyarısı */}
+        {previewResult && criteria.some(c => TSOFT_STAT_KEYS.has(c.key)) &&
+          previewResult.products.length > 0 &&
+          previewResult.products.every(p => !p.tsoftStats || (p.tsoftStats.views === 0 && p.tsoftStats.cartAdds === 0)) && (
+          <div className="px-5 py-3.5 rounded-xl text-sm font-medium"
+            style={{ background: 'var(--warn-bg)', border: '1px solid var(--warn-bd)', color: 'var(--warn-tx)' }}>
+            ⚠ T-Soft görüntülenme/sepet verisi bu hesap için erişilebilir değil — tüm değerler 0 geliyor. T-Soft destek hattından hangi istatistik endpoint'inin açık olduğunu sorgulayın.
+          </div>
+        )}
 
         {/* Mesajlar */}
         {previewError && previewStatus === 'error' && (

@@ -59,6 +59,11 @@ export interface ProductPreviewItem {
     ctr:            number;
     conversionRate: number;
   };
+  tsoftStats?: {
+    views:          number;
+    cartAdds:       number;
+    conversionRate: number;
+  };
 }
 
 export interface PreviewResponse {

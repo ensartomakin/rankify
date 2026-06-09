@@ -259,11 +259,15 @@ export class TSoftClient {
     while (true) {
       const data = await this.post<{ success: boolean; data: Record<string, unknown>[] }>(
         'product/get', {
-          CategoryIds:  categoryId,
-          start:        String(start),
-          limit:        String(limit),
-          FetchDetails: 'true',
-          StockFields:  'true',
+          CategoryIds:       categoryId,
+          start:             String(start),
+          limit:             String(limit),
+          FetchDetails:      'true',
+          StockFields:       'true',
+          FetchStatistics:   'true',
+          IncludeStatistics: 'true',
+          WithStatistics:    'true',
+          FetchVisit:        'true',
         }
       );
       const batch = data.data ?? [];
@@ -311,11 +315,15 @@ export class TSoftClient {
     while (true) {
       const data = await this.post<{ success: boolean; data: Record<string, unknown>[] }>(
         'product/get', {
-          CategoryIds:  categoryId,
-          start:        String(start),
-          limit:        String(limit),
-          FetchDetails: 'true',
-          StockFields:  'true',
+          CategoryIds:       categoryId,
+          start:             String(start),
+          limit:             String(limit),
+          FetchDetails:      'true',
+          StockFields:       'true',
+          FetchStatistics:   'true',
+          IncludeStatistics: 'true',
+          WithStatistics:    'true',
+          FetchVisit:        'true',
         }
       );
       const batch = data.data ?? [];
@@ -349,6 +357,7 @@ export class TSoftClient {
   }
 
   private _loggedProductKeys = false;
+  resetProductKeyLog(): void { this._loggedProductKeys = false; }
 
   private mapProduct(p: Record<string, unknown>): TSoftProduct {
     if (!this._loggedProductKeys) {
@@ -694,8 +703,47 @@ export class TSoftClient {
       }
     }
 
+    // ── Strateji 3: T-Soft V3 API ──
+    if (!embeddedViewsFound && viewsMap.size === 0) {
+      const v3Paths = [
+        'products/statistics',
+        'analytics/products',
+        'report/products',
+        'products/visits',
+      ];
+      for (const path of v3Paths) {
+        try {
+          const raw = await this.getV3<unknown>(path, {
+            startDate, endDate, start: 0, limit: 500,
+          });
+          logger.info(`[getProductStats] V3 ${path} yanıt: ${JSON.stringify(raw).slice(0, 300)}`);
+          const rows = this.extractRows(raw);
+          if (rows.length === 0) continue;
+          for (const r of rows) {
+            const code = String(r.productCode ?? r.product_code ?? r.code ?? '');
+            if (!code) continue;
+            const views = Number(
+              r.visitCount ?? r.visit_count ?? r.viewCount ?? r.view_count ??
+              r.pageView   ?? r.page_view   ?? r.count     ?? 0
+            );
+            const cart = Number(
+              r.addToCartCount ?? r.add_to_cart_count ?? r.cartCount ?? r.cart_count ?? 0
+            );
+            if (views > 0) viewsMap.set(code, (viewsMap.get(code) ?? 0) + views);
+            if (cart > 0)  cartMap.set(code,  (cartMap.get(code)  ?? 0) + cart);
+          }
+          if (viewsMap.size > 0 || cartMap.size > 0) {
+            logger.info(`[getProductStats] V3 ${path} — görüntülenme=${viewsMap.size} sepet=${cartMap.size}`);
+            break;
+          }
+        } catch {
+          // V3 endpoint yok
+        }
+      }
+    }
+
     if (viewsMap.size === 0 && cartMap.size === 0) {
-      logger.warn('[getProductStats] T-Soft görüntülenme/sepet verisi bulunamadı — tüm değerler 0 olacak');
+      logger.warn('[getProductStats] T-Soft görüntülenme/sepet verisi bulunamadı — bu hesapta API erişimi kapalı olabilir');
     }
 
     const allCodes = new Set([...viewsMap.keys(), ...cartMap.keys()]);

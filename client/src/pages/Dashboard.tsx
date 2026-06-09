@@ -770,14 +770,17 @@ export function Dashboard({ prefill }: Props) {
     if (!isValid || previewOrder.length === 0) return;
     setTriggerStatus('loading'); setMessage('');
     try {
+      // Sadece aktif ürünleri gönder — T-Soft dışlananları zaten sona alır
+      const activeProducts = previewOrder.filter(p => !p.isDisqualified);
       await applyManualRanking(
         categoryId.trim(),
-        previewOrder.map(p => ({ productCode: p.productCode, rank: p.finalRank }))
+        activeProducts.map((p, i) => ({ productCode: p.productCode, rank: i + 1 }))
       );
       // Ek kategoriler için algoritmayı çalıştır ve uygula
       for (const { id } of selectedCategories.slice(1)) {
         const result = await previewRanking({ categoryId: id, availabilityThreshold: threshold, criteria, smartMix });
-        await applyManualRanking(id, result.products.map(p => ({ productCode: p.productCode, rank: p.finalRank })));
+        const active = result.products.filter(p => !p.isDisqualified);
+        await applyManualRanking(id, active.map((p, i) => ({ productCode: p.productCode, rank: i + 1 })));
       }
       setTriggerStatus('success');
       setMessage(selectedCategories.length > 1

@@ -354,15 +354,31 @@ export class TSoftClient {
     if (!this._loggedProductKeys) {
       this._loggedProductKeys = true;
       logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
-      // Fiyat & URL & görünürlük değerlerini logla
       const watched = ['Price','price','ListPrice','OldPrice','SalePrice','CampaignPrice',
         'DiscountedPrice','SellingPrice','DiscountRate','SEOUrl','SeoUrl','SEOLink','SeoLink',
         'Url','url','Link','link','DetailUrl','ProductUrl','Slug',
-        'IsActive','isActive','Active','active','IsVisible','isVisible','Visible','visible','Status','status'];
+        'IsActive','isActive','Active','active','IsVisible','isVisible','Visible','visible','Status','status',
+        // Görüntülenme & sepet alanları
+        'VisitCount','visitCount','ViewCount','viewCount','HitCount','hitCount','PageView','pageView',
+        'AddToCartCount','addToCartCount','BasketCount','basketCount','CartCount','cartCount',
+        'FavoriteCount','favoriteCount','WishlistCount','wishlistCount'];
       for (const k of watched) {
         if (p[k] !== undefined) logger.info(`[mapProduct] ${k} = ${JSON.stringify(p[k])}`);
       }
     }
+
+    // Görüntülenme sayısı — T-Soft çeşitli alan adları kullanabilir
+    const visitCount = Number(
+      p.VisitCount     ?? p.visitCount     ?? p.ViewCount  ?? p.viewCount  ??
+      p.HitCount       ?? p.hitCount       ?? p.PageView   ?? p.pageView   ??
+      p.VisitorCount   ?? p.visitorCount   ?? 0
+    ) || undefined;
+
+    // Sepete ekleme sayısı
+    const cartAddCount = Number(
+      p.AddToCartCount ?? p.addToCartCount ?? p.BasketCount ?? p.basketCount ??
+      p.CartCount      ?? p.cartCount      ?? 0
+    ) || undefined;
     const stock = Number(p.Stock ?? p.stock ?? 0);
     const rawVariants = (p.SubProducts ?? p.Variants ?? p.Details ?? []) as Record<string, unknown>[];
     const variants: import('../types/tsoft').TSoftVariant[] = Array.isArray(rawVariants) && rawVariants.length > 0
@@ -418,6 +434,8 @@ export class TSoftClient {
       discountRate,
       seoUrl: seoLink,
       isActive,
+      visitCount,
+      cartAddCount,
     };
   }
 
@@ -584,74 +602,102 @@ export class TSoftClient {
     const startDate = fmt(startDt);
     const endDate   = fmt(endDt);
 
-    const viewsMap   = new Map<string, number>();
-    const cartMap    = new Map<string, number>();
+    const viewsMap = new Map<string, number>();
+    const cartMap  = new Map<string, number>();
 
-    // Görüntülenme: report/getProductVisitReport
-    try {
-      let start = 0;
-      const limit = 200;
-      while (true) {
-        const raw = await this.post<unknown>('report/getProductVisitReport', {
-          startDate, endDate,
-          StartDate: startDate, EndDate: endDate,
-          start: String(start), limit: String(limit),
-        });
-        if (start === 0) logger.info(`[getProductStats] visitReport sample: ${JSON.stringify(raw).slice(0, 400)}`);
-        const rows = this.extractRows(raw);
-        for (const r of rows) {
-          const code = String(r.ProductCode ?? r.productCode ?? r.Code ?? r.code ?? '');
-          if (!code) continue;
-          const views = Number(
-            r.VisitCount ?? r.visitCount ?? r.ViewCount ?? r.viewCount ??
-            r.PageView   ?? r.pageView   ?? r.Count    ?? r.count     ??
-            r.HitCount   ?? r.hitCount   ?? r.Adet     ?? r.adet      ?? 0
-          );
-          viewsMap.set(code, (viewsMap.get(code) ?? 0) + views);
+    // ── Strateji 1: product/get yanıtında gömülü visit/cart alanları ──
+    // getCategoryProductsFull önbellekten gelir, ekstra API çağrısı gerekmez.
+    // Tüm kategorileri değil, önbellekte ne varsa kullan.
+    let embeddedViewsFound = false;
+    let embeddedCartFound  = false;
+    for (const [key, cached] of categoryProductsCache.entries()) {
+      if (cached.expiresAt <= Date.now()) continue;
+      for (const p of cached.data) {
+        if ((p.visitCount ?? 0) > 0) {
+          embeddedViewsFound = true;
+          viewsMap.set(p.productCode, (viewsMap.get(p.productCode) ?? 0) + p.visitCount!);
         }
-        if (rows.length < limit) break;
-        start += limit;
-        await sleep(RATE_DELAY);
+        if ((p.cartAddCount ?? 0) > 0) {
+          embeddedCartFound = true;
+          cartMap.set(p.productCode, (cartMap.get(p.productCode) ?? 0) + p.cartAddCount!);
+        }
       }
-      logger.info(`[getProductStats] görüntülenme — ${viewsMap.size} ürün`);
-    } catch (err) {
-      logger.warn(`[getProductStats] visitReport başarısız: ${err}`);
     }
+    if (embeddedViewsFound) logger.info(`[getProductStats] product/get görüntülenme — ${viewsMap.size} ürün`);
+    if (embeddedCartFound)  logger.info(`[getProductStats] product/get sepet — ${cartMap.size} ürün`);
 
-    // Sepete ekleme: basket/get — tarih aralığı ile sipariş öncesi sepet verileri
-    try {
-      let start = 0;
-      const limit = 200;
-      while (true) {
-        const raw = await this.post<unknown>('basket/get', {
-          startDate, endDate,
-          StartDate: startDate, EndDate: endDate,
-          start: String(start), limit: String(limit),
-          FetchProductData: 'true',
-        });
-        if (start === 0) logger.info(`[getProductStats] basket sample: ${JSON.stringify(raw).slice(0, 400)}`);
-        const rows = this.extractRows(raw);
-        for (const row of rows) {
-          const items = this.extractOrderProducts(row);
-          // Sepet kaydı direkt ürün listesi de olabilir
-          const candidates = items.length > 0 ? items : [row];
-          for (const item of candidates) {
-            const code = String(item.ProductCode ?? item.productCode ?? item.Code ?? item.code ?? '');
+    // ── Strateji 2: Ayrı rapor endpoint'leri (olmayabilir; sessizce atla) ──
+    if (!embeddedViewsFound) {
+      const visitEndpoints = [
+        'report/getProductVisitReport',
+        'report/getVisitReport',
+        'statistic/getProductStatistic',
+        'product/getProductVisit',
+      ];
+      for (const ep of visitEndpoints) {
+        try {
+          const raw = await this.post<unknown>(ep, {
+            startDate, endDate, StartDate: startDate, EndDate: endDate,
+            start: '0', limit: '500',
+          });
+          logger.info(`[getProductStats] ${ep} yanıt: ${JSON.stringify(raw).slice(0, 300)}`);
+          const rows = this.extractRows(raw);
+          if (rows.length === 0) continue;
+          for (const r of rows) {
+            const code = String(r.ProductCode ?? r.productCode ?? r.Code ?? r.code ?? '');
             if (!code) continue;
-            const qty = Number(item.Quantity ?? item.quantity ?? item.Piece ?? item.piece ?? item.Count ?? 1);
-            cartMap.set(code, (cartMap.get(code) ?? 0) + qty);
+            const views = Number(
+              r.VisitCount ?? r.visitCount ?? r.ViewCount ?? r.viewCount ??
+              r.HitCount   ?? r.hitCount   ?? r.PageView  ?? r.pageView  ??
+              r.Count      ?? r.count      ?? r.Adet      ?? r.adet      ?? 0
+            );
+            viewsMap.set(code, (viewsMap.get(code) ?? 0) + views);
           }
+          logger.info(`[getProductStats] ${ep} — ${viewsMap.size} ürün`);
+          break; // başarılı endpoint bulundu
+        } catch {
+          // bu endpoint kapalı, sıradakini dene
         }
-        if (rows.length < limit) break;
-        start += limit;
-        await sleep(RATE_DELAY);
       }
-      logger.info(`[getProductStats] sepete ekleme — ${cartMap.size} ürün`);
-    } catch (err) {
-      logger.warn(`[getProductStats] basket/get başarısız: ${err}`);
     }
 
-    // Tüm kodları birleştir
+    if (!embeddedCartFound) {
+      const basketEndpoints = [
+        'basket/get',
+        'basket/getBasketProducts',
+        'shoppingcart/get',
+      ];
+      for (const ep of basketEndpoints) {
+        try {
+          const raw = await this.post<unknown>(ep, {
+            startDate, endDate, StartDate: startDate, EndDate: endDate,
+            start: '0', limit: '500', FetchProductData: 'true',
+          });
+          logger.info(`[getProductStats] ${ep} yanıt: ${JSON.stringify(raw).slice(0, 300)}`);
+          const rows = this.extractRows(raw);
+          if (rows.length === 0) continue;
+          for (const row of rows) {
+            const items = this.extractOrderProducts(row);
+            const candidates = items.length > 0 ? items : [row];
+            for (const item of candidates) {
+              const code = String(item.ProductCode ?? item.productCode ?? item.Code ?? item.code ?? '');
+              if (!code) continue;
+              const qty = Number(item.Quantity ?? item.quantity ?? item.Piece ?? item.piece ?? item.Count ?? 1);
+              cartMap.set(code, (cartMap.get(code) ?? 0) + qty);
+            }
+          }
+          logger.info(`[getProductStats] ${ep} sepet — ${cartMap.size} ürün`);
+          break;
+        } catch {
+          // bu endpoint kapalı
+        }
+      }
+    }
+
+    if (viewsMap.size === 0 && cartMap.size === 0) {
+      logger.warn('[getProductStats] T-Soft görüntülenme/sepet verisi bulunamadı — tüm değerler 0 olacak');
+    }
+
     const allCodes = new Set([...viewsMap.keys(), ...cartMap.keys()]);
     return Array.from(allCodes).map(code => ({
       productCode: code,

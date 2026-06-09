@@ -46,13 +46,32 @@ async function resolveGa4Map(
 async function resolveTsoftStatsMap(
   config: WeightConfig,
   client: import('../services/tsoft-client-api').TSoftClientApi,
+  products: TSoftProduct[],
   salesDays: number
 ): Promise<Map<string, TSoftProductStats>> {
   const needsStats = config.criteria.some(c => TSOFT_STAT_KEYS.has(c.key));
   if (!needsStats) return new Map();
+
+  // Önce ürün objesinde gömülü visit/cart var mı kontrol et (sıfır maliyetli)
+  const embeddedMap = new Map<string, TSoftProductStats>();
+  for (const p of products) {
+    if ((p.visitCount ?? 0) > 0 || (p.cartAddCount ?? 0) > 0) {
+      embeddedMap.set(p.productCode, {
+        productCode: p.productCode,
+        views:       p.visitCount    ?? 0,
+        cartAdds:    p.cartAddCount  ?? 0,
+      });
+    }
+  }
+  if (embeddedMap.size > 0) {
+    logger.info(`[tsoftStats] product/get gömülü veri — ${embeddedMap.size} ürün`);
+    return embeddedMap;
+  }
+
+  // Gömülü veri yoksa ayrı endpoint çağrısı yap
   try {
     const stats = await client.getProductStats(salesDays);
-    logger.info(`[tsoftStats] ${stats.length} ürün için görüntülenme/sepet verisi alındı`);
+    logger.info(`[tsoftStats] endpoint verisi — ${stats.length} ürün`);
     return new Map(stats.map(s => [s.productCode, s]));
   } catch (err) {
     logger.warn(`[tsoftStats] veri alınamadı: ${err}`);
@@ -190,7 +209,7 @@ export async function runRankingPipeline(
     const ga4Map = await resolveGa4Map(config, userId);
 
     // T-Soft görüntülenme + sepete ekleme
-    const tsoftStatsMap = await resolveTsoftStatsMap(config, client, salesDays);
+    const tsoftStatsMap = await resolveTsoftStatsMap(config, client, products, salesDays);
 
     // Phase 2: Normalleştirme
     const salesMap = new Map<string, TSoftSalesData>(

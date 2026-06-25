@@ -374,10 +374,12 @@ export class TSoftClient {
       const watched = ['Price','price','ListPrice','OldPrice','SalePrice','CampaignPrice',
         'DiscountedPrice','SellingPrice','DiscountRate','SEOUrl','SeoUrl','SEOLink','SeoLink',
         'Url','url','Link','link','DetailUrl','ProductUrl','Slug',
-        'IsActive','isActive','Active','active','IsVisible','isVisible','Visible','visible','Status','status'];
+        'IsActive','isActive','Active','active','IsVisible','isVisible','Visible','visible','Status','status',
+        'StatViews','statViews','CountTotalSales','countTotalSales'];
       for (const k of watched) {
         if (p[k] !== undefined) logger.info(`[mapProduct] ${k} = ${JSON.stringify(p[k])}`);
       }
+      logger.info(`[mapProduct] StatViews RAW=${JSON.stringify(p.StatViews)} CountTotalSales RAW=${JSON.stringify(p.CountTotalSales)}`);
     }
     const stock = Number(p.Stock ?? p.stock ?? 0);
     const rawVariants = (p.SubProducts ?? p.Variants ?? p.Details ?? []) as Record<string, unknown>[];

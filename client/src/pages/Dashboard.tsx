@@ -20,7 +20,6 @@ import type {
   PreviewResponse, ProductPreviewItem,
 } from '../api/ranking';
 import { saveConfig } from '../api/config';
-import { fetchGa4Status } from '../api/ga4';
 import { getStoredThreshold } from '../utils/threshold';
 import type { WeightCriterion, CriterionKey } from '../types';
 import type { SavedConfig } from '../api/config';
@@ -368,11 +367,12 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
           {criteria.map(c => {
             const key = c.key as CriterionKey;
             const contrib = p.criteriaContributions[key] ?? 0;
-            const GA4_LABELS: Partial<Record<CriterionKey, string>> = {
-              ga4Views:          'GA4 Görüntülenme',
-              ga4Sessions:       'GA4 Oturum',
-              ga4Ctr:            'GA4 CTR',
-              ga4ConversionRate: 'GA4 Dönüşüm',
+            const TSOFT_LABELS: Partial<Record<CriterionKey, string>> = {
+              tsoftStatViews:          'Görüntülenme (Stat)',
+              tsoftStatConversionRate: 'Dönüşüm (Stat)',
+              tsoftViews:              'Görüntülenme',
+              tsoftCartAdds:           'Sepete Ekleme',
+              tsoftConversionRate:     'Dönüşüm Oranı',
             };
             const label =
               key === 'bestSeller'       ? `Satış (${c.weight}%)` :
@@ -381,18 +381,19 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
               key === 'reviewScore'      ? `Yorum (${c.weight}%)` :
               key === 'availabilityScore'? `Bulunurluk (${c.weight}%)` :
               key === 'discountRate'     ? `İndirim (${c.weight}%)` :
-              `${GA4_LABELS[key] ?? key} (${c.weight}%)`;
+              `${TSOFT_LABELS[key] ?? key} (${c.weight}%)`;
             let raw: string | number = '';
-            if (key === 'stockScore')             raw = p.totalStock.toLocaleString('tr-TR');
-            else if (key === 'bestSeller')        raw = p.salesQty.toLocaleString('tr-TR');
-            else if (key === 'newness')           raw = fmtDate(p.registrationDate);
-            else if (key === 'reviewScore')       raw = p.reviewCount.toLocaleString('tr-TR');
-            else if (key === 'availabilityScore') raw = fmtPct(p.availabilityRate * 100);
-            else if (key === 'discountRate')      raw = `%${(p.discountRate ?? 0).toLocaleString('tr-TR')}`;
-            else if (key === 'ga4Views')          raw = (p.ga4?.views ?? 0).toLocaleString('tr-TR');
-            else if (key === 'ga4Sessions')       raw = (p.ga4?.sessions ?? 0).toLocaleString('tr-TR');
-            else if (key === 'ga4Ctr')            raw = `${(p.ga4?.ctr ?? 0).toFixed(2)}%`;
-            else if (key === 'ga4ConversionRate') raw = `${(p.ga4?.conversionRate ?? 0).toFixed(2)}%`;
+            if (key === 'stockScore')                   raw = p.totalStock.toLocaleString('tr-TR');
+            else if (key === 'bestSeller')              raw = p.salesQty.toLocaleString('tr-TR');
+            else if (key === 'newness')                 raw = fmtDate(p.registrationDate);
+            else if (key === 'reviewScore')             raw = p.reviewCount.toLocaleString('tr-TR');
+            else if (key === 'availabilityScore')       raw = fmtPct(p.availabilityRate * 100);
+            else if (key === 'discountRate')            raw = `%${(p.discountRate ?? 0).toLocaleString('tr-TR')}`;
+            else if (key === 'tsoftStatViews')          raw = (p.statViews ?? 0).toLocaleString('tr-TR');
+            else if (key === 'tsoftStatConversionRate') raw = `${(p.statConversionRate ?? 0).toFixed(2)}%`;
+            else if (key === 'tsoftViews')              raw = (p.tsoftStats?.views ?? 0).toLocaleString('tr-TR');
+            else if (key === 'tsoftCartAdds')           raw = (p.tsoftStats?.cartAdds ?? 0).toLocaleString('tr-TR');
+            else if (key === 'tsoftConversionRate')     raw = `${(p.tsoftStats?.conversionRate ?? 0).toFixed(2)}%`;
             return (
               <div key={key} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px]"
                 style={{ borderBottom: '1px solid var(--border)' }}>
@@ -464,7 +465,6 @@ export function Dashboard({ prefill }: Props) {
     prefill?.criteria ?? DEFAULT_CRITERIA
   );
   const [smartMix,        setSmartMix]        = useState(true);
-  const [ga4Connected,    setGa4Connected]    = useState(false);
   const [scenarioOpen,    setScenarioOpen]    = useState(false);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const scenarioRef = useRef<HTMLDivElement>(null);
@@ -509,11 +509,6 @@ export function Dashboard({ prefill }: Props) {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
-
-  // GA4 bağlantı durumunu yükle
-  useEffect(() => {
-    fetchGa4Status().then(s => setGa4Connected(s.ready)).catch(() => {});
-  }, []);
 
   // Senaryo dropdown dışına tıklanınca kapat
   useEffect(() => {
@@ -1023,8 +1018,7 @@ export function Dashboard({ prefill }: Props) {
               {criteria.map((c, i) => (
                 <CriterionCard key={i} index={i as 0 | 1 | 2 | 3} criterion={c}
                   usedKeys={criteria.map(x => x.key)}
-                  onChange={u => handleCriterionChange(i, u)}
-                  ga4Connected={ga4Connected} />
+                  onChange={u => handleCriterionChange(i, u)} />
               ))}
             </div>
           </div>

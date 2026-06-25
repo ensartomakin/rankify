@@ -2,7 +2,7 @@ import type { TSoftClientApi } from './tsoft-client-api';
 import type { TSoftProduct, TSoftRankPayload, TSoftSalesData, TSoftProductStats, TSoftVariant } from '../types/tsoft';
 
 type DemoCategory = { categoryId: string; name: string; parentCategoryId: string };
-type DemoProductSpec = Omit<TSoftProduct, 'sortOrder'> & { baseDailySales: number };
+type DemoProductSpec = Omit<TSoftProduct, 'sortOrder' | 'statViews'> & { baseDailySales: number };
 
 const DEMO_BASE_URL = 'https://demo.rankify.local';
 
@@ -487,6 +487,7 @@ export class DemoTSoftClient implements TSoftClientApi {
         discountRate: p.discountRate,
         isActive: true,
         seoUrl: p.seoUrl,
+        statViews: Math.round(p.baseDailySales * 365 * 25),
       }))
       .sort((a, b) => a.sortOrder - b.sortOrder);
   }
@@ -516,6 +517,7 @@ export class DemoTSoftClient implements TSoftClientApi {
         discountRate: p.discountRate,
         isActive: true,
         seoUrl: p.seoUrl,
+        statViews: Math.round(p.baseDailySales * 365 * 25),
       });
     }
     return results;

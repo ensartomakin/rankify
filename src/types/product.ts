@@ -5,10 +5,8 @@ export type CriterionKey =
   | 'stockScore'
   | 'availabilityScore'
   | 'discountRate'
-  | 'ga4Views'
-  | 'ga4Sessions'
-  | 'ga4Ctr'
-  | 'ga4ConversionRate'
+  | 'tsoftStatViews'
+  | 'tsoftStatConversionRate'
   | 'tsoftViews'
   | 'tsoftCartAdds'
   | 'tsoftConversionRate';
@@ -49,20 +47,11 @@ export interface ProductScores {
   stockScore: number;
   availabilityScore: number;
   discountRate?: number;
-  ga4Views?: number;
-  ga4Sessions?: number;
-  ga4Ctr?: number;
-  ga4ConversionRate?: number;
+  tsoftStatViews?: number;
+  tsoftStatConversionRate?: number;
   tsoftViews?: number;
   tsoftCartAdds?: number;
   tsoftConversionRate?: number;
-}
-
-export interface Ga4RawMetrics {
-  views: number;
-  sessions: number;
-  ctr: number;
-  conversionRate: number;
 }
 
 export interface NormalizedProduct {
@@ -76,7 +65,8 @@ export interface NormalizedProduct {
   discountRate: number;
   isActive: boolean;
   sizeAvailability: SizeAvailability;
-  ga4?: Ga4RawMetrics;
+  statViews?: number;
+  statConversionRate?: number;
   tsoftStats?: TsoftRawStats;
   scores: ProductScores;
   rankingScore: number;

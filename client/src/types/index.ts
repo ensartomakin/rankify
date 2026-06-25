@@ -5,10 +5,8 @@ export type CriterionKey =
   | 'stockScore'
   | 'availabilityScore'
   | 'discountRate'
-  | 'ga4Views'
-  | 'ga4Sessions'
-  | 'ga4Ctr'
-  | 'ga4ConversionRate'
+  | 'tsoftStatViews'
+  | 'tsoftStatConversionRate'
   | 'tsoftViews'
   | 'tsoftCartAdds'
   | 'tsoftConversionRate';
@@ -23,21 +21,15 @@ export const CRITERION_LABELS: Record<CriterionKey, string> = {
   stockScore:            'Stoğa göre',
   availabilityScore:     'Beden bulunurluğu',
   discountRate:          'İndirim oranı',
-  ga4Views:              'GA4 · Görüntülenme',
-  ga4Sessions:           'GA4 · Oturum',
-  ga4Ctr:                'GA4 · Tıklama Oranı (CTR)',
-  ga4ConversionRate:     'GA4 · Dönüşüm Oranı',
-  tsoftViews:            'T-Soft · Görüntülenme',
+  tsoftStatViews:              'T-Soft · Sayfa Görüntülenme',
+  tsoftStatConversionRate:     'T-Soft · Dönüşüm Oranı (Stat)',
+  tsoftViews:                  'T-Soft · Görüntülenme (Rapor)',
   tsoftCartAdds:         'T-Soft · Sepete Ekleme',
   tsoftConversionRate:   'T-Soft · Dönüşüm Oranı',
 };
 
-export const GA4_CRITERION_KEYS = new Set<CriterionKey>([
-  'ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate',
-]);
-
 export const TSOFT_STAT_KEYS = new Set<CriterionKey>([
-  'tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate',
+  'tsoftStatViews', 'tsoftStatConversionRate', 'tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate',
 ]);
 
 export const SALES_PERIOD_LABELS: Record<SalesPeriod, string> = {

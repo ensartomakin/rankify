@@ -1,4 +1,4 @@
-import { minMaxNormalize } from '../utils/helpers';
+import { minMaxNormalize, logMinMaxNormalize } from '../utils/helpers';
 import type { NormalizedProduct, WeightConfig } from '../types/product';
 
 export function validateWeights(config: WeightConfig): void {
@@ -49,21 +49,24 @@ export function computeRankingScores(
   const usedKeys = new Set(config.criteria.map(c => c.key));
 
   // Temel metrikler
-  const sales    = minMaxNormalize(products.map(p => p.sales14Days));
-  const reviews  = minMaxNormalize(products.map(p => p.reviewCount));
-  const stock    = minMaxNormalize(products.map(p => p.sizeAvailability.totalStock));
-  // newnessScore'u tüm ürünler üzerinden min-max normalize et — mutlak ölçek değil
+  // Sayım bazlı metrikler (satış, stok, yorum) → log normalizasyon:
+  // Bir outlier diğerlerini 0'a ezmez; ağırlıklar gerçek etkisini gösterir.
+  const sales    = logMinMaxNormalize(products.map(p => p.salesQty));
+  const reviews  = logMinMaxNormalize(products.map(p => p.reviewCount));
+  const stock    = logMinMaxNormalize(products.map(p => p.sizeAvailability.totalStock));
+  // Yenilik skoru zaten 0-100 aralığında — min-max yeterli
   const newness  = minMaxNormalize(products.map(p => newnessScore(p.registrationDate)));
+  // İndirim oranı yüzdesel — min-max yeterli
   const discount = usedKeys.has('discountRate')
     ? minMaxNormalize(products.map(p => p.discountRate))
     : null;
 
-  // GA4 metrikleri — sadece konfigürasyonda kullanılanları normalize et
+  // GA4 metrikleri — views/sessions sayım bazlı → log; ctr/cr oran bazlı → min-max
   const ga4ViewsNorm    = usedKeys.has('ga4Views')
-    ? minMaxNormalize(products.map(p => p.ga4?.views ?? 0))
+    ? logMinMaxNormalize(products.map(p => p.ga4?.views ?? 0))
     : null;
   const ga4SessionsNorm = usedKeys.has('ga4Sessions')
-    ? minMaxNormalize(products.map(p => p.ga4?.sessions ?? 0))
+    ? logMinMaxNormalize(products.map(p => p.ga4?.sessions ?? 0))
     : null;
   const ga4CtrNorm      = usedKeys.has('ga4Ctr')
     ? minMaxNormalize(products.map(p => p.ga4?.ctr ?? 0))
@@ -72,12 +75,12 @@ export function computeRankingScores(
     ? minMaxNormalize(products.map(p => p.ga4?.conversionRate ?? 0))
     : null;
 
-  // T-Soft istatistik metrikleri
+  // T-Soft istatistik metrikleri — views/cartAdds sayım bazlı → log; cr oran → min-max
   const tsoftViewsNorm = usedKeys.has('tsoftViews')
-    ? minMaxNormalize(products.map(p => p.tsoftStats?.views ?? 0))
+    ? logMinMaxNormalize(products.map(p => p.tsoftStats?.views ?? 0))
     : null;
   const tsoftCartNorm  = usedKeys.has('tsoftCartAdds')
-    ? minMaxNormalize(products.map(p => p.tsoftStats?.cartAdds ?? 0))
+    ? logMinMaxNormalize(products.map(p => p.tsoftStats?.cartAdds ?? 0))
     : null;
   const tsoftCrNorm    = usedKeys.has('tsoftConversionRate')
     ? minMaxNormalize(products.map(p => p.tsoftStats?.conversionRate ?? 0))

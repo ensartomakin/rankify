@@ -384,7 +384,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
               `${GA4_LABELS[key] ?? key} (${c.weight}%)`;
             let raw: string | number = '';
             if (key === 'stockScore')             raw = p.totalStock.toLocaleString('tr-TR');
-            else if (key === 'bestSeller')        raw = p.sales14Days.toLocaleString('tr-TR');
+            else if (key === 'bestSeller')        raw = p.salesQty.toLocaleString('tr-TR');
             else if (key === 'newness')           raw = fmtDate(p.registrationDate);
             else if (key === 'reviewScore')       raw = p.reviewCount.toLocaleString('tr-TR');
             else if (key === 'availabilityScore') raw = fmtPct(p.availabilityRate * 100);

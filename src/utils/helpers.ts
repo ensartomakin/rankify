@@ -13,3 +13,10 @@ export const minMaxNormalize = (values: number[]): number[] => {
   if (max === min) return values.map(() => (max === 0 ? 0 : 50));
   return values.map(v => ((v - min) / (max - min)) * 100);
 };
+
+// Sayım bazlı metrikler için (satış, stok, yorum, görüntülenme…):
+// log(v+1) dönüşümü yaparak min-max uygular.
+// Bu sayede bir outlier (ör. 500 saten ürün) diğerlerini 0'a ezmez;
+// 10 satan ürün, 500 satana göre göreceli olarak daha adil puan alır.
+export const logMinMaxNormalize = (values: number[]): number[] =>
+  minMaxNormalize(values.map(v => Math.log1p(Math.max(0, v))));

@@ -72,7 +72,7 @@ export interface NormalizedProduct {
   categoryId: string;
   registrationDate: Date;
   reviewCount: number;
-  sales14Days: number;
+  salesQty: number; // seçilen salesPeriod'a göre çekilen satış adedi
   discountRate: number;
   isActive: boolean;
   sizeAvailability: SizeAvailability;

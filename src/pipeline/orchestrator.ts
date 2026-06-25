@@ -295,7 +295,10 @@ export async function previewRanking(
       discountRate:     p.discountRate,
       isActive:         p.isActive,
       sizeAvailability,
-      statViews:        p.statViews,
+      statViews:             p.statViews,
+      statConversionRate:    p.statViews && p.statViews > 0
+        ? Math.min(100, (soldQty / p.statViews) * 100)
+        : undefined,
       tsoftStats,
       scores:        { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
       rankingScore:   0,

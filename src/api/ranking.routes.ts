@@ -14,6 +14,7 @@ const criteriaSchema = z
     key: z.enum([
       'newness', 'bestSeller', 'reviewScore', 'stockScore', 'availabilityScore',
       'discountRate',
+      'ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate',
       'tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate',
     ]),
     weight: z.number().min(0).max(100),

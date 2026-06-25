@@ -51,13 +51,12 @@ export interface ProductPreviewItem {
   discountRate:          number;
   seoUrl:                string;
   registrationDate:      string;
-  imageCount:              number;
-  imageUrl:                string;
-  statViews?:              number;
-  statConversionRate?:     number;
-  tsoftStats?: {
+  imageCount:            number;
+  imageUrl:              string;
+  ga4?: {
     views:          number;
-    cartAdds:       number;
+    sessions:       number;
+    ctr:            number;
     conversionRate: number;
   };
 }

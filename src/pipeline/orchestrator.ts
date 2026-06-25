@@ -6,6 +6,24 @@ import { fetchGa4ProductMetrics, } from '../services/ga4-client';
 const GA4_KEYS   = new Set(['ga4Views','ga4Sessions','ga4Ctr','ga4ConversionRate']);
 const TSOFT_STAT_KEYS = new Set(['tsoftViews','tsoftCartAdds','tsoftConversionRate']);
 
+function buildTsoftStatsMap(
+  config: WeightConfig,
+  products: TSoftProduct[]
+): Map<string, TSoftProductStats> {
+  const needsStats = config.criteria.some(c => TSOFT_STAT_KEYS.has(c.key));
+  if (!needsStats) return new Map();
+  const map = new Map<string, TSoftProductStats>();
+  for (const p of products) {
+    if (p.statViews > 0 || p.countTotalSales > 0) {
+      map.set(p.productCode, { productCode: p.productCode, views: p.statViews, cartAdds: p.countTotalSales });
+    }
+  }
+  const nonZero = map.size;
+  logger.info(`[tsoftStats] StatViews/CountTotalSales — ${nonZero}/${products.length} üründe veri var`);
+  if (nonZero === 0) logger.warn(`[tsoftStats] Tüm ürünlerde StatViews=0 ve CountTotalSales=0 — T-Soft bu alanları döndürmüyor olabilir`);
+  return map;
+}
+
 function salesPeriodToGa4Range(period?: string): string {
   switch (period) {
     case '3d':  return '3d';
@@ -41,23 +59,6 @@ async function resolveGa4Map(
     }
   }
   return map;
-}
-
-async function resolveTsoftStatsMap(
-  config: WeightConfig,
-  client: import('../services/tsoft-client-api').TSoftClientApi,
-  salesDays: number
-): Promise<Map<string, TSoftProductStats>> {
-  const needsStats = config.criteria.some(c => TSOFT_STAT_KEYS.has(c.key));
-  if (!needsStats) return new Map();
-  try {
-    const stats = await client.getProductStats(salesDays);
-    logger.info(`[tsoftStats] ${stats.length} ürün için görüntülenme/sepet verisi alındı`);
-    return new Map(stats.map(s => [s.productCode, s]));
-  } catch (err) {
-    logger.warn(`[tsoftStats] veri alınamadı: ${err}`);
-    return new Map();
-  }
 }
 
 function salesPeriodToDays(period?: string): number {
@@ -190,7 +191,7 @@ export async function runRankingPipeline(
     const ga4Map = await resolveGa4Map(config, userId);
 
     // T-Soft görüntülenme + sepete ekleme
-    const tsoftStatsMap = await resolveTsoftStatsMap(config, client, salesDays);
+    const tsoftStatsMap = buildTsoftStatsMap(config, products);
 
     // Phase 2: Normalleştirme
     const salesMap = new Map<string, TSoftSalesData>(
@@ -306,8 +307,8 @@ export async function previewRanking(
   // GA4 metrikleri — periyoda göre önbellekten veya auto-sync
   const ga4Map = await resolveGa4Map(config, userId);
 
-  // T-Soft görüntülenme + sepete ekleme
-  const tsoftStatsMap = await resolveTsoftStatsMap(config, client, salesDays);
+  // T-Soft görüntülenme + sepete ekleme — product/get yanıtından StatViews/CountTotalSales okunur
+  const tsoftStatsMap = buildTsoftStatsMap(config, products);
 
   // imageCount is stored per-product alongside normalized data
   const imageCountMap = new Map<string, number>(products.map(p => [p.productCode, p.imageCount]));

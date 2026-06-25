@@ -49,6 +49,8 @@ function makeProduct(input: {
     isActive: true,
     seoUrl: `${DEMO_BASE_URL}/urun-detay/${encodeURIComponent(input.productCode)}`,
     baseDailySales: input.baseDailySales,
+    statViews:       Math.round(input.baseDailySales * 200),
+    countTotalSales: Math.round(input.baseDailySales * 14),
   };
 }
 
@@ -487,6 +489,8 @@ export class DemoTSoftClient implements TSoftClientApi {
         discountRate: p.discountRate,
         isActive: true,
         seoUrl: p.seoUrl,
+        statViews:       p.statViews,
+        countTotalSales: p.countTotalSales,
       }))
       .sort((a, b) => a.sortOrder - b.sortOrder);
   }
@@ -516,6 +520,8 @@ export class DemoTSoftClient implements TSoftClientApi {
         discountRate: p.discountRate,
         isActive: true,
         seoUrl: p.seoUrl,
+        statViews:       p.statViews,
+        countTotalSales: p.countTotalSales,
       });
     }
     return results;

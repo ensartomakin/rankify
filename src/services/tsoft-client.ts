@@ -327,9 +327,14 @@ export class TSoftClient {
           limit:        String(limit),
           FetchDetails: 'true',
           StockFields:  'true',
+          StatFields:   'true',
         }
       );
       const batch = data.data ?? [];
+      if (start === 0 && batch.length > 0) {
+        const s = batch[0];
+        logger.info(`[getCategoryProductsFull] StatViews=${s.StatViews ?? s.statViews ?? 'yok'} CountTotalSales=${s.CountTotalSales ?? s.countTotalSales ?? 'yok'}`);
+      }
       results.push(...batch.map(p => this.mapProduct(p)));
       logger.info(`[getCategoryProductsFull] start=${start} dönen=${batch.length}`);
       if (batch.length < limit) break;
@@ -429,6 +434,12 @@ export class TSoftClient {
       discountRate,
       seoUrl: seoLink,
       isActive,
+      statViews:       Number(p.StatViews ?? p.statViews ?? p.ViewCount ?? p.viewCount ??
+                              p.Views ?? p.views ?? p.VisitCount ?? p.visitCount ??
+                              p.TotalViews ?? p.totalViews ?? p.HitCount ?? p.hitCount ?? 0),
+      countTotalSales: Number(p.CountTotalSales ?? p.countTotalSales ?? p.TotalSales ?? p.totalSales ??
+                              p.SaleCount ?? p.saleCount ?? p.SoldCount ?? p.soldCount ??
+                              p.TotalSaleCount ?? p.totalSaleCount ?? p.OrderCount ?? p.orderCount ?? 0),
     };
   }
 

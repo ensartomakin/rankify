@@ -123,7 +123,7 @@ function ProductCard({ product, criteria, apiUrl }: CardProps) {
             let rawVal: string | number = '';
 
             if (key === 'stockScore')        rawVal = product.totalStock.toLocaleString('tr-TR');
-            else if (key === 'bestSeller')   rawVal = product.sales14Days.toLocaleString('tr-TR');
+            else if (key === 'bestSeller')   rawVal = product.salesQty.toLocaleString('tr-TR');
             else if (key === 'newness')      rawVal = fmtDate(product.registrationDate);
             else if (key === 'reviewScore')  rawVal = product.reviewCount.toLocaleString('tr-TR');
             else if (key === 'availabilityScore') rawVal = fmtPct(product.availabilityRate * 100);

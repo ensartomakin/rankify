@@ -46,7 +46,7 @@ export interface ProductPreviewItem {
   criteriaContributions: Partial<Record<CriterionKey, number>>;
   totalStock:            number;
   availabilityRate:      number;
-  sales14Days:           number;
+  salesQty:              number;
   reviewCount:           number;
   discountRate:          number;
   seoUrl:                string;

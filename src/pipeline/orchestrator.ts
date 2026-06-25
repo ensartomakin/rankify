@@ -138,7 +138,7 @@ export interface ProductPreviewItem {
   criteriaContributions: Partial<Record<CriterionKey, number>>;
   totalStock:           number;
   availabilityRate:     number;
-  sales14Days:          number;
+  salesQty:             number; // seçilen salesPeriod'a göre çekilen satış adedi
   reviewCount:          number;
   discountRate:         number;
   seoUrl:               string;
@@ -218,7 +218,7 @@ export async function runRankingPipeline(
         categoryId:       p.categoryId,
         registrationDate: new Date(p.registrationDate),
         reviewCount:      p.reviewCount,
-        sales14Days:      soldQty,
+        salesQty:         soldQty,
         discountRate:     p.discountRate,
         isActive:         p.isActive,
         sizeAvailability,
@@ -335,7 +335,7 @@ export async function previewRanking(
       categoryId:       p.categoryId,
       registrationDate: new Date(p.registrationDate),
       reviewCount:      p.reviewCount,
-      sales14Days:      soldQty,
+      salesQty:         soldQty,
       discountRate:     p.discountRate,
       isActive:         p.isActive,
       sizeAvailability,
@@ -374,7 +374,7 @@ export async function previewRanking(
       criteriaContributions: contributions,
       totalStock:            p.sizeAvailability.totalStock,
       availabilityRate:      p.sizeAvailability.availabilityRate,
-      sales14Days:           p.sales14Days,
+      salesQty:              p.salesQty,
       reviewCount:           p.reviewCount,
       discountRate:          p.discountRate,
       seoUrl:                seoUrlMap.get(p.productCode) ?? '',

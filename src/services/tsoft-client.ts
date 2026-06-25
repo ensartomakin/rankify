@@ -598,9 +598,9 @@ export class TSoftClient {
     const viewsMap   = new Map<string, number>();
     const cartMap    = new Map<string, number>();
 
-    // Görüntülenme: report/getProductVisitReport
-    // NOT: Bu endpoint bazı T-Soft hesaplarında "Controller is not allowed!" hatası verir.
-    // Hata durumunda viewsMap boş kalır ve tsoftViews skoru 0 olur.
+    // Görüntülenme — önce report/getProductVisitReport, başarısız olursa
+    // product/get ile FetchStats:true üzerinden fallback dener.
+    let visitReportWorked = false;
     try {
       let start = 0;
       const limit = 200;
@@ -615,7 +615,7 @@ export class TSoftClient {
         if (d?.success === false) {
           const msgText = (d.message as Record<string, unknown>[])?.[0]?.text;
           const msg = Array.isArray(msgText) ? String(msgText[0]) : String(msgText ?? '');
-          logger.error(`[getProductStats] report/getProductVisitReport bu hesapta kapalı: "${msg}" — tsoftViews skoru hesaplanamayacak`);
+          logger.warn(`[getProductStats] report/getProductVisitReport kapalı: "${msg}" — product/get ile fallback deneniyor`);
           break;
         }
         const rows = this.extractRows(raw);
@@ -633,9 +633,56 @@ export class TSoftClient {
         start += limit;
         await sleep(RATE_DELAY);
       }
-      if (viewsMap.size > 0) logger.info(`[getProductStats] görüntülenme — ${viewsMap.size} ürün`);
+      if (viewsMap.size > 0) {
+        visitReportWorked = true;
+        logger.info(`[getProductStats] görüntülenme (visitReport) — ${viewsMap.size} ürün`);
+      }
     } catch (err) {
-      logger.error(`[getProductStats] visitReport HTTP hatası: ${err}`);
+      logger.warn(`[getProductStats] visitReport HTTP hatası: ${err} — product/get ile fallback deneniyor`);
+    }
+
+    // Görüntülenme fallback: product/get + FetchStats:true
+    // Bazı T-Soft planlarında ürün verisinde ViewCount/VisitCount alanı gelir.
+    if (!visitReportWorked) {
+      try {
+        let start = 0;
+        const limit = 200;
+        let firstBatch = true;
+        while (true) {
+          const raw = await this.post<{ success?: boolean; data?: Record<string, unknown>[] }>(
+            'product/get', {
+              start: String(start), limit: String(limit),
+              FetchDetails: 'true',
+              FetchStats:   'true',
+            }
+          );
+          if (firstBatch) {
+            logger.info(`[getProductStats] product/get+FetchStats FULL: ${JSON.stringify(raw).slice(0, 600)}`);
+            firstBatch = false;
+          }
+          const batch = raw?.data ?? [];
+          for (const p of batch) {
+            const code = String(p.ProductCode ?? p.productCode ?? '');
+            if (!code) continue;
+            const views = Number(
+              p.ViewCount   ?? p.viewCount   ?? p.VisitCount  ?? p.visitCount  ??
+              p.PageView    ?? p.pageView    ?? p.HitCount    ?? p.hitCount    ??
+              p.ViewsCount  ?? p.viewsCount  ?? p.Goruntulenme ?? p.goruntulenme ?? 0
+            );
+            if (views > 0) viewsMap.set(code, (viewsMap.get(code) ?? 0) + views);
+          }
+          if (batch.length < limit) break;
+          start += limit;
+          await sleep(RATE_DELAY);
+        }
+        if (viewsMap.size > 0) {
+          logger.info(`[getProductStats] görüntülenme (product/get+FetchStats) — ${viewsMap.size} ürün`);
+        } else {
+          logger.error(`[getProductStats] Görüntülenme verisi alınamadı — tsoftViews skoru bu kategoride 0 olacak. T-Soft panelinizde "Ürün Ziyaret Raporu" iznini kontrol edin.`);
+        }
+      } catch (err) {
+        logger.error(`[getProductStats] product/get+FetchStats hatası: ${err}`);
+      }
     }
 
     // Sepete ekleme: basket/get — aktif (terk edilmiş) sepetler

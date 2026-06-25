@@ -236,7 +236,7 @@ export class TSoftClient {
       'product/get', {
         CategoryIds:  categoryId,
         start:        '0',
-        limit:        String(limit),
+        limit:        String(Math.max(limit, 50)),
         FetchDetails: 'true',
         StockFields:  'true',
       }

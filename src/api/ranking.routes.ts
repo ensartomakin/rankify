@@ -102,6 +102,43 @@ rankingRouter.get('/debug-product', requireSuperAdmin, async (req: Request, res:
   }
 });
 
+// Sıralama debug: ham T-Soft yanıtının tüm alanlarını döndürür — prod'da kapalı
+rankingRouter.get('/debug-sort', requireSuperAdmin, async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(404).json({ error: 'Not found' }); return;
+  }
+  const { categoryId, limit: limitStr } = req.query;
+  if (!categoryId || typeof categoryId !== 'string') {
+    res.status(400).json({ error: 'categoryId query parametresi gerekli' });
+    return;
+  }
+  const limit = Math.min(Number(limitStr) || 10, 50);
+  try {
+    const client = await getClientForUser(req.user!.userId, req.user!.tenantId);
+    const rawProducts = await client.getCategoryProductsRawSample(categoryId, limit);
+    // Sıralama ile ilgili olabilecek tüm alanları döndür
+    const sample = rawProducts.map((p, i) => {
+      const sortKeys = ['ListNo','listNo','SortOrder','sortOrder','Sequence','sequence',
+        'DisplayOrder','displayOrder','SortNo','sortNo','OrderNo','orderNo',
+        'Priority','priority','Rank','rank','Position','position',
+        'CategoryOrder','categoryOrder','CategorySort','categorySort'];
+      const result: Record<string, unknown> = {
+        _index: i,
+        ProductCode: p.ProductCode ?? p.productCode,
+        ProductName: String(p.ProductName ?? p.productName ?? '').slice(0, 50),
+      };
+      for (const k of sortKeys) {
+        if (p[k] !== undefined) result[k] = p[k];
+      }
+      return result;
+    });
+    res.json({ total: rawProducts.length, sample });
+  } catch (err) {
+    logger.error(`debug-sort hatası: ${err}`);
+    res.status(500).json({ error: 'Sıralama debug verisi alınamadı' });
+  }
+});
+
 const manualSchema = z.object({
   categoryId: z.string().min(1).max(100),
   products:   z.array(z.object({

@@ -46,9 +46,11 @@ function makeProduct(input: {
     reviewCount: input.reviewCount,
     variants: input.variants,
     discountRate: input.discountRate,
-    isActive: true,
-    seoUrl: `${DEMO_BASE_URL}/urun-detay/${encodeURIComponent(input.productCode)}`,
-    baseDailySales: input.baseDailySales,
+    isActive:        true,
+    seoUrl:          `${DEMO_BASE_URL}/urun-detay/${encodeURIComponent(input.productCode)}`,
+    statViews:       input.baseDailySales * 200,
+    countTotalSales: input.baseDailySales * 14,
+    baseDailySales:  input.baseDailySales,
   };
 }
 

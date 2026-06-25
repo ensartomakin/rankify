@@ -2,21 +2,22 @@ import { getClientForUser } from '../services/tsoft-client';
 import { computeSizeAvailability } from '../scoring/availability';
 const TSOFT_STAT_KEYS = new Set(['tsoftViews','tsoftCartAdds','tsoftConversionRate']);
 
-async function resolveTsoftStatsMap(
+function buildTsoftStatsMap(
   config: WeightConfig,
-  client: import('../services/tsoft-client-api').TSoftClientApi,
-  salesDays: number
-): Promise<Map<string, TSoftProductStats>> {
+  products: TSoftProduct[]
+): Map<string, TSoftProductStats> {
   const needsStats = config.criteria.some(c => TSOFT_STAT_KEYS.has(c.key));
   if (!needsStats) return new Map();
-  try {
-    const stats = await client.getProductStats(salesDays);
-    logger.info(`[tsoftStats] ${stats.length} ürün için görüntülenme/sepet verisi alındı`);
-    return new Map(stats.map(s => [s.productCode, s]));
-  } catch (err) {
-    logger.warn(`[tsoftStats] veri alınamadı: ${err}`);
-    return new Map();
+  const map = new Map<string, TSoftProductStats>();
+  for (const p of products) {
+    if (p.statViews > 0 || p.countTotalSales > 0) {
+      map.set(p.productCode, { productCode: p.productCode, views: p.statViews, cartAdds: p.countTotalSales });
+    }
   }
+  const nonZero = map.size;
+  logger.info(`[tsoftStats] StatViews/CountTotalSales — ${nonZero}/${products.length} üründe veri var`);
+  if (nonZero === 0) logger.warn(`[tsoftStats] Tüm ürünlerde StatViews=0 ve CountTotalSales=0 — T-Soft bu alanları döndürmüyor olabilir`);
+  return map;
 }
 
 function salesPeriodToDays(period?: string): number {
@@ -145,7 +146,7 @@ export async function runRankingPipeline(
     const salesData    = await client.getSalesReport(productCodes, salesDays);
 
     // T-Soft görüntülenme + sepete ekleme
-    const tsoftStatsMap = await resolveTsoftStatsMap(config, client, salesDays);
+    const tsoftStatsMap = buildTsoftStatsMap(config, products);
 
     // Phase 2: Normalleştirme
     const salesMap = new Map<string, TSoftSalesData>(

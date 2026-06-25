@@ -427,8 +427,10 @@ export class TSoftClient {
       reviewCount:      Number(p.ReviewCount ?? p.reviewCount ?? p.CommentCount ?? p.commentCount ?? 0),
       variants,
       discountRate,
-      seoUrl: seoLink,
+      seoUrl:          seoLink,
       isActive,
+      statViews:       Number(p.StatViews       ?? p.statViews       ?? p.ViewCount  ?? p.viewCount  ?? 0),
+      countTotalSales: Number(p.CountTotalSales  ?? p.countTotalSales ?? p.TotalSales ?? p.totalSales ?? 0),
     };
   }
 

@@ -1,9 +1,10 @@
 import {
-  CRITERION_COLORS, CRITERION_LABELS, SALES_PERIOD_LABELS, TSOFT_STAT_KEYS,
+  CRITERION_COLORS, CRITERION_LABELS, SALES_PERIOD_LABELS, GA4_CRITERION_KEYS, TSOFT_STAT_KEYS,
   type CriterionKey, type SalesPeriod, type SortDirection, type WeightCriterion,
 } from '../types';
 
 const BASE_KEYS:   CriterionKey[] = ['stockScore', 'bestSeller', 'newness', 'reviewScore', 'discountRate'];
+const GA4_KEYS:    CriterionKey[] = ['ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate'];
 const TSOFT_KEYS:  CriterionKey[] = ['tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate'];
 
 interface Props {
@@ -11,11 +12,12 @@ interface Props {
   criterion: WeightCriterion;
   usedKeys: CriterionKey[];
   onChange: (c: WeightCriterion) => void;
+  ga4Connected?: boolean;
 }
 
-export function CriterionCard({ index, criterion, usedKeys, onChange }: Props) {
+export function CriterionCard({ index, criterion, usedKeys, onChange, ga4Connected = false }: Props) {
   const color   = CRITERION_COLORS[index];
-  const allKeys = [...BASE_KEYS, ...TSOFT_KEYS];
+  const allKeys = [...BASE_KEYS, ...TSOFT_KEYS, ...(ga4Connected ? GA4_KEYS : [])];
   const options = allKeys.filter(k => k === criterion.key || !usedKeys.includes(k));
 
   const selectSt: React.CSSProperties = {
@@ -83,12 +85,19 @@ export function CriterionCard({ index, criterion, usedKeys, onChange }: Props) {
             <select value={criterion.key}
               onChange={e => onChange({ ...criterion, key: e.target.value as CriterionKey, salesPeriod: undefined })}
               style={selectSt}>
-              {options.filter(k => !TSOFT_STAT_KEYS.has(k)).map(k =>
+              {options.filter(k => !GA4_CRITERION_KEYS.has(k) && !TSOFT_STAT_KEYS.has(k)).map(k =>
                 <option key={k} value={k}>{CRITERION_LABELS[k]}</option>
               )}
               {options.some(k => TSOFT_STAT_KEYS.has(k)) && (
                 <optgroup label="── T-Soft İstatistikler ──">
                   {options.filter(k => TSOFT_STAT_KEYS.has(k)).map(k =>
+                    <option key={k} value={k}>{CRITERION_LABELS[k]}</option>
+                  )}
+                </optgroup>
+              )}
+              {ga4Connected && options.some(k => GA4_CRITERION_KEYS.has(k)) && (
+                <optgroup label="── Google Analytics 4 ──">
+                  {options.filter(k => GA4_CRITERION_KEYS.has(k)).map(k =>
                     <option key={k} value={k}>{CRITERION_LABELS[k]}</option>
                   )}
                 </optgroup>
@@ -99,7 +108,7 @@ export function CriterionCard({ index, criterion, usedKeys, onChange }: Props) {
         </div>
 
         {/* Sıralama Yönü */}
-        <div style={{ marginBottom: (criterion.key === 'bestSeller' || TSOFT_STAT_KEYS.has(criterion.key)) ? '12px' : '0' }}>
+        <div style={{ marginBottom: (criterion.key === 'bestSeller' || GA4_CRITERION_KEYS.has(criterion.key) || TSOFT_STAT_KEYS.has(criterion.key)) ? '12px' : '0' }}>
           <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--tx3)', marginBottom: '5px' }}>
             Sıralama Yönü
           </label>
@@ -152,6 +161,24 @@ export function CriterionCard({ index, criterion, usedKeys, onChange }: Props) {
           </div>
         )}
 
+        {/* GA4 veri dönemi */}
+        {GA4_CRITERION_KEYS.has(criterion.key) && (
+          <div style={{ borderRadius: '10px', padding: '10px 12px', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+            <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--tx3)', marginBottom: '5px' }}>
+              Veri Dönemi
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select value={criterion.salesPeriod ?? '1m'}
+                onChange={e => onChange({ ...criterion, salesPeriod: e.target.value as SalesPeriod })}
+                style={selectSt}>
+                {(['3d','7d','14d','1m','3m'] as SalesPeriod[]).map(k => (
+                  <option key={k} value={k}>{SALES_PERIOD_LABELS[k]}</option>
+                ))}
+              </select>
+              <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '9px', color: 'var(--tx3)', pointerEvents: 'none' }}>▼</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

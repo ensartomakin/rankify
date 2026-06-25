@@ -5,6 +5,8 @@ export type CriterionKey =
   | 'stockScore'
   | 'availabilityScore'
   | 'discountRate'
+  | 'tsoftStatViews'
+  | 'tsoftStatConversionRate'
   | 'tsoftViews'
   | 'tsoftCartAdds'
   | 'tsoftConversionRate';
@@ -45,6 +47,8 @@ export interface ProductScores {
   stockScore: number;
   availabilityScore: number;
   discountRate?: number;
+  tsoftStatViews?: number;
+  tsoftStatConversionRate?: number;
   tsoftViews?: number;
   tsoftCartAdds?: number;
   tsoftConversionRate?: number;
@@ -61,6 +65,8 @@ export interface NormalizedProduct {
   discountRate: number;
   isActive: boolean;
   sizeAvailability: SizeAvailability;
+  statViews?: number;
+  statConversionRate?: number;
   tsoftStats?: TsoftRawStats;
   scores: ProductScores;
   rankingScore: number;

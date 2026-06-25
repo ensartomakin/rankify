@@ -103,8 +103,10 @@ export interface ProductPreviewItem {
   discountRate:         number;
   seoUrl:               string;
   registrationDate:     string;
-  imageCount:           number;
-  imageUrl:             string;
+  imageCount:              number;
+  imageUrl:                string;
+  statViews?:              number;
+  statConversionRate?:     number;
   tsoftStats?: NormalizedProduct['tsoftStats'];
 }
 
@@ -177,6 +179,10 @@ export async function runRankingPipeline(
         discountRate:     p.discountRate,
         isActive:         p.isActive,
         sizeAvailability,
+        statViews:             p.statViews,
+        statConversionRate:    p.statViews && p.statViews > 0
+          ? Math.min(100, (soldQty / p.statViews) * 100)
+          : undefined,
         tsoftStats,
         scores: { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
         rankingScore:   0,
@@ -289,6 +295,7 @@ export async function previewRanking(
       discountRate:     p.discountRate,
       isActive:         p.isActive,
       sizeAvailability,
+      statViews:        p.statViews,
       tsoftStats,
       scores:        { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
       rankingScore:   0,
@@ -330,6 +337,8 @@ export async function previewRanking(
       registrationDate:      p.registrationDate.toISOString(),
       imageCount:            imageCountMap.get(p.productCode) ?? 0,
       imageUrl:              imageUrlMap.get(p.productCode) ?? '',
+      statViews:             p.statViews,
+      statConversionRate:    p.statConversionRate,
       tsoftStats:            p.tsoftStats,
     };
   });

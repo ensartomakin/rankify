@@ -412,6 +412,8 @@ export class TSoftClient {
         ? rawActive
         : rawActive === 1 || rawActive === '1' || String(rawActive).toLowerCase() === 'true';
 
+    const statViews = Number(p.StatViews ?? p.statViews ?? p.TotalViews ?? p.totalViews ?? 0) || undefined;
+
     return {
       productId:        String(p.ProductId ?? p.productId ?? p.Id ?? p.id ?? ''),
       productCode:      String(p.ProductCode ?? p.productCode ?? ''),
@@ -429,6 +431,7 @@ export class TSoftClient {
       discountRate,
       seoUrl: seoLink,
       isActive,
+      statViews,
     };
   }
 

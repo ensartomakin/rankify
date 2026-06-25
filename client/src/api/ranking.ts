@@ -51,8 +51,15 @@ export interface ProductPreviewItem {
   discountRate:          number;
   seoUrl:                string;
   registrationDate:      string;
-  imageCount:            number;
-  imageUrl:              string;
+  imageCount:              number;
+  imageUrl:                string;
+  statViews?:              number;
+  statConversionRate?:     number;
+  tsoftStats?: {
+    views:          number;
+    cartAdds:       number;
+    conversionRate: number;
+  };
 }
 
 export interface PreviewResponse {

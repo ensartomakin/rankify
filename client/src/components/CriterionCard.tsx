@@ -4,7 +4,7 @@ import {
 } from '../types';
 
 const BASE_KEYS:   CriterionKey[] = ['stockScore', 'bestSeller', 'newness', 'reviewScore', 'discountRate'];
-const TSOFT_KEYS:  CriterionKey[] = ['tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate'];
+const TSOFT_KEYS:  CriterionKey[] = ['tsoftStatViews', 'tsoftStatConversionRate', 'tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate'];
 
 interface Props {
   index: 0 | 1 | 2 | 3;

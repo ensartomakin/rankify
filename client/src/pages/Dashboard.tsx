@@ -367,6 +367,13 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
           {criteria.map(c => {
             const key = c.key as CriterionKey;
             const contrib = p.criteriaContributions[key] ?? 0;
+            const TSOFT_LABELS: Partial<Record<CriterionKey, string>> = {
+              tsoftStatViews:          'Görüntülenme (Stat)',
+              tsoftStatConversionRate: 'Dönüşüm (Stat)',
+              tsoftViews:              'Görüntülenme',
+              tsoftCartAdds:           'Sepete Ekleme',
+              tsoftConversionRate:     'Dönüşüm Oranı',
+            };
             const label =
               key === 'bestSeller'       ? `Satış (${c.weight}%)` :
               key === 'stockScore'       ? `Stok (${c.weight}%)` :
@@ -374,14 +381,19 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
               key === 'reviewScore'      ? `Yorum (${c.weight}%)` :
               key === 'availabilityScore'? `Bulunurluk (${c.weight}%)` :
               key === 'discountRate'     ? `İndirim (${c.weight}%)` :
-              `${key} (${c.weight}%)`;
+              `${TSOFT_LABELS[key] ?? key} (${c.weight}%)`;
             let raw: string | number = '';
-            if (key === 'stockScore')             raw = p.totalStock.toLocaleString('tr-TR');
-            else if (key === 'bestSeller')        raw = p.salesQty.toLocaleString('tr-TR');
-            else if (key === 'newness')           raw = fmtDate(p.registrationDate);
-            else if (key === 'reviewScore')       raw = p.reviewCount.toLocaleString('tr-TR');
-            else if (key === 'availabilityScore') raw = fmtPct(p.availabilityRate * 100);
-            else if (key === 'discountRate')      raw = `%${(p.discountRate ?? 0).toLocaleString('tr-TR')}`;
+            if (key === 'stockScore')                   raw = p.totalStock.toLocaleString('tr-TR');
+            else if (key === 'bestSeller')              raw = p.salesQty.toLocaleString('tr-TR');
+            else if (key === 'newness')                 raw = fmtDate(p.registrationDate);
+            else if (key === 'reviewScore')             raw = p.reviewCount.toLocaleString('tr-TR');
+            else if (key === 'availabilityScore')       raw = fmtPct(p.availabilityRate * 100);
+            else if (key === 'discountRate')            raw = `%${(p.discountRate ?? 0).toLocaleString('tr-TR')}`;
+            else if (key === 'tsoftStatViews')          raw = (p.statViews ?? 0).toLocaleString('tr-TR');
+            else if (key === 'tsoftStatConversionRate') raw = `${(p.statConversionRate ?? 0).toFixed(2)}%`;
+            else if (key === 'tsoftViews')              raw = (p.tsoftStats?.views ?? 0).toLocaleString('tr-TR');
+            else if (key === 'tsoftCartAdds')           raw = (p.tsoftStats?.cartAdds ?? 0).toLocaleString('tr-TR');
+            else if (key === 'tsoftConversionRate')     raw = `${(p.tsoftStats?.conversionRate ?? 0).toFixed(2)}%`;
             return (
               <div key={key} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px]"
                 style={{ borderBottom: '1px solid var(--border)' }}>

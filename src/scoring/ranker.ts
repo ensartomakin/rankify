@@ -37,7 +37,7 @@ export function applyDisqualification(
   });
 }
 
-const TSOFT_KEYS  = new Set(['tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate'] as const);
+const TSOFT_KEYS  = new Set(['tsoftStatViews', 'tsoftStatConversionRate', 'tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate'] as const);
 
 export function computeRankingScores(
   products: NormalizedProduct[],
@@ -61,6 +61,12 @@ export function computeRankingScores(
     : null;
 
   // T-Soft istatistik metrikleri — views/cartAdds sayım bazlı → log; cr oran → min-max
+  const tsoftStatViewsNorm = usedKeys.has('tsoftStatViews')
+    ? logMinMaxNormalize(products.map(p => p.statViews ?? 0))
+    : null;
+  const tsoftStatCrNorm = usedKeys.has('tsoftStatConversionRate')
+    ? minMaxNormalize(products.map(p => p.statConversionRate ?? 0))
+    : null;
   const tsoftViewsNorm = usedKeys.has('tsoftViews')
     ? logMinMaxNormalize(products.map(p => p.tsoftStats?.views ?? 0))
     : null;
@@ -78,8 +84,10 @@ export function computeRankingScores(
       reviewScore:       reviews[i],
       stockScore:        stock[i],
       availabilityScore: p.sizeAvailability.availabilityRate * 100,
-      ...(discount       && { discountRate:        discount[i] }),
-      ...(tsoftViewsNorm && { tsoftViews:          tsoftViewsNorm[i] }),
+      ...(discount             && { discountRate:    discount[i] }),
+      ...(tsoftStatViewsNorm   && { tsoftStatViews:           tsoftStatViewsNorm[i] }),
+      ...(tsoftStatCrNorm      && { tsoftStatConversionRate: tsoftStatCrNorm[i] }),
+      ...(tsoftViewsNorm       && { tsoftViews:              tsoftViewsNorm[i] }),
       ...(tsoftCartNorm  && { tsoftCartAdds:       tsoftCartNorm[i] }),
       ...(tsoftCrNorm    && { tsoftConversionRate: tsoftCrNorm[i] }),
     };

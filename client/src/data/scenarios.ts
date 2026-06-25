@@ -19,7 +19,7 @@ export const SCENARIOS: Scenario[] = [
       'Sitenin en güvenilir, "amiral gemisi" ürünlerini sergiler. İstikrarlı popülarite ve uzun vadeli merak bir araya gelir.',
     criteria: [
       { key: 'bestSeller',  weight: 35, direction: 'desc', salesPeriod: '1m' },
-      { key: 'tsoftStatConversionRate', weight: 30, direction: 'desc', salesPeriod: '1m' },
+      { key: 'ga4Ctr',      weight: 30, direction: 'desc', salesPeriod: '1m' },
       { key: 'reviewScore', weight: 20, direction: 'desc' },
       { key: 'newness',     weight: 15, direction: 'desc' },
     ],
@@ -33,9 +33,9 @@ export const SCENARIOS: Scenario[] = [
       'Influencer paylaşımları veya ani trendlerle parlayan "yeni yıldızları" bulur. Son 72 saatin patlamasını yakalar.',
     criteria: [
       { key: 'bestSeller',   weight: 35, direction: 'desc', salesPeriod: '3d' },
-      { key: 'tsoftStatConversionRate', weight: 35, direction: 'desc', salesPeriod: '3d' },
-      { key: 'newness',                weight: 15, direction: 'desc' },
-      { key: 'tsoftStatViews',         weight: 15, direction: 'desc', salesPeriod: '3d' },
+      { key: 'ga4Ctr',       weight: 35, direction: 'desc', salesPeriod: '3d' },
+      { key: 'newness',      weight: 15, direction: 'desc' },
+      { key: 'ga4Sessions',  weight: 15, direction: 'desc', salesPeriod: '3d' },
     ],
   },
   {
@@ -46,7 +46,7 @@ export const SCENARIOS: Scenario[] = [
     description:
       'Reklam trafiğini en yüksek satın alma ihtimali olan ürünle buluşturur. CR, satış hızı ve indirim oranı bir arada.',
     criteria: [
-      { key: 'tsoftConversionRate', weight: 35, direction: 'desc', salesPeriod: '14d' },
+      { key: 'ga4ConversionRate', weight: 35, direction: 'desc', salesPeriod: '14d' },
       { key: 'bestSeller',        weight: 25, direction: 'desc', salesPeriod: '7d' },
       { key: 'discountRate',      weight: 25, direction: 'desc' },
       { key: 'reviewScore',       weight: 15, direction: 'desc' },
@@ -77,7 +77,7 @@ export const SCENARIOS: Scenario[] = [
       { key: 'reviewScore',       weight: 50, direction: 'desc' },
       { key: 'bestSeller',        weight: 25, direction: 'desc', salesPeriod: '1m' },
       { key: 'newness',           weight: 15, direction: 'desc' },
-      { key: 'tsoftConversionRate', weight: 10, direction: 'desc', salesPeriod: '2m' },
+      { key: 'ga4ConversionRate', weight: 10, direction: 'desc', salesPeriod: '2m' },
     ],
   },
   {
@@ -88,7 +88,7 @@ export const SCENARIOS: Scenario[] = [
     description:
       'İnsanların beğendiği ama henüz satış rekoru kırmamış potansiyelleri parlatır. İlgi yüksek, satış az olanları bulur.',
     criteria: [
-      { key: 'tsoftStatConversionRate', weight: 35, direction: 'desc', salesPeriod: '14d' },
+      { key: 'ga4Ctr',      weight: 35, direction: 'desc', salesPeriod: '14d' },
       { key: 'discountRate', weight: 30, direction: 'desc' },
       { key: 'reviewScore', weight: 20, direction: 'desc' },
       { key: 'bestSeller',  weight: 15, direction: 'asc',  salesPeriod: '1m' },
@@ -104,8 +104,8 @@ export const SCENARIOS: Scenario[] = [
     criteria: [
       { key: 'newness',    weight: 40, direction: 'desc' },
       { key: 'bestSeller', weight: 25, direction: 'desc', salesPeriod: '3d' },
-      { key: 'tsoftStatViews',         weight: 20, direction: 'desc', salesPeriod: '7d' },
-      { key: 'tsoftStatConversionRate', weight: 15, direction: 'desc', salesPeriod: '7d' },
+      { key: 'ga4Views',   weight: 20, direction: 'desc', salesPeriod: '7d' },
+      { key: 'ga4Ctr',     weight: 15, direction: 'desc', salesPeriod: '7d' },
     ],
   },
   {
@@ -118,7 +118,7 @@ export const SCENARIOS: Scenario[] = [
     criteria: [
       { key: 'discountRate',      weight: 40, direction: 'desc' },
       { key: 'bestSeller',        weight: 25, direction: 'desc', salesPeriod: '3d' },
-      { key: 'tsoftConversionRate', weight: 20, direction: 'desc', salesPeriod: '3d' },
+      { key: 'ga4ConversionRate', weight: 20, direction: 'desc', salesPeriod: '3d' },
       { key: 'stockScore',        weight: 15, direction: 'desc' },
     ],
   },
@@ -132,7 +132,7 @@ export const SCENARIOS: Scenario[] = [
     criteria: [
       { key: 'newness',     weight: 30, direction: 'desc' },
       { key: 'bestSeller',  weight: 25, direction: 'desc', salesPeriod: '7d' },
-      { key: 'tsoftStatConversionRate', weight: 25, direction: 'desc', salesPeriod: '7d' },
+      { key: 'ga4Ctr',      weight: 25, direction: 'desc', salesPeriod: '7d' },
       { key: 'reviewScore', weight: 20, direction: 'desc' },
     ],
   },

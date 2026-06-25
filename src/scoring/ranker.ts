@@ -37,7 +37,8 @@ export function applyDisqualification(
   });
 }
 
-const TSOFT_KEYS  = new Set(['tsoftStatViews', 'tsoftStatConversionRate', 'tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate'] as const);
+const GA4_KEYS    = new Set(['ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate'] as const);
+const TSOFT_KEYS  = new Set(['tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate'] as const);
 
 export function computeRankingScores(
   products: NormalizedProduct[],
@@ -60,13 +61,21 @@ export function computeRankingScores(
     ? minMaxNormalize(products.map(p => p.discountRate))
     : null;
 
+  // GA4 metrikleri — views/sessions sayım bazlı → log; ctr/cr oran bazlı → min-max
+  const ga4ViewsNorm    = usedKeys.has('ga4Views')
+    ? logMinMaxNormalize(products.map(p => p.ga4?.views ?? 0))
+    : null;
+  const ga4SessionsNorm = usedKeys.has('ga4Sessions')
+    ? logMinMaxNormalize(products.map(p => p.ga4?.sessions ?? 0))
+    : null;
+  const ga4CtrNorm      = usedKeys.has('ga4Ctr')
+    ? minMaxNormalize(products.map(p => p.ga4?.ctr ?? 0))
+    : null;
+  const ga4CrNorm       = usedKeys.has('ga4ConversionRate')
+    ? minMaxNormalize(products.map(p => p.ga4?.conversionRate ?? 0))
+    : null;
+
   // T-Soft istatistik metrikleri — views/cartAdds sayım bazlı → log; cr oran → min-max
-  const tsoftStatViewsNorm = usedKeys.has('tsoftStatViews')
-    ? logMinMaxNormalize(products.map(p => p.statViews ?? 0))
-    : null;
-  const tsoftStatCrNorm = usedKeys.has('tsoftStatConversionRate')
-    ? minMaxNormalize(products.map(p => p.statConversionRate ?? 0))
-    : null;
   const tsoftViewsNorm = usedKeys.has('tsoftViews')
     ? logMinMaxNormalize(products.map(p => p.tsoftStats?.views ?? 0))
     : null;
@@ -84,10 +93,12 @@ export function computeRankingScores(
       reviewScore:       reviews[i],
       stockScore:        stock[i],
       availabilityScore: p.sizeAvailability.availabilityRate * 100,
-      ...(discount             && { discountRate:    discount[i] }),
-      ...(tsoftStatViewsNorm   && { tsoftStatViews:           tsoftStatViewsNorm[i] }),
-      ...(tsoftStatCrNorm      && { tsoftStatConversionRate: tsoftStatCrNorm[i] }),
-      ...(tsoftViewsNorm       && { tsoftViews:              tsoftViewsNorm[i] }),
+      ...(discount       && { discountRate:        discount[i] }),
+      ...(ga4ViewsNorm   && { ga4Views:            ga4ViewsNorm[i] }),
+      ...(ga4SessionsNorm && { ga4Sessions:        ga4SessionsNorm[i] }),
+      ...(ga4CtrNorm     && { ga4Ctr:              ga4CtrNorm[i] }),
+      ...(ga4CrNorm      && { ga4ConversionRate:   ga4CrNorm[i] }),
+      ...(tsoftViewsNorm && { tsoftViews:          tsoftViewsNorm[i] }),
       ...(tsoftCartNorm  && { tsoftCartAdds:       tsoftCartNorm[i] }),
       ...(tsoftCrNorm    && { tsoftConversionRate: tsoftCrNorm[i] }),
     };

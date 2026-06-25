@@ -24,6 +24,34 @@ const salesCache = new Map<string, { data: TSoftSalesData[]; expiresAt: number }
 const categoryProductsCache = new Map<string, { data: TSoftProduct[]; expiresAt: number }>();
 const CATEGORY_CACHE_TTL = 5 * 60 * 1000; // 5 dakika
 
+/**
+ * T-Soft'un site sıralamasını yeniden oluşturur:
+ *  - Explicit ListNo (0 < n < 999999) olan ürünler önce, ListNo artan sırada
+ *  - Geri kalanlar (ListNo=0 veya 999999) arkada, registrationDate azalan (yeniden eskiye)
+ *    T-Soft kategori sayfaları sırasız ürünleri "en yeni önce" gösterir.
+ */
+function sortByTsoftOrder(products: TSoftProduct[], logPrefix?: string): void {
+  const SENTINEL = 999999;
+  const hasMeaningful = products.some(p => p.sortOrder > 0 && p.sortOrder < SENTINEL);
+
+  products.sort((a, b) => {
+    const aExplicit = a.sortOrder > 0 && a.sortOrder < SENTINEL;
+    const bExplicit = b.sortOrder > 0 && b.sortOrder < SENTINEL;
+
+    if (aExplicit && bExplicit) return a.sortOrder - b.sortOrder;
+    if (aExplicit) return -1;
+    if (bExplicit) return 1;
+    // İkisi de sırasız → registrationDate azalan (yeniden eskiye)
+    const aDate = new Date(a.registrationDate).getTime();
+    const bDate = new Date(b.registrationDate).getTime();
+    return bDate - aDate;
+  });
+
+  if (logPrefix) {
+    logger.info(`${logPrefix} toplam=${products.length} anlamlı-listno=${hasMeaningful ? 'var' : 'yok'}`);
+  }
+}
+
 async function withRetry<T>(fn: () => Promise<T>, attempt = 1): Promise<T> {
   try {
     return await fn();
@@ -277,14 +305,7 @@ export class TSoftClient {
       start += limit;
     }
 
-    // Her zaman ListNo sıralamasını uygula: 0 ve 999999 (sentinel) sona at, API sırasını koru
-    const meaningful = results.filter(p => p.sortOrder > 0 && p.sortOrder < 999999).length;
-    results.sort((a, b) => {
-      const an = (a.sortOrder > 0 && a.sortOrder < 999999) ? a.sortOrder : Infinity;
-      const bn = (b.sortOrder > 0 && b.sortOrder < 999999) ? b.sortOrder : Infinity;
-      return an - bn;
-    });
-    logger.info(`[getCategoryProductsSorted] kategori=${categoryId} toplam=${results.length} anlamlı-listno=${meaningful}`);
+    sortByTsoftOrder(results, `[getCategoryProductsSorted] kategori=${categoryId}`);
     return results;
   }
 
@@ -314,13 +335,7 @@ export class TSoftClient {
       if (batch.length < limit) break;
       start += limit;
     }
-    // T-Soft ListNo sıralamasını koru: 0 ve 999999 sentinel sona, aralarında API sırası korunur
-    results.sort((a, b) => {
-      const an = (a.sortOrder > 0 && a.sortOrder < 999999) ? a.sortOrder : Infinity;
-      const bn = (b.sortOrder > 0 && b.sortOrder < 999999) ? b.sortOrder : Infinity;
-      return an - bn;
-    });
-    logger.info(`[getCategoryProductsFull] kategori=${categoryId} toplam=${results.length}`);
+    sortByTsoftOrder(results, `[getCategoryProductsFull] kategori=${categoryId}`);
     categoryProductsCache.set(key, { data: results, expiresAt: Date.now() + CATEGORY_CACHE_TTL });
     return results;
   }

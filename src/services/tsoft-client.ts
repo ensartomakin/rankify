@@ -198,7 +198,7 @@ export class TSoftClient {
     if (res.data?.success === false) {
       const msgText = res.data?.message?.[0]?.text;
       const msgStr  = Array.isArray(msgText) ? String(msgText[0]) : String(msgText ?? '');
-      logger.info(`[REST1 ${endpoint}] success=false msg="${msgStr}"`);
+      logger.warn(`[REST1 ${endpoint}] success=false msg="${msgStr}"`);
       if (msgStr.toLowerCase().includes('token')) {
         tokenCache.delete(this.cacheKey);
         const newToken = await getToken(this.cacheKey, this.http, this.creds);
@@ -599,6 +599,8 @@ export class TSoftClient {
     const cartMap    = new Map<string, number>();
 
     // Görüntülenme: report/getProductVisitReport
+    // NOT: Bu endpoint bazı T-Soft hesaplarında "Controller is not allowed!" hatası verir.
+    // Hata durumunda viewsMap boş kalır ve tsoftViews skoru 0 olur.
     try {
       let start = 0;
       const limit = 200;
@@ -608,7 +610,14 @@ export class TSoftClient {
           StartDate: startDate, EndDate: endDate,
           start: String(start), limit: String(limit),
         });
-        if (start === 0) logger.info(`[getProductStats] visitReport sample: ${JSON.stringify(raw).slice(0, 400)}`);
+        if (start === 0) logger.info(`[getProductStats] visitReport FULL: ${JSON.stringify(raw).slice(0, 600)}`);
+        const d = raw as Record<string, unknown>;
+        if (d?.success === false) {
+          const msgText = (d.message as Record<string, unknown>[])?.[0]?.text;
+          const msg = Array.isArray(msgText) ? String(msgText[0]) : String(msgText ?? '');
+          logger.error(`[getProductStats] report/getProductVisitReport bu hesapta kapalı: "${msg}" — tsoftViews skoru hesaplanamayacak`);
+          break;
+        }
         const rows = this.extractRows(raw);
         for (const r of rows) {
           const code = String(r.ProductCode ?? r.productCode ?? r.Code ?? r.code ?? '');
@@ -624,23 +633,30 @@ export class TSoftClient {
         start += limit;
         await sleep(RATE_DELAY);
       }
-      logger.info(`[getProductStats] görüntülenme — ${viewsMap.size} ürün`);
+      if (viewsMap.size > 0) logger.info(`[getProductStats] görüntülenme — ${viewsMap.size} ürün`);
     } catch (err) {
-      logger.warn(`[getProductStats] visitReport başarısız: ${err}`);
+      logger.error(`[getProductStats] visitReport HTTP hatası: ${err}`);
     }
 
-    // Sepete ekleme: basket/get — tarih aralığı ile sipariş öncesi sepet verileri
+    // Sepete ekleme: basket/get — aktif (terk edilmiş) sepetler
+    // NOT: T-Soft'un basket/get endpoint'i tarih filtresini desteklemez;
+    // sadece güncel aktif sepetleri döndürür. Tarih parametreleri kaldırıldı.
     try {
       let start = 0;
       const limit = 200;
       while (true) {
         const raw = await this.post<unknown>('basket/get', {
-          startDate, endDate,
-          StartDate: startDate, EndDate: endDate,
           start: String(start), limit: String(limit),
           FetchProductData: 'true',
         });
-        if (start === 0) logger.info(`[getProductStats] basket sample: ${JSON.stringify(raw).slice(0, 400)}`);
+        if (start === 0) logger.info(`[getProductStats] basket FULL: ${JSON.stringify(raw).slice(0, 600)}`);
+        const d = raw as Record<string, unknown>;
+        if (d?.success === false) {
+          const msgText = (d.message as Record<string, unknown>[])?.[0]?.text;
+          const msg = Array.isArray(msgText) ? String(msgText[0]) : String(msgText ?? '');
+          logger.error(`[getProductStats] basket/get bu hesapta kapalı: "${msg}" — tsoftCartAdds skoru hesaplanamayacak`);
+          break;
+        }
         const rows = this.extractRows(raw);
         for (const row of rows) {
           const items = this.extractOrderProducts(row);
@@ -657,9 +673,10 @@ export class TSoftClient {
         start += limit;
         await sleep(RATE_DELAY);
       }
-      logger.info(`[getProductStats] sepete ekleme — ${cartMap.size} ürün`);
+      if (cartMap.size > 0) logger.info(`[getProductStats] sepete ekleme — ${cartMap.size} ürün`);
+      else logger.warn(`[getProductStats] basket/get sıfır ürün döndürdü — aktif sepet yok veya endpoint veri döndürmüyor`);
     } catch (err) {
-      logger.warn(`[getProductStats] basket/get başarısız: ${err}`);
+      logger.error(`[getProductStats] basket/get HTTP hatası: ${err}`);
     }
 
     // Tüm kodları birleştir

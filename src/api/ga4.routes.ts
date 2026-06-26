@@ -171,7 +171,7 @@ ga4Router.get('/metrics/sample', async (req, res) => {
     const limit     = Math.min(parseInt(String(req.query.limit ?? '20'), 10) || 20, 100);
     const map       = await getGa4Metrics(ownerId, dateRange);
     const sample    = Array.from(map.entries()).slice(0, limit)
-      .map(([itemId, m]) => ({ itemId, views: m.views, sessions: m.sessions, cartAdds: m.cartAdds, conversionRate: m.conversionRate }));
+      .map(([itemId, m]) => ({ itemId, views: m.views, cartAdds: m.cartAdds, conversionRate: m.conversionRate }));
     res.json({ total: map.size, dateRange, sample });
   } catch {
     res.status(500).json({ error: 'Metrik sorgusu başarısız' });

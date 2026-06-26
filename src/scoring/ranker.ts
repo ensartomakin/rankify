@@ -38,7 +38,6 @@ export function applyDisqualification(
 }
 
 const GA4_KEYS    = new Set(['ga4Views', 'ga4CartAdds', 'ga4ConversionRate'] as const);
-const TSOFT_KEYS  = new Set(['tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate'] as const);
 
 export function computeRankingScores(
   products: NormalizedProduct[],
@@ -72,17 +71,6 @@ export function computeRankingScores(
     ? minMaxNormalize(products.map(p => p.ga4?.conversionRate ?? 0))
     : null;
 
-  // T-Soft istatistik metrikleri — views/cartAdds sayım bazlı → log; cr oran → min-max
-  const tsoftViewsNorm = usedKeys.has('tsoftViews')
-    ? logMinMaxNormalize(products.map(p => p.tsoftStats?.views ?? 0))
-    : null;
-  const tsoftCartNorm  = usedKeys.has('tsoftCartAdds')
-    ? logMinMaxNormalize(products.map(p => p.tsoftStats?.cartAdds ?? 0))
-    : null;
-  const tsoftCrNorm    = usedKeys.has('tsoftConversionRate')
-    ? minMaxNormalize(products.map(p => p.tsoftStats?.conversionRate ?? 0))
-    : null;
-
   return products.map((p, i) => {
     const scores: NormalizedProduct['scores'] = {
       newness:           newness[i],
@@ -94,9 +82,6 @@ export function computeRankingScores(
       ...(ga4ViewsNorm    && { ga4Views:          ga4ViewsNorm[i] }),
       ...(ga4CartAddsNorm && { ga4CartAdds:       ga4CartAddsNorm[i] }),
       ...(ga4CrNorm       && { ga4ConversionRate: ga4CrNorm[i] }),
-      ...(tsoftViewsNorm && { tsoftViews:          tsoftViewsNorm[i] }),
-      ...(tsoftCartNorm  && { tsoftCartAdds:       tsoftCartNorm[i] }),
-      ...(tsoftCrNorm    && { tsoftConversionRate: tsoftCrNorm[i] }),
     };
 
     const rankingScore = config.criteria.reduce((total, c) => {

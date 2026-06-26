@@ -616,7 +616,7 @@ export function Dashboard({ prefill }: Props) {
         weight: newWeight + (i === 0 ? remainder : 0),
       }));
       const usedKeys = prev.map(c => c.key);
-      const allKeys: CriterionKey[] = ['stockScore', 'bestSeller', 'newness', 'reviewScore', 'discountRate', 'tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate', 'ga4Views', 'ga4CartAdds', 'ga4ConversionRate', 'availabilityScore'];
+      const allKeys: CriterionKey[] = ['stockScore', 'bestSeller', 'newness', 'reviewScore', 'discountRate', 'ga4Views', 'ga4CartAdds', 'ga4ConversionRate', 'availabilityScore'];
       const nextKey = allKeys.find(k => !usedKeys.includes(k)) ?? 'reviewScore';
       return [...scaled, { key: nextKey, weight: newWeight, direction: 'desc' as const }];
     });

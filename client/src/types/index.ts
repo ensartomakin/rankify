@@ -8,9 +8,7 @@ export type CriterionKey =
   | 'ga4Views'
   | 'ga4CartAdds'
   | 'ga4ConversionRate'
-  | 'tsoftViews'
-  | 'tsoftCartAdds'
-  | 'tsoftConversionRate';
+  ;
 
 export type SortDirection = 'desc' | 'asc';
 export type SalesPeriod = '1d' | '3d' | '7d' | '14d' | '21d' | '1m' | '2m' | '3m';
@@ -25,17 +23,10 @@ export const CRITERION_LABELS: Record<CriterionKey, string> = {
   ga4Views:              'GA4 · Görüntülenme',
   ga4CartAdds:           'GA4 · Sepete Ekleme',
   ga4ConversionRate:     'GA4 · Dönüşüm Oranı',
-  tsoftViews:            'T-Soft · Görüntülenme',
-  tsoftCartAdds:         'T-Soft · Sepete Ekleme',
-  tsoftConversionRate:   'T-Soft · Dönüşüm Oranı',
 };
 
 export const GA4_CRITERION_KEYS = new Set<CriterionKey>([
   'ga4Views', 'ga4CartAdds', 'ga4ConversionRate',
-]);
-
-export const TSOFT_STAT_KEYS = new Set<CriterionKey>([
-  'tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate',
 ]);
 
 export const SALES_PERIOD_LABELS: Record<SalesPeriod, string> = {

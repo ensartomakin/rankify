@@ -14,6 +14,7 @@ export async function runMigrations(): Promise<void> {
   await pool.query(sql);
 
   // ga4_product_metrics: ctr → cart_adds (sepete ekleme sayısı)
+  // Eski ctr verisi anlamsız olduğundan tablo temizlenerek yeniden sync beklenir.
   await pool.query(`
     DO $$
     BEGIN
@@ -21,6 +22,8 @@ export async function runMigrations(): Promise<void> {
                  WHERE table_name='ga4_product_metrics' AND column_name='ctr') THEN
         ALTER TABLE ga4_product_metrics RENAME COLUMN ctr TO cart_adds;
         ALTER TABLE ga4_product_metrics ALTER COLUMN cart_adds TYPE INTEGER USING cart_adds::integer;
+        -- Eski ctr değerleri artık geçersiz; tüm cache'i sil, GA4 yeniden sync yapacak
+        DELETE FROM ga4_product_metrics;
       END IF;
     END $$;
   `);

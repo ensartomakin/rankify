@@ -162,6 +162,22 @@ ga4Router.get('/metrics', async (req, res) => {
   }
 });
 
+// GET /api/ga4/metrics/sample?dateRange=30d&limit=10
+// DB'deki ilk N itemId'yi döndürür — GA4 itemId'nin hangi formatta olduğunu anlamak için
+ga4Router.get('/metrics/sample', async (req, res) => {
+  try {
+    const ownerId   = await getGa4OwnerId(req.user!.userId, req.user!.tenantId);
+    const dateRange = String(req.query.dateRange ?? '30d');
+    const limit     = Math.min(parseInt(String(req.query.limit ?? '20'), 10) || 20, 100);
+    const map       = await getGa4Metrics(ownerId, dateRange);
+    const sample    = Array.from(map.entries()).slice(0, limit)
+      .map(([itemId, m]) => ({ itemId, views: m.views, sessions: m.sessions, cartAdds: m.cartAdds, conversionRate: m.conversionRate }));
+    res.json({ total: map.size, dateRange, sample });
+  } catch {
+    res.status(500).json({ error: 'Metrik sorgusu başarısız' });
+  }
+});
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')

@@ -198,6 +198,16 @@ export async function runRankingPipeline(
       salesData.map(s => [s.productCode, s])
     );
 
+    // GA4 itemId format diagnostics — ilk sync'de hangi key ile eşleştiğini logla
+    if (ga4Map.size > 0) {
+      const sampleItemId = ga4Map.keys().next().value;
+      const firstProduct = products[0];
+      logger.info(`[GA4 itemId] DB'deki örnek itemId="${sampleItemId}" | ürün productId="${firstProduct?.productId}" productCode="${firstProduct?.productCode}"`);
+      const matchById   = firstProduct ? ga4Map.has(firstProduct.productId)   : false;
+      const matchByCode = firstProduct ? ga4Map.has(firstProduct.productCode) : false;
+      logger.info(`[GA4 itemId] productId ile eşleşiyor: ${matchById} | productCode ile eşleşiyor: ${matchByCode}`);
+    }
+
     let normalized: NormalizedProduct[] = products.map((p: TSoftProduct) => {
       const sales = salesMap.get(p.productCode);
       const sizeAvailability = computeSizeAvailability(p.variants, availabilityThreshold);
@@ -309,6 +319,16 @@ export async function previewRanking(
 
   // T-Soft görüntülenme + sepete ekleme — product/get yanıtından StatViews/CountTotalSales okunur
   const tsoftStatsMap = buildTsoftStatsMap(config, products);
+
+  // GA4 itemId format diagnostics
+  if (ga4Map.size > 0) {
+    const sampleItemId = ga4Map.keys().next().value;
+    const firstProduct = products[0];
+    logger.info(`[GA4 preview itemId] örnek itemId="${sampleItemId}" | productId="${firstProduct?.productId}" productCode="${firstProduct?.productCode}"`);
+    const matchById   = firstProduct ? ga4Map.has(firstProduct.productId)   : false;
+    const matchByCode = firstProduct ? ga4Map.has(firstProduct.productCode) : false;
+    logger.info(`[GA4 preview itemId] productId ile eşleşiyor: ${matchById} | productCode ile eşleşiyor: ${matchByCode}`);
+  }
 
   // imageCount is stored per-product alongside normalized data
   const imageCountMap = new Map<string, number>(products.map(p => [p.productCode, p.imageCount]));

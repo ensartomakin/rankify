@@ -5,7 +5,13 @@ export type CriterionKey =
   | 'stockScore'
   | 'availabilityScore'
   | 'discountRate'
-;
+  | 'ga4Views'
+  | 'ga4Sessions'
+  | 'ga4Ctr'
+  | 'ga4ConversionRate'
+  | 'tsoftViews'
+  | 'tsoftCartAdds'
+  | 'tsoftConversionRate';
 
 export interface WeightCriterion {
   key: CriterionKey;
@@ -30,6 +36,12 @@ export interface SizeAvailability {
   passesThreshold: boolean;
 }
 
+export interface TsoftRawStats {
+  views:            number; // ürün sayfası görüntülenme
+  cartAdds:         number; // sepete ekleme
+  conversionRate:   number; // satış / görüntülenme (0-100)
+}
+
 export interface ProductScores {
   newness: number;
   bestSeller: number;
@@ -37,6 +49,20 @@ export interface ProductScores {
   stockScore: number;
   availabilityScore: number;
   discountRate?: number;
+  ga4Views?: number;
+  ga4Sessions?: number;
+  ga4Ctr?: number;
+  ga4ConversionRate?: number;
+  tsoftViews?: number;
+  tsoftCartAdds?: number;
+  tsoftConversionRate?: number;
+}
+
+export interface Ga4RawMetrics {
+  views: number;
+  sessions: number;
+  ctr: number;
+  conversionRate: number;
 }
 
 export interface NormalizedProduct {
@@ -50,6 +76,8 @@ export interface NormalizedProduct {
   discountRate: number;
   isActive: boolean;
   sizeAvailability: SizeAvailability;
+  ga4?: Ga4RawMetrics;
+  tsoftStats?: TsoftRawStats;
   scores: ProductScores;
   rankingScore: number;
   isDisqualified: boolean;

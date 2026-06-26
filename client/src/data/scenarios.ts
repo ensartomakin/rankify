@@ -35,7 +35,7 @@ export const SCENARIOS: Scenario[] = [
       { key: 'bestSeller',   weight: 35, direction: 'desc', salesPeriod: '3d' },
       { key: 'ga4CartAdds',       weight: 35, direction: 'desc', salesPeriod: '3d' },
       { key: 'newness',      weight: 15, direction: 'desc' },
-      { key: 'ga4Sessions',  weight: 15, direction: 'desc', salesPeriod: '3d' },
+      { key: 'ga4Views',     weight: 15, direction: 'desc', salesPeriod: '3d' },
     ],
   },
   {

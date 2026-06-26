@@ -14,14 +14,13 @@ const criteriaSchema = z
     key: z.enum([
       'newness', 'bestSeller', 'reviewScore', 'stockScore', 'availabilityScore',
       'discountRate',
-      'ga4Views', 'ga4Sessions', 'ga4CartAdds', 'ga4ConversionRate',
       'tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate',
     ]),
     weight: z.number().min(0).max(100),
     direction: z.enum(['asc', 'desc']).optional(),
     salesPeriod: z.enum(['1d', '3d', '7d', '14d', '21d', '1m', '2m', '3m']).optional(),
   }))
-  .length(4)
+  .min(3).max(5)
   .refine(
     items => Math.abs(items.reduce((s, c) => s + c.weight, 0) - 100) < 0.001,
     { message: 'Ağırlık toplamı 100 olmalı' }

@@ -6,7 +6,6 @@ export type CriterionKey =
   | 'availabilityScore'
   | 'discountRate'
   | 'ga4Views'
-  | 'ga4Sessions'
   | 'ga4CartAdds'
   | 'ga4ConversionRate'
   | 'tsoftViews'
@@ -22,7 +21,7 @@ export interface WeightCriterion {
 
 export interface WeightConfig {
   categoryId: string;
-  criteria: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion];
+  criteria: WeightCriterion[];
   availabilityThreshold: number; // 0.0 - 1.0
   smartMix?: boolean;
 }
@@ -60,7 +59,6 @@ export interface ProductScores {
 
 export interface Ga4RawMetrics {
   views: number;
-  sessions: number;
   cartAdds: number;
   conversionRate: number;
 }

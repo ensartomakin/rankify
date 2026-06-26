@@ -37,7 +37,7 @@ export function applyDisqualification(
   });
 }
 
-const GA4_KEYS    = new Set(['ga4Views', 'ga4Sessions', 'ga4CartAdds', 'ga4ConversionRate'] as const);
+const GA4_KEYS    = new Set(['ga4Views', 'ga4CartAdds', 'ga4ConversionRate'] as const);
 const TSOFT_KEYS  = new Set(['tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate'] as const);
 
 export function computeRankingScores(
@@ -64,9 +64,6 @@ export function computeRankingScores(
   // GA4 metrikleri — sayım bazlı → log normalizasyon
   const ga4ViewsNorm    = usedKeys.has('ga4Views')
     ? logMinMaxNormalize(products.map(p => p.ga4?.views ?? 0))
-    : null;
-  const ga4SessionsNorm = usedKeys.has('ga4Sessions')
-    ? logMinMaxNormalize(products.map(p => p.ga4?.sessions ?? 0))
     : null;
   const ga4CartAddsNorm = usedKeys.has('ga4CartAdds')
     ? logMinMaxNormalize(products.map(p => p.ga4?.cartAdds ?? 0))
@@ -95,7 +92,6 @@ export function computeRankingScores(
       availabilityScore: p.sizeAvailability.availabilityRate * 100,
       ...(discount       && { discountRate:        discount[i] }),
       ...(ga4ViewsNorm    && { ga4Views:          ga4ViewsNorm[i] }),
-      ...(ga4SessionsNorm && { ga4Sessions:       ga4SessionsNorm[i] }),
       ...(ga4CartAddsNorm && { ga4CartAdds:       ga4CartAddsNorm[i] }),
       ...(ga4CrNorm       && { ga4ConversionRate: ga4CrNorm[i] }),
       ...(tsoftViewsNorm && { tsoftViews:          tsoftViewsNorm[i] }),

@@ -27,11 +27,10 @@ import type { SavedConfig } from '../api/config';
 import { SCENARIOS } from '../data/scenarios';
 import type { Scenario } from '../data/scenarios';
 
-const DEFAULT_CRITERIA: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion] = [
-  { key: 'stockScore',  weight: 25, direction: 'desc' },
-  { key: 'bestSeller',  weight: 25, direction: 'desc', salesPeriod: '14d' },
-  { key: 'newness',     weight: 25, direction: 'desc' },
-  { key: 'reviewScore', weight: 25, direction: 'desc' },
+const DEFAULT_CRITERIA: WeightCriterion[] = [
+  { key: 'stockScore',  weight: 34, direction: 'desc' },
+  { key: 'bestSeller',  weight: 33, direction: 'desc', salesPeriod: '14d' },
+  { key: 'newness',     weight: 33, direction: 'desc' },
 ];
 
 /* ─── Fotoğraf URL yardımcısı ─── */
@@ -370,7 +369,6 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             const contrib = p.criteriaContributions[key] ?? 0;
             const GA4_LABELS: Partial<Record<CriterionKey, string>> = {
               ga4Views:          'GA4 Görüntülenme',
-              ga4Sessions:       'GA4 Oturum',
               ga4CartAdds:       'GA4 Sepete Ekleme',
               ga4ConversionRate: 'GA4 Dönüşüm',
             };
@@ -390,7 +388,6 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             else if (key === 'availabilityScore') raw = fmtPct(p.availabilityRate * 100);
             else if (key === 'discountRate')      raw = `%${(p.discountRate ?? 0).toLocaleString('tr-TR')}`;
             else if (key === 'ga4Views')          raw = (p.ga4?.views ?? 0).toLocaleString('tr-TR');
-            else if (key === 'ga4Sessions')       raw = (p.ga4?.sessions ?? 0).toLocaleString('tr-TR');
             else if (key === 'ga4CartAdds')       raw = (p.ga4?.cartAdds ?? 0).toLocaleString('tr-TR');
             else if (key === 'ga4ConversionRate') raw = `${(p.ga4?.conversionRate ?? 0).toFixed(2)}%`;
             return (
@@ -460,7 +457,7 @@ export function Dashboard({ prefill }: Props) {
   const categoryId   = selectedCategories[0]?.id   ?? '';
   const categoryName = selectedCategories[0]?.name ?? '';
   const [threshold,    setThreshold]    = useState(prefill ? prefill.availabilityThreshold : getStoredThreshold());
-  const [criteria,     setCriteria]     = useState<[WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion]>(
+  const [criteria,     setCriteria]     = useState<WeightCriterion[]>(
     prefill?.criteria ?? DEFAULT_CRITERIA
   );
   const [smartMix,        setSmartMix]        = useState(true);
@@ -606,7 +603,44 @@ export function Dashboard({ prefill }: Props) {
   }
 
   function handleCriterionChange(i: number, updated: WeightCriterion) {
-    setCriteria(prev => { const n = [...prev] as typeof prev; n[i] = updated; return n; });
+    setCriteria(prev => { const n = [...prev]; n[i] = updated; return n; });
+  }
+
+  function addCriterion() {
+    setCriteria(prev => {
+      if (prev.length >= 5) return prev;
+      const newWeight = Math.floor(100 / (prev.length + 1));
+      const remainder = 100 - newWeight * (prev.length + 1);
+      const scaled = prev.map((c, i) => ({
+        ...c,
+        weight: newWeight + (i === 0 ? remainder : 0),
+      }));
+      const usedKeys = prev.map(c => c.key);
+      const allKeys: CriterionKey[] = ['stockScore', 'bestSeller', 'newness', 'reviewScore', 'discountRate', 'tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate', 'ga4Views', 'ga4CartAdds', 'ga4ConversionRate', 'availabilityScore'];
+      const nextKey = allKeys.find(k => !usedKeys.includes(k)) ?? 'reviewScore';
+      return [...scaled, { key: nextKey, weight: newWeight, direction: 'desc' as const }];
+    });
+  }
+
+  function removeCriterion(idx: number) {
+    setCriteria(prev => {
+      if (prev.length <= 3) return prev;
+      const next = prev.filter((_, i) => i !== idx);
+      const otherSum = next.reduce((s, c) => s + c.weight, 0);
+      if (otherSum === 0) {
+        const w = Math.floor(100 / next.length);
+        return next.map((c, i) => ({ ...c, weight: w + (i === 0 ? 100 - w * next.length : 0) }));
+      }
+      let allocated = 0;
+      return next.map((c, i) => {
+        if (i < next.length - 1) {
+          const w = Math.round((c.weight / otherSum) * 100);
+          allocated += w;
+          return { ...c, weight: w };
+        }
+        return { ...c, weight: 100 - allocated };
+      });
+    });
   }
 
   // DnD drag end
@@ -1019,13 +1053,27 @@ export function Dashboard({ prefill }: Props) {
           </div>
           {/* Kart içeriği */}
           <div style={{ padding: '24px 24.3px' }}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {criteria.map((c, i) => (
-                <CriterionCard key={i} index={i as 0 | 1 | 2 | 3} criterion={c}
+                <CriterionCard key={i} index={i} criterion={c}
                   usedKeys={criteria.map(x => x.key)}
                   onChange={u => handleCriterionChange(i, u)}
+                  onRemove={criteria.length > 3 ? () => removeCriterion(i) : undefined}
                   ga4Connected={ga4Connected} />
               ))}
+              {criteria.length < 5 && (
+                <button onClick={addCriterion}
+                  className="flex flex-col items-center justify-center gap-2 rounded-2xl transition-all"
+                  style={{
+                    minHeight: '160px', border: '2px dashed var(--border)',
+                    background: 'transparent', cursor: 'pointer', color: 'var(--tx3)',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.color = 'var(--acc-tx)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
+                  <span style={{ fontSize: '28px', lineHeight: 1 }}>+</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600 }}>Kriter Ekle</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -1,19 +1,27 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { CRITERION_COLORS, type WeightCriterion } from '../types';
 
 interface Props {
-  criteria: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion];
-  onChange: (criteria: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion]) => void;
+  criteria: WeightCriterion[];
+  onChange: (criteria: WeightCriterion[]) => void;
 }
 
 const MIN_WEIGHT = 5;
 
 export function WeightBar({ criteria, onChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const weights = criteria.map(c => c.weight) as [number, number, number, number];
+  const weights = criteria.map(c => c.weight);
   const total   = weights.reduce((s, w) => s + w, 0);
 
-  const startDrag = useCallback((dividerIdx: 0 | 1 | 2, e: React.MouseEvent) => {
+  // Draft strings so user can clear and retype without being clamped mid-edit
+  const [drafts, setDrafts] = useState<string[]>(() => weights.map(String));
+  const weightsKey = weights.join(',');
+  useEffect(() => {
+    setDrafts(weights.map(String));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weightsKey]);
+
+  const startDrag = useCallback((dividerIdx: number, e: React.MouseEvent) => {
     e.preventDefault();
     const container = containerRef.current;
     if (!container) return;
@@ -21,18 +29,13 @@ export function WeightBar({ criteria, onChange }: Props) {
 
     const onMove = (mv: MouseEvent) => {
       const pct = Math.round(((mv.clientX - rect.left) / rect.width) * 100);
-      const next: [number, number, number, number] = [...weights] as [number, number, number, number];
+      const next = [...weights];
       const cumBefore = next.slice(0, dividerIdx).reduce((s, w) => s + w, 0);
       const combined  = next[dividerIdx] + next[dividerIdx + 1];
       const newLeft   = Math.max(MIN_WEIGHT, Math.min(combined - MIN_WEIGHT, pct - cumBefore));
       next[dividerIdx]     = newLeft;
       next[dividerIdx + 1] = combined - newLeft;
-      onChange([
-        { ...criteria[0], weight: next[0] },
-        { ...criteria[1], weight: next[1] },
-        { ...criteria[2], weight: next[2] },
-        { ...criteria[3], weight: next[3] },
-      ]);
+      onChange(criteria.map((c, i) => ({ ...c, weight: next[i] })));
     };
 
     const onUp = () => {
@@ -42,6 +45,27 @@ export function WeightBar({ criteria, onChange }: Props) {
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   }, [criteria, weights, onChange]);
+
+  function commitDraft(i: number) {
+    const parsed = parseInt(drafts[i], 10);
+    if (isNaN(parsed)) { setDrafts(weights.map(String)); return; }
+    const val = Math.max(MIN_WEIGHT, Math.min(100, parsed));
+    const remaining = 100 - val;
+    const otherIdxs = criteria.map((_, j) => j).filter(j => j !== i);
+    const otherSum  = otherIdxs.reduce((s, j) => s + weights[j], 0);
+    const ws = [...weights];
+    ws[i] = val;
+    if (otherSum > 0) {
+      let allocated = 0;
+      for (let k = 0; k < otherIdxs.length - 1; k++) {
+        const j = otherIdxs[k];
+        ws[j] = Math.round((weights[j] / otherSum) * remaining);
+        allocated += ws[j];
+      }
+      ws[otherIdxs[otherIdxs.length - 1]] = remaining - allocated;
+    }
+    onChange(criteria.map((c, j) => ({ ...c, weight: ws[j] })));
+  }
 
   return (
     <div className="space-y-4">
@@ -63,12 +87,12 @@ export function WeightBar({ criteria, onChange }: Props) {
         {criteria.map((c, i) => (
           <div key={i}
             className="relative flex items-center justify-center text-white text-xs font-bold transition-none"
-            style={{ width: `${c.weight}%`, background: CRITERION_COLORS[i] + 'cc' }}>
+            style={{ width: `${c.weight}%`, background: (CRITERION_COLORS[i] ?? CRITERION_COLORS[0]) + 'cc' }}>
             K{i + 1} · {c.weight}%
-            {i < 3 && (
+            {i < criteria.length - 1 && (
               <div className="absolute right-0 top-0 bottom-0 w-4 z-10 flex items-center justify-center"
                 style={{ cursor: 'col-resize' }}
-                onMouseDown={e => startDrag(i as 0 | 1 | 2, e)}>
+                onMouseDown={e => startDrag(i, e)}>
                 <div className="w-px h-5 rounded-full" style={{ background: 'rgba(255,255,255,0.4)' }} />
               </div>
             )}
@@ -83,34 +107,20 @@ export function WeightBar({ criteria, onChange }: Props) {
         <div className="flex items-center gap-4 ml-auto flex-wrap">
           {criteria.map((c, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CRITERION_COLORS[i] }} />
-              <input type="number" min={MIN_WEIGHT} max={100} step={1}
-                value={c.weight}
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CRITERION_COLORS[i] ?? CRITERION_COLORS[0] }} />
+              <input
+                type="text"
+                inputMode="numeric"
+                value={drafts[i] ?? String(c.weight)}
                 onChange={e => {
-                  const val       = Math.max(MIN_WEIGHT, Math.min(100, Number(e.target.value)));
-                  const remaining = 100 - val;
-                  const otherIdxs = [0, 1, 2, 3].filter(j => j !== i);
-                  const otherSum  = otherIdxs.reduce((s, j) => s + weights[j], 0);
-                  const ws        = [...weights] as [number, number, number, number];
-                  ws[i] = val;
-                  if (otherSum > 0) {
-                    let allocated = 0;
-                    for (let k = 0; k < otherIdxs.length - 1; k++) {
-                      const j = otherIdxs[k];
-                      ws[j] = Math.round((weights[j] / otherSum) * remaining);
-                      allocated += ws[j];
-                    }
-                    ws[otherIdxs[otherIdxs.length - 1]] = remaining - allocated;
-                  }
-                  onChange([
-                    { ...criteria[0], weight: ws[0] },
-                    { ...criteria[1], weight: ws[1] },
-                    { ...criteria[2], weight: ws[2] },
-                    { ...criteria[3], weight: ws[3] },
-                  ]);
+                  const next = [...drafts];
+                  next[i] = e.target.value;
+                  setDrafts(next);
                 }}
+                onBlur={() => commitDraft(i)}
+                onKeyDown={e => { if (e.key === 'Enter') commitDraft(i); }}
                 className="w-14 text-center text-sm font-bold rounded-lg py-1.5 focus:outline-none transition-all"
-                style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: CRITERION_COLORS[i] }}
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: CRITERION_COLORS[i] ?? CRITERION_COLORS[0] }}
               />
               <span className="text-xs" style={{ color: 'var(--tx3)' }}>%</span>
             </div>

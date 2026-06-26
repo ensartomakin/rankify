@@ -1,6 +1,9 @@
 # --- Build aşaması ---
-# cache-bust: 2026-04-29
+# cache-bust: 2026-06-26
 FROM node:20-alpine AS builder
+
+# devDependencies'in yüklenmesi için production modunu kapat
+ENV NODE_ENV=development
 
 WORKDIR /app
 

@@ -21,8 +21,6 @@ export interface TSoftProduct {
   discountRate:     number;   // 0-100, indirim yüzdesi
   seoUrl:           string;   // T-Soft ürün sayfası URL'si (SEOUrl / Url)
   isActive:         boolean;  // T-Soft görünürlük durumu — false ise sıralamadan dışlanır
-  statViews:        number;   // product/get StatViews — toplam görüntülenme
-  countTotalSales:  number;   // product/get CountTotalSales — toplam satış adedi
 }
 
 export interface TSoftSalesData {
@@ -37,8 +35,3 @@ export interface TSoftRankPayload {
   sortOrder:   number;
 }
 
-export interface TSoftProductStats {
-  productCode:  string;
-  views:        number; // ürün sayfası görüntülenme
-  cartAdds:     number; // sepete ekleme adedi
-}

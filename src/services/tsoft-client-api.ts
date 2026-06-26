@@ -1,4 +1,4 @@
-import type { TSoftProduct, TSoftRankPayload, TSoftSalesData, TSoftProductStats } from '../types/tsoft';
+import type { TSoftProduct, TSoftRankPayload, TSoftSalesData } from '../types/tsoft';
 
 export interface TSoftClientApi {
   getBaseUrl(): string;
@@ -11,6 +11,5 @@ export interface TSoftClientApi {
   getProductDetails(productCodes: string[]): Promise<TSoftProduct[]>;
 
   getSalesReport(productCodes: string[], days: number): Promise<TSoftSalesData[]>;
-  getProductStats(days: number): Promise<TSoftProductStats[]>;
   setKategoriSira(payload: TSoftRankPayload[]): Promise<void>;
 }

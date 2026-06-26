@@ -4,7 +4,7 @@ import { chunk, sleep } from '../utils/helpers';
 import { getCredentials, type TsoftCredentials } from '../db/credentials.repo';
 import { getSuperAdminId } from '../db/user.repo';
 import { getTenantById } from '../db/tenant.repo';
-import type { TSoftProduct, TSoftSalesData, TSoftRankPayload, TSoftProductStats } from '../types/tsoft';
+import type { TSoftProduct, TSoftSalesData, TSoftRankPayload } from '../types/tsoft';
 import type { TSoftClientApi } from './tsoft-client-api';
 import { createDemoTSoftClient } from './demo-tsoft-client';
 
@@ -327,14 +327,10 @@ export class TSoftClient {
           limit:        String(limit),
           FetchDetails: 'true',
           StockFields:  'true',
-          StatFields:   'true',
         }
       );
       const batch = data.data ?? [];
-      if (start === 0 && batch.length > 0) {
-        const s = batch[0];
-        logger.info(`[getCategoryProductsFull] StatViews=${s.StatViews ?? s.statViews ?? 'yok'} CountTotalSales=${s.CountTotalSales ?? s.countTotalSales ?? 'yok'}`);
-      }
+
       results.push(...batch.map(p => this.mapProduct(p)));
       logger.info(`[getCategoryProductsFull] start=${start} dönen=${batch.length}`);
       if (batch.length < limit) break;
@@ -434,12 +430,6 @@ export class TSoftClient {
       discountRate,
       seoUrl: seoLink,
       isActive,
-      statViews:       Number(p.StatViews ?? p.statViews ?? p.ViewCount ?? p.viewCount ??
-                              p.Views ?? p.views ?? p.VisitCount ?? p.visitCount ??
-                              p.TotalViews ?? p.totalViews ?? p.HitCount ?? p.hitCount ?? 0),
-      countTotalSales: Number(p.CountTotalSales ?? p.countTotalSales ?? p.TotalSales ?? p.totalSales ??
-                              p.SaleCount ?? p.saleCount ?? p.SoldCount ?? p.soldCount ??
-                              p.TotalSaleCount ?? p.totalSaleCount ?? p.OrderCount ?? p.orderCount ?? 0),
     };
   }
 
@@ -597,89 +587,6 @@ export class TSoftClient {
   private extractMsg(res: { message?: unknown[] }): string {
     const msgText = (res.message as Record<string,unknown>[])?.[0]?.text;
     return Array.isArray(msgText) ? String(msgText[0]) : String(msgText ?? '');
-  }
-
-  async getProductStats(days: number): Promise<TSoftProductStats[]> {
-    const endDt   = new Date();
-    const startDt = new Date(Date.now() - days * 86_400_000);
-    const fmt     = (d: Date) => d.toISOString().replace('T', ' ').slice(0, 19);
-    const startDate = fmt(startDt);
-    const endDate   = fmt(endDt);
-
-    const viewsMap   = new Map<string, number>();
-    const cartMap    = new Map<string, number>();
-
-    // Görüntülenme: report/getProductVisitReport
-    try {
-      let start = 0;
-      const limit = 200;
-      while (true) {
-        const raw = await this.post<unknown>('report/getProductVisitReport', {
-          startDate, endDate,
-          StartDate: startDate, EndDate: endDate,
-          start: String(start), limit: String(limit),
-        });
-        if (start === 0) logger.info(`[getProductStats] visitReport sample: ${JSON.stringify(raw).slice(0, 400)}`);
-        const rows = this.extractRows(raw);
-        for (const r of rows) {
-          const code = String(r.ProductCode ?? r.productCode ?? r.Code ?? r.code ?? '');
-          if (!code) continue;
-          const views = Number(
-            r.VisitCount ?? r.visitCount ?? r.ViewCount ?? r.viewCount ??
-            r.PageView   ?? r.pageView   ?? r.Count    ?? r.count     ??
-            r.HitCount   ?? r.hitCount   ?? r.Adet     ?? r.adet      ?? 0
-          );
-          viewsMap.set(code, (viewsMap.get(code) ?? 0) + views);
-        }
-        if (rows.length < limit) break;
-        start += limit;
-        await sleep(RATE_DELAY);
-      }
-      logger.info(`[getProductStats] görüntülenme — ${viewsMap.size} ürün`);
-    } catch (err) {
-      logger.warn(`[getProductStats] visitReport başarısız: ${err}`);
-    }
-
-    // Sepete ekleme: basket/get — tarih aralığı ile sipariş öncesi sepet verileri
-    try {
-      let start = 0;
-      const limit = 200;
-      while (true) {
-        const raw = await this.post<unknown>('basket/get', {
-          startDate, endDate,
-          StartDate: startDate, EndDate: endDate,
-          start: String(start), limit: String(limit),
-          FetchProductData: 'true',
-        });
-        if (start === 0) logger.info(`[getProductStats] basket sample: ${JSON.stringify(raw).slice(0, 400)}`);
-        const rows = this.extractRows(raw);
-        for (const row of rows) {
-          const items = this.extractOrderProducts(row);
-          // Sepet kaydı direkt ürün listesi de olabilir
-          const candidates = items.length > 0 ? items : [row];
-          for (const item of candidates) {
-            const code = String(item.ProductCode ?? item.productCode ?? item.Code ?? item.code ?? '');
-            if (!code) continue;
-            const qty = Number(item.Quantity ?? item.quantity ?? item.Piece ?? item.piece ?? item.Count ?? 1);
-            cartMap.set(code, (cartMap.get(code) ?? 0) + qty);
-          }
-        }
-        if (rows.length < limit) break;
-        start += limit;
-        await sleep(RATE_DELAY);
-      }
-      logger.info(`[getProductStats] sepete ekleme — ${cartMap.size} ürün`);
-    } catch (err) {
-      logger.warn(`[getProductStats] basket/get başarısız: ${err}`);
-    }
-
-    // Tüm kodları birleştir
-    const allCodes = new Set([...viewsMap.keys(), ...cartMap.keys()]);
-    return Array.from(allCodes).map(code => ({
-      productCode: code,
-      views:       viewsMap.get(code) ?? 0,
-      cartAdds:    cartMap.get(code)  ?? 0,
-    }));
   }
 
   getBaseUrl(): string { return this.creds.apiUrl; }

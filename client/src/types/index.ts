@@ -4,10 +4,7 @@ export type CriterionKey =
   | 'reviewScore'
   | 'stockScore'
   | 'availabilityScore'
-  | 'discountRate'
-  | 'tsoftViews'
-  | 'tsoftCartAdds'
-  | 'tsoftConversionRate';
+  | 'discountRate';
 
 export type SortDirection = 'desc' | 'asc';
 export type SalesPeriod = '1d' | '3d' | '7d' | '14d' | '21d' | '1m' | '2m' | '3m';
@@ -19,14 +16,7 @@ export const CRITERION_LABELS: Record<CriterionKey, string> = {
   stockScore:            'Stoğa göre',
   availabilityScore:     'Beden bulunurluğu',
   discountRate:          'İndirim oranı',
-  tsoftViews:            'T-Soft · Görüntülenme',
-  tsoftCartAdds:         'T-Soft · Sepete Ekleme',
-  tsoftConversionRate:   'T-Soft · Dönüşüm Oranı',
 };
-
-export const TSOFT_STAT_KEYS = new Set<CriterionKey>([
-  'tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate',
-]);
 
 export const SALES_PERIOD_LABELS: Record<SalesPeriod, string> = {
   '1d':  'Dün',

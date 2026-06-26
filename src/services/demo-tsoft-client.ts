@@ -1,5 +1,5 @@
 import type { TSoftClientApi } from './tsoft-client-api';
-import type { TSoftProduct, TSoftRankPayload, TSoftSalesData, TSoftProductStats, TSoftVariant } from '../types/tsoft';
+import type { TSoftProduct, TSoftRankPayload, TSoftSalesData, TSoftVariant } from '../types/tsoft';
 
 type DemoCategory = { categoryId: string; name: string; parentCategoryId: string };
 type DemoProductSpec = Omit<TSoftProduct, 'sortOrder'> & { baseDailySales: number };
@@ -49,8 +49,6 @@ function makeProduct(input: {
     isActive: true,
     seoUrl: `${DEMO_BASE_URL}/urun-detay/${encodeURIComponent(input.productCode)}`,
     baseDailySales: input.baseDailySales,
-    statViews:       Math.round(input.baseDailySales * 200),
-    countTotalSales: Math.round(input.baseDailySales * 14),
   };
 }
 
@@ -489,8 +487,6 @@ export class DemoTSoftClient implements TSoftClientApi {
         discountRate: p.discountRate,
         isActive: true,
         seoUrl: p.seoUrl,
-        statViews:       p.statViews,
-        countTotalSales: p.countTotalSales,
       }))
       .sort((a, b) => a.sortOrder - b.sortOrder);
   }
@@ -520,8 +516,6 @@ export class DemoTSoftClient implements TSoftClientApi {
         discountRate: p.discountRate,
         isActive: true,
         seoUrl: p.seoUrl,
-        statViews:       p.statViews,
-        countTotalSales: p.countTotalSales,
       });
     }
     return results;
@@ -542,15 +536,6 @@ export class DemoTSoftClient implements TSoftClientApi {
       });
     }
     return result;
-  }
-
-  async getProductStats(days: number): Promise<TSoftProductStats[]> {
-    const safeDays = clampInt(days, 1, 180);
-    return DEMO_PRODUCTS.map(p => {
-      const views    = clampInt(p.baseDailySales * safeDays * 20, 0, 500_000);
-      const cartAdds = clampInt(p.baseDailySales * safeDays * 4,  0, 100_000);
-      return { productCode: p.productCode, views, cartAdds };
-    });
   }
 
   async setKategoriSira(payload: TSoftRankPayload[]): Promise<void> {

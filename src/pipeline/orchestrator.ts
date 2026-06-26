@@ -1,25 +1,6 @@
 import { getClientForUser } from '../services/tsoft-client';
 import { computeSizeAvailability } from '../scoring/availability';
 
-const TSOFT_STAT_KEYS = new Set(['tsoftViews','tsoftCartAdds','tsoftConversionRate']);
-
-function buildTsoftStatsMap(
-  config: WeightConfig,
-  products: TSoftProduct[]
-): Map<string, TSoftProductStats> {
-  const needsStats = config.criteria.some(c => TSOFT_STAT_KEYS.has(c.key));
-  if (!needsStats) return new Map();
-  const map = new Map<string, TSoftProductStats>();
-  for (const p of products) {
-    if (p.statViews > 0 || p.countTotalSales > 0) {
-      map.set(p.productCode, { productCode: p.productCode, views: p.statViews, cartAdds: p.countTotalSales });
-    }
-  }
-  const nonZero = map.size;
-  logger.info(`[tsoftStats] StatViews/CountTotalSales — ${nonZero}/${products.length} üründe veri var`);
-  if (nonZero === 0) logger.warn(`[tsoftStats] Tüm ürünlerde StatViews=0 ve CountTotalSales=0 — T-Soft bu alanları döndürmüyor olabilir`);
-  return map;
-}
 
 function salesPeriodToDays(period?: string): number {
   switch (period) {
@@ -44,7 +25,7 @@ import { logger } from '../utils/logger';
 import { sleep } from '../utils/helpers';
 import { insertAuditLog } from '../db/audit.repo';
 import type { WeightConfig, NormalizedProduct, CriterionKey } from '../types/product';
-import type { TSoftProduct, TSoftSalesData, TSoftProductStats } from '../types/tsoft';
+import type { TSoftProduct, TSoftSalesData } from '../types/tsoft';
 
 export interface CurrentRankItem {
   currentRank: number;
@@ -106,7 +87,6 @@ export interface ProductPreviewItem {
   registrationDate:     string;
   imageCount:           number;
   imageUrl:             string;
-  tsoftStats?: NormalizedProduct['tsoftStats'];
 }
 
 export interface PreviewResult {
@@ -146,9 +126,6 @@ export async function runRankingPipeline(
     const salesDays = salesPeriodToDays(bestSellerCriterion?.salesPeriod);
     const salesData    = await client.getSalesReport(productCodes, salesDays);
 
-    // T-Soft görüntülenme + sepete ekleme
-    const tsoftStatsMap = buildTsoftStatsMap(config, products);
-
     // Phase 2: Normalleştirme
     const salesMap = new Map<string, TSoftSalesData>(
       salesData.map(s => [s.productCode, s])
@@ -157,16 +134,7 @@ export async function runRankingPipeline(
     let normalized: NormalizedProduct[] = products.map((p: TSoftProduct) => {
       const sales = salesMap.get(p.productCode);
       const sizeAvailability = computeSizeAvailability(p.variants, availabilityThreshold);
-      const rawStats = tsoftStatsMap.get(p.productCode);
-      const soldQty  = sales?.soldQuantity14Days ?? 0;
-      const tsoftStats = rawStats
-        ? {
-            views:          rawStats.views,
-            cartAdds:       rawStats.cartAdds,
-            conversionRate: rawStats.views > 0 ? Math.min(100, (soldQty / rawStats.views) * 100) : 0,
-          }
-        : undefined;
-
+      const soldQty = sales?.soldQuantity14Days ?? 0;
       return {
         productId:        p.productId,
         productCode:      p.productCode,
@@ -178,7 +146,6 @@ export async function runRankingPipeline(
         discountRate:     p.discountRate,
         isActive:         p.isActive,
         sizeAvailability,
-        tsoftStats,
         scores: { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
         rankingScore:   0,
         isDisqualified: false,
@@ -258,9 +225,6 @@ export async function previewRanking(
   const salesData    = await client.getSalesReport(productCodes, salesDays);
   const salesMap     = new Map<string, TSoftSalesData>(salesData.map(s => [s.productCode, s]));
 
-  // T-Soft görüntülenme + sepete ekleme — product/get yanıtından StatViews/CountTotalSales okunur
-  const tsoftStatsMap = buildTsoftStatsMap(config, products);
-
   // imageCount is stored per-product alongside normalized data
   const imageCountMap = new Map<string, number>(products.map(p => [p.productCode, p.imageCount]));
   const imageUrlMap   = new Map<string, string>(products.map(p => [p.productCode, p.imageUrl]));
@@ -270,15 +234,7 @@ export async function previewRanking(
   let normalized: NormalizedProduct[] = products.map((p: TSoftProduct) => {
     const sales            = salesMap.get(p.productCode);
     const sizeAvailability = computeSizeAvailability(p.variants, availabilityThreshold);
-    const rawStats = tsoftStatsMap.get(p.productCode);
-    const soldQty  = sales?.soldQuantity14Days ?? 0;
-    const tsoftStats = rawStats
-      ? {
-          views:          rawStats.views,
-          cartAdds:       rawStats.cartAdds,
-          conversionRate: rawStats.views > 0 ? Math.min(100, (soldQty / rawStats.views) * 100) : 0,
-        }
-      : undefined;
+    const soldQty = sales?.soldQuantity14Days ?? 0;
     return {
       productId:        p.productId,
       productCode:      p.productCode,
@@ -290,7 +246,6 @@ export async function previewRanking(
       discountRate:     p.discountRate,
       isActive:         p.isActive,
       sizeAvailability,
-      tsoftStats,
       scores:        { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
       rankingScore:   0,
       isDisqualified: false,
@@ -331,7 +286,6 @@ export async function previewRanking(
       registrationDate:      p.registrationDate.toISOString(),
       imageCount:            imageCountMap.get(p.productCode) ?? 0,
       imageUrl:              imageUrlMap.get(p.productCode) ?? '',
-      tsoftStats:            p.tsoftStats,
     };
   });
 

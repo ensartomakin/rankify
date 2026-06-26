@@ -374,9 +374,6 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
               key === 'reviewScore'      ? `Yorum (${c.weight}%)` :
               key === 'availabilityScore'    ? `Bulunurluk (${c.weight}%)` :
               key === 'discountRate'         ? `İndirim (${c.weight}%)` :
-              key === 'tsoftViews'           ? `Görüntülenme (${c.weight}%)` :
-              key === 'tsoftCartAdds'        ? `Sepete Ekleme (${c.weight}%)` :
-              key === 'tsoftConversionRate'  ? `Dönüşüm Oranı (${c.weight}%)` :
               `${key} (${c.weight}%)`;
             let raw: string | number = '';
             if (key === 'stockScore')             raw = p.totalStock.toLocaleString('tr-TR');
@@ -385,9 +382,6 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             else if (key === 'reviewScore')       raw = p.reviewCount.toLocaleString('tr-TR');
             else if (key === 'availabilityScore') raw = fmtPct(p.availabilityRate * 100);
             else if (key === 'discountRate')      raw = `%${(p.discountRate ?? 0).toLocaleString('tr-TR')}`;
-            else if (key === 'tsoftViews')        raw = (p.tsoftStats?.views ?? 0).toLocaleString('tr-TR');
-            else if (key === 'tsoftCartAdds')     raw = (p.tsoftStats?.cartAdds ?? 0).toLocaleString('tr-TR');
-            else if (key === 'tsoftConversionRate') raw = p.tsoftStats ? fmtPct(p.tsoftStats.conversionRate ?? 0) : '—';
             return (
               <div key={key} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px]"
                 style={{ borderBottom: '1px solid var(--border)' }}>

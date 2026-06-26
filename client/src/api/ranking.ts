@@ -53,6 +53,7 @@ export interface ProductPreviewItem {
   registrationDate:      string;
   imageCount:            number;
   imageUrl:              string;
+  tsoftStats?:           { views: number; cartAdds: number; conversionRate?: number };
 }
 
 export interface PreviewResponse {

@@ -371,7 +371,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             const GA4_LABELS: Partial<Record<CriterionKey, string>> = {
               ga4Views:          'GA4 Görüntülenme',
               ga4Sessions:       'GA4 Oturum',
-              ga4Ctr:            'GA4 CTR',
+              ga4CartAdds:       'GA4 Sepete Ekleme',
               ga4ConversionRate: 'GA4 Dönüşüm',
             };
             const label =
@@ -391,7 +391,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             else if (key === 'discountRate')      raw = `%${(p.discountRate ?? 0).toLocaleString('tr-TR')}`;
             else if (key === 'ga4Views')          raw = (p.ga4?.views ?? 0).toLocaleString('tr-TR');
             else if (key === 'ga4Sessions')       raw = (p.ga4?.sessions ?? 0).toLocaleString('tr-TR');
-            else if (key === 'ga4Ctr')            raw = `${(p.ga4?.ctr ?? 0).toFixed(2)}%`;
+            else if (key === 'ga4CartAdds')       raw = (p.ga4?.cartAdds ?? 0).toLocaleString('tr-TR');
             else if (key === 'ga4ConversionRate') raw = `${(p.ga4?.conversionRate ?? 0).toFixed(2)}%`;
             return (
               <div key={key} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px]"

@@ -7,7 +7,7 @@ export type CriterionKey =
   | 'discountRate'
   | 'ga4Views'
   | 'ga4Sessions'
-  | 'ga4Ctr'
+  | 'ga4CartAdds'
   | 'ga4ConversionRate'
   | 'tsoftViews'
   | 'tsoftCartAdds'
@@ -25,7 +25,7 @@ export const CRITERION_LABELS: Record<CriterionKey, string> = {
   discountRate:          'İndirim oranı',
   ga4Views:              'GA4 · Görüntülenme',
   ga4Sessions:           'GA4 · Oturum',
-  ga4Ctr:                'GA4 · Tıklama Oranı (CTR)',
+  ga4CartAdds:           'GA4 · Sepete Ekleme',
   ga4ConversionRate:     'GA4 · Dönüşüm Oranı',
   tsoftViews:            'T-Soft · Görüntülenme',
   tsoftCartAdds:         'T-Soft · Sepete Ekleme',
@@ -33,7 +33,7 @@ export const CRITERION_LABELS: Record<CriterionKey, string> = {
 };
 
 export const GA4_CRITERION_KEYS = new Set<CriterionKey>([
-  'ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate',
+  'ga4Views', 'ga4Sessions', 'ga4CartAdds', 'ga4ConversionRate',
 ]);
 
 export const TSOFT_STAT_KEYS = new Set<CriterionKey>([

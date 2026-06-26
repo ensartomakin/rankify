@@ -56,7 +56,7 @@ export interface ProductPreviewItem {
   ga4?: {
     views:          number;
     sessions:       number;
-    ctr:            number;
+    cartAdds:       number;
     conversionRate: number;
   };
 }

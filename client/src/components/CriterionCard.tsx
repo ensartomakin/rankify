@@ -4,7 +4,7 @@ import {
 } from '../types';
 
 const BASE_KEYS:   CriterionKey[] = ['stockScore', 'bestSeller', 'newness', 'reviewScore', 'discountRate'];
-const GA4_KEYS:    CriterionKey[] = ['ga4Views', 'ga4Sessions', 'ga4Ctr', 'ga4ConversionRate'];
+const GA4_KEYS:    CriterionKey[] = ['ga4Views', 'ga4Sessions', 'ga4CartAdds', 'ga4ConversionRate'];
 const TSOFT_KEYS:  CriterionKey[] = ['tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate'];
 
 interface Props {

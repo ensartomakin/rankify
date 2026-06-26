@@ -75,7 +75,7 @@ export async function fetchGa4ProductMetrics(
     metrics: [
       { name: 'itemsViewed' },
       { name: 'sessions' },
-      { name: 'itemListClickThroughRate' },
+      { name: 'itemsAddedToCart' },
       { name: 'itemsPurchased' },
       { name: 'itemRevenue' },
     ],
@@ -88,13 +88,13 @@ export async function fetchGa4ProductMetrics(
     const itemId = row.dimensionValues?.[0]?.value ?? '';
     if (!itemId || itemId === '(not set)') continue;
 
-    const [views, sessions, ctr, purchases, revenue] = (row.metricValues ?? []).map(
+    const [views, sessions, cartAdds, purchases, revenue] = (row.metricValues ?? []).map(
       m => m.value ?? '0'
     );
 
     const viewsVal     = parseInt(views, 10)     || 0;
     const sessionsVal  = parseInt(sessions, 10)  || 0;
-    const ctrVal       = parseFloat(ctr) * 100;
+    const cartAddsVal  = parseInt(cartAdds, 10)  || 0;
     const purchasesVal = parseInt(purchases, 10) || 0;
     const revenueVal   = parseFloat(revenue)     || 0;
     const convRate     = viewsVal > 0 ? (purchasesVal / viewsVal) * 100 : 0;
@@ -103,7 +103,7 @@ export async function fetchGa4ProductMetrics(
       itemId,
       views:          viewsVal,
       sessions:       sessionsVal,
-      ctr:            Math.round(ctrVal * 100) / 100,
+      cartAdds:       cartAddsVal,
       conversionRate: Math.round(convRate * 100) / 100,
       purchases:      purchasesVal,
       revenue:        revenueVal,

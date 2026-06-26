@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS ga4_product_metrics (
   date_range      VARCHAR(10)  NOT NULL DEFAULT '30d',
   views           INTEGER      NOT NULL DEFAULT 0,
   sessions        INTEGER      NOT NULL DEFAULT 0,
-  ctr             NUMERIC(8,4) NOT NULL DEFAULT 0,
+  cart_adds       INTEGER      NOT NULL DEFAULT 0,
   conversion_rate NUMERIC(8,4) NOT NULL DEFAULT 0,
   purchases       INTEGER      NOT NULL DEFAULT 0,
   revenue         NUMERIC(12,2) NOT NULL DEFAULT 0,

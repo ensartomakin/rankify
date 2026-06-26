@@ -7,7 +7,7 @@ export type CriterionKey =
   | 'discountRate'
   | 'ga4Views'
   | 'ga4Sessions'
-  | 'ga4Ctr'
+  | 'ga4CartAdds'
   | 'ga4ConversionRate'
   | 'tsoftViews'
   | 'tsoftCartAdds'
@@ -51,7 +51,7 @@ export interface ProductScores {
   discountRate?: number;
   ga4Views?: number;
   ga4Sessions?: number;
-  ga4Ctr?: number;
+  ga4CartAdds?: number;
   ga4ConversionRate?: number;
   tsoftViews?: number;
   tsoftCartAdds?: number;
@@ -61,7 +61,7 @@ export interface ProductScores {
 export interface Ga4RawMetrics {
   views: number;
   sessions: number;
-  ctr: number;
+  cartAdds: number;
   conversionRate: number;
 }
 

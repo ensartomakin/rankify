@@ -129,7 +129,7 @@ export function getBaseName(productName: string): string {
   return words.slice(0, end).join(' ');
 }
 
-const SMART_MIX_GAP = 3; // aynı ürün tekrar görünmeden önce araya girecek minimum ürün sayısı
+const SMART_MIX_GAP = 7; // aynı ürün tekrar görünmeden önce araya girecek minimum ürün sayısı
 
 /**
  * Smart Mix: aynı base name'e sahip ürünler arasına en az SMART_MIX_GAP ürün girer.

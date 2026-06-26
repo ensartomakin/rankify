@@ -322,12 +322,14 @@ export async function previewRanking(
 
   // GA4 itemId format diagnostics
   if (ga4Map.size > 0) {
-    const sampleItemId = ga4Map.keys().next().value;
-    const firstProduct = products[0];
-    logger.info(`[GA4 preview itemId] örnek itemId="${sampleItemId}" | productId="${firstProduct?.productId}" productCode="${firstProduct?.productCode}"`);
-    const matchById   = firstProduct ? ga4Map.has(firstProduct.productId)   : false;
-    const matchByCode = firstProduct ? ga4Map.has(firstProduct.productCode) : false;
-    logger.info(`[GA4 preview itemId] productId ile eşleşiyor: ${matchById} | productCode ile eşleşiyor: ${matchByCode}`);
+    const ga4Ids   = Array.from(ga4Map.keys()).slice(0, 15);
+    const tIds     = products.slice(0, 5).map(p => `${p.productCode}→${p.productId}`);
+    logger.info(`[GA4 itemId] İlk 15 GA4 itemId: ${ga4Ids.join(', ')}`);
+    logger.info(`[GA4 itemId] İlk 5 ürün (code→id): ${tIds.join(' | ')}`);
+    // Kaç üründe eşleşme var?
+    const hitById   = products.filter(p => ga4Map.has(p.productId)).length;
+    const hitByCode = products.filter(p => ga4Map.has(p.productCode)).length;
+    logger.info(`[GA4 itemId] productId eşleşen: ${hitById}/${products.length} | productCode eşleşen: ${hitByCode}/${products.length}`);
   }
 
   // imageCount is stored per-product alongside normalized data

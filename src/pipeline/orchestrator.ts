@@ -3,7 +3,7 @@ import { computeSizeAvailability } from '../scoring/availability';
 import { getGa4Credentials, getGa4Metrics, upsertGa4Metrics } from '../db/ga4.repo';
 import { fetchGa4ProductMetrics, } from '../services/ga4-client';
 
-const GA4_KEYS   = new Set(['ga4Views','ga4Sessions','ga4CartAdds','ga4ConversionRate']);
+const GA4_KEYS   = new Set(['ga4Views','ga4CartAdds','ga4ConversionRate']);
 const TSOFT_STAT_KEYS = new Set(['tsoftViews','tsoftCartAdds','tsoftConversionRate']);
 
 function buildTsoftStatsMap(
@@ -223,7 +223,7 @@ export async function runRankingPipeline(
         discountRate:     p.discountRate,
         isActive:         p.isActive,
         sizeAvailability,
-        ga4: ga4 ? { views: ga4.views, sessions: ga4.sessions, cartAdds: ga4.cartAdds, conversionRate: ga4.conversionRate } : undefined,
+        ga4: ga4 ? { views: ga4.views, cartAdds: ga4.cartAdds, conversionRate: ga4.conversionRate } : undefined,
         tsoftStats,
         scores: { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
         rankingScore:   0,
@@ -340,7 +340,7 @@ export async function previewRanking(
       discountRate:     p.discountRate,
       isActive:         p.isActive,
       sizeAvailability,
-      ga4: ga4 ? { views: ga4.views, sessions: ga4.sessions, cartAdds: ga4.cartAdds, conversionRate: ga4.conversionRate } : undefined,
+      ga4: ga4 ? { views: ga4.views, cartAdds: ga4.cartAdds, conversionRate: ga4.conversionRate } : undefined,
       tsoftStats,
       scores:        { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
       rankingScore:   0,

@@ -6,7 +6,6 @@ export type CriterionKey =
   | 'availabilityScore'
   | 'discountRate'
   | 'ga4Views'
-  | 'ga4Sessions'
   | 'ga4CartAdds'
   | 'ga4ConversionRate'
   | 'tsoftViews'
@@ -24,7 +23,6 @@ export const CRITERION_LABELS: Record<CriterionKey, string> = {
   availabilityScore:     'Beden bulunurluğu',
   discountRate:          'İndirim oranı',
   ga4Views:              'GA4 · Görüntülenme',
-  ga4Sessions:           'GA4 · Oturum',
   ga4CartAdds:           'GA4 · Sepete Ekleme',
   ga4ConversionRate:     'GA4 · Dönüşüm Oranı',
   tsoftViews:            'T-Soft · Görüntülenme',
@@ -33,7 +31,7 @@ export const CRITERION_LABELS: Record<CriterionKey, string> = {
 };
 
 export const GA4_CRITERION_KEYS = new Set<CriterionKey>([
-  'ga4Views', 'ga4Sessions', 'ga4CartAdds', 'ga4ConversionRate',
+  'ga4Views', 'ga4CartAdds', 'ga4ConversionRate',
 ]);
 
 export const TSOFT_STAT_KEYS = new Set<CriterionKey>([
@@ -51,11 +49,12 @@ export const SALES_PERIOD_LABELS: Record<SalesPeriod, string> = {
   '3m':  'Son 3 Ay',
 };
 
-export const CRITERION_COLORS: [string, string, string, string] = [
+export const CRITERION_COLORS: string[] = [
   '#E23260', // K1 — Cerise
   '#849A28', // K2 — Citron
   '#F2678E', // K3 — Deep Blush
   '#6366F1', // K4 — Indigo
+  '#F59E0B', // K5 — Amber
 ];
 
 export interface WeightCriterion {
@@ -68,7 +67,7 @@ export interface WeightCriterion {
 export interface WeightConfig {
   categoryId: string;
   availabilityThreshold: number;
-  criteria: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion];
+  criteria: WeightCriterion[];
   smartMix?: boolean;
 }
 

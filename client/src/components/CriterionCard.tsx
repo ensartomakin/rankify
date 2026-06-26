@@ -4,19 +4,20 @@ import {
 } from '../types';
 
 const BASE_KEYS:   CriterionKey[] = ['stockScore', 'bestSeller', 'newness', 'reviewScore', 'discountRate'];
-const GA4_KEYS:    CriterionKey[] = ['ga4Views', 'ga4Sessions', 'ga4CartAdds', 'ga4ConversionRate'];
+const GA4_KEYS:    CriterionKey[] = ['ga4Views', 'ga4CartAdds', 'ga4ConversionRate'];
 const TSOFT_KEYS:  CriterionKey[] = ['tsoftViews', 'tsoftCartAdds', 'tsoftConversionRate'];
 
 interface Props {
-  index: 0 | 1 | 2 | 3;
+  index: number;
   criterion: WeightCriterion;
   usedKeys: CriterionKey[];
   onChange: (c: WeightCriterion) => void;
+  onRemove?: () => void;
   ga4Connected?: boolean;
 }
 
-export function CriterionCard({ index, criterion, usedKeys, onChange, ga4Connected = false }: Props) {
-  const color   = CRITERION_COLORS[index];
+export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, ga4Connected = false }: Props) {
+  const color   = CRITERION_COLORS[index] ?? CRITERION_COLORS[0];
   const allKeys = [...BASE_KEYS, ...TSOFT_KEYS, ...(ga4Connected ? GA4_KEYS : [])];
   const options = allKeys.filter(k => k === criterion.key || !usedKeys.includes(k));
 
@@ -59,13 +60,27 @@ export function CriterionCard({ index, criterion, usedKeys, onChange, ga4Connect
             {CRITERION_LABELS[criterion.key]}
           </div>
         </div>
-        <div style={{
-          width: '30px', height: '30px', borderRadius: '8px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '12px', fontWeight: 700, flexShrink: 0,
-          background: color + '18', color,
-        }}>
-          K{index + 1}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <div style={{
+            width: '30px', height: '30px', borderRadius: '8px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '12px', fontWeight: 700,
+            background: color + '18', color,
+          }}>
+            K{index + 1}
+          </div>
+          {onRemove && (
+            <button onClick={onRemove}
+              title="Kriteri kaldır"
+              style={{
+                width: '24px', height: '24px', borderRadius: '6px', border: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '14px', lineHeight: 1, cursor: 'pointer',
+                background: 'rgba(0,0,0,0.06)', color: 'var(--tx3)',
+              }}>
+              ×
+            </button>
+          )}
         </div>
       </div>
 

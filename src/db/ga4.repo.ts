@@ -10,7 +10,6 @@ export interface Ga4OAuthCredentials {
 export interface Ga4ProductMetric {
   itemId:         string;
   views:          number;
-  sessions:       number;
   cartAdds:       number;
   conversionRate: number;
   purchases:      number;
@@ -26,7 +25,6 @@ interface CredRow {
 interface MetricRow {
   item_id:         string;
   views:           string;
-  sessions:        string;
   cart_adds:       string;
   conversion_rate: string;
   purchases:       string;
@@ -104,15 +102,14 @@ export async function upsertGa4Metrics(
   // Single bulk upsert instead of N individual queries
   await query(
     `INSERT INTO ga4_product_metrics
-       (user_id, item_id, date_range, views, sessions, cart_adds, conversion_rate, purchases, revenue, cached_at)
+       (user_id, item_id, date_range, views, cart_adds, conversion_rate, purchases, revenue, cached_at)
      SELECT $1, unnest($2::text[]), $3,
-            unnest($4::int[]), unnest($5::int[]),
-            unnest($6::int[]), unnest($7::numeric[]),
-            unnest($8::int[]), unnest($9::numeric[]),
+            unnest($4::int[]),
+            unnest($5::int[]), unnest($6::numeric[]),
+            unnest($7::int[]), unnest($8::numeric[]),
             NOW()
      ON CONFLICT (user_id, item_id, date_range) DO UPDATE
        SET views           = EXCLUDED.views,
-           sessions        = EXCLUDED.sessions,
            cart_adds       = EXCLUDED.cart_adds,
            conversion_rate = EXCLUDED.conversion_rate,
            purchases       = EXCLUDED.purchases,
@@ -123,7 +120,6 @@ export async function upsertGa4Metrics(
       metrics.map(m => m.itemId),
       dateRange,
       metrics.map(m => m.views),
-      metrics.map(m => m.sessions),
       metrics.map(m => m.cartAdds),
       metrics.map(m => m.conversionRate),
       metrics.map(m => m.purchases),
@@ -137,7 +133,7 @@ export async function getGa4Metrics(
   dateRange = '30d'
 ): Promise<Map<string, Ga4ProductMetric>> {
   const rows = await query<MetricRow>(
-    `SELECT item_id, views, sessions, cart_adds, conversion_rate, purchases, revenue
+    `SELECT item_id, views, cart_adds, conversion_rate, purchases, revenue
      FROM ga4_product_metrics
      WHERE user_id = $1 AND date_range = $2`,
     [userId, dateRange]
@@ -148,7 +144,6 @@ export async function getGa4Metrics(
       {
         itemId:         r.item_id,
         views:          Number(r.views),
-        sessions:       Number(r.sessions),
         cartAdds:       Number(r.cart_adds),
         conversionRate: Number(r.conversion_rate),
         purchases:      Number(r.purchases),

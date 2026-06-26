@@ -6,7 +6,7 @@ export interface Scenario {
   name: string;
   tagline: string;
   description: string;
-  criteria: [WeightCriterion, WeightCriterion, WeightCriterion, WeightCriterion];
+  criteria: WeightCriterion[];
 }
 
 export const SCENARIOS: Scenario[] = [

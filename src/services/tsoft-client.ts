@@ -430,6 +430,8 @@ export class TSoftClient {
       discountRate,
       seoUrl: seoLink,
       isActive,
+      statViews:       Number(p.StatViews ?? p.statViews ?? 0),
+      countTotalSales: Number(p.CountTotalSales ?? p.countTotalSales ?? 0),
     };
   }
 

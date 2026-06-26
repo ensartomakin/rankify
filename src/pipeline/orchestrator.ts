@@ -198,20 +198,10 @@ export async function runRankingPipeline(
       salesData.map(s => [s.productCode, s])
     );
 
-    // GA4 itemId format diagnostics — ilk sync'de hangi key ile eşleştiğini logla
-    if (ga4Map.size > 0) {
-      const sampleItemId = ga4Map.keys().next().value;
-      const firstProduct = products[0];
-      logger.info(`[GA4 itemId] DB'deki örnek itemId="${sampleItemId}" | ürün productId="${firstProduct?.productId}" productCode="${firstProduct?.productCode}"`);
-      const matchById   = firstProduct ? ga4Map.has(firstProduct.productId)   : false;
-      const matchByCode = firstProduct ? ga4Map.has(firstProduct.productCode) : false;
-      logger.info(`[GA4 itemId] productId ile eşleşiyor: ${matchById} | productCode ile eşleşiyor: ${matchByCode}`);
-    }
-
     let normalized: NormalizedProduct[] = products.map((p: TSoftProduct) => {
       const sales = salesMap.get(p.productCode);
       const sizeAvailability = computeSizeAvailability(p.variants, availabilityThreshold);
-      const ga4 = ga4Map.get(p.productId) ?? ga4Map.get(p.productCode);
+      const ga4 = ga4Map.get(p.productId);
       const rawStats = tsoftStatsMap.get(p.productCode);
       const soldQty  = sales?.soldQuantity14Days ?? 0;
       const tsoftStats = rawStats
@@ -320,18 +310,6 @@ export async function previewRanking(
   // T-Soft görüntülenme + sepete ekleme — product/get yanıtından StatViews/CountTotalSales okunur
   const tsoftStatsMap = buildTsoftStatsMap(config, products);
 
-  // GA4 itemId format diagnostics
-  if (ga4Map.size > 0) {
-    const ga4Ids   = Array.from(ga4Map.keys()).slice(0, 15);
-    const tIds     = products.slice(0, 5).map(p => `${p.productCode}→${p.productId}`);
-    logger.info(`[GA4 itemId] İlk 15 GA4 itemId: ${ga4Ids.join(', ')}`);
-    logger.info(`[GA4 itemId] İlk 5 ürün (code→id): ${tIds.join(' | ')}`);
-    // Kaç üründe eşleşme var?
-    const hitById   = products.filter(p => ga4Map.has(p.productId)).length;
-    const hitByCode = products.filter(p => ga4Map.has(p.productCode)).length;
-    logger.info(`[GA4 itemId] productId eşleşen: ${hitById}/${products.length} | productCode eşleşen: ${hitByCode}/${products.length}`);
-  }
-
   // imageCount is stored per-product alongside normalized data
   const imageCountMap = new Map<string, number>(products.map(p => [p.productCode, p.imageCount]));
   const imageUrlMap   = new Map<string, string>(products.map(p => [p.productCode, p.imageUrl]));
@@ -341,7 +319,7 @@ export async function previewRanking(
   let normalized: NormalizedProduct[] = products.map((p: TSoftProduct) => {
     const sales            = salesMap.get(p.productCode);
     const sizeAvailability = computeSizeAvailability(p.variants, availabilityThreshold);
-    const ga4 = ga4Map.get(p.productId) ?? ga4Map.get(p.productCode);
+    const ga4 = ga4Map.get(p.productId);
     const rawStats = tsoftStatsMap.get(p.productCode);
     const soldQty  = sales?.soldQuantity14Days ?? 0;
     const tsoftStats = rawStats

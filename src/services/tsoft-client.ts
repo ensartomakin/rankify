@@ -366,13 +366,6 @@ export class TSoftClient {
     if (!this._loggedProductKeys) {
       this._loggedProductKeys = true;
       logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
-      // Tüm numerik/string ID alanlarını logla — GA4 itemId eşleşmesi için
-      const idCandidates = ['ProductId','productId','Id','id','ContentId','contentId',
-        'ItemId','itemId','ExternalCode','externalCode','ManufacturerCode','manufacturerCode',
-        'Barcode','barcode','StockCode','stockCode','RefCode','refCode','ProductCode','productCode'];
-      for (const k of idCandidates) {
-        if (p[k] !== undefined) logger.info(`[mapProduct ID] ${k} = ${JSON.stringify(p[k])}`);
-      }
       // Fiyat & URL & görünürlük değerlerini logla
       const watched = ['Price','price','ListPrice','OldPrice','SalePrice','CampaignPrice',
         'DiscountedPrice','SellingPrice','DiscountRate','SEOUrl','SeoUrl','SEOLink','SeoLink',

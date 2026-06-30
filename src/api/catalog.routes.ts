@@ -39,6 +39,29 @@ catalogRouter.get('/debug/categories', requireSuperAdmin, async (req: Request, r
   res.json(results);
 });
 
+// Ham ürün alanlarını döndüren debug endpoint — sezon alanını bulmak için
+catalogRouter.get('/debug/product-fields/:categoryId', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const client = await getClientForUser(req.user!.userId, req.user!.tenantId);
+    const raw = await (client as unknown as { getCategoryProductsRawSample: (id: string, n: number) => Promise<Record<string, unknown>[]> })
+      .getCategoryProductsRawSample(req.params.categoryId, 3);
+    // Her üründen anahtar listesi + "bilgi/extra/ek/field/info" içeren tüm alanlar
+    const result = raw.map(p => {
+      const allKeys = Object.keys(p);
+      const extraLike: Record<string, unknown> = {};
+      for (const k of allKeys) {
+        if (/extra|field|bilgi|detail|spec|custom|add|prop|attr|value|info|ek/i.test(k)) {
+          extraLike[k] = p[k];
+        }
+      }
+      return { allKeys, extraLike };
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(502).json({ error: String(err) });
+  }
+});
+
 catalogRouter.get('/categories/:categoryId/products', async (req: Request, res: Response) => {
   try {
     const client       = await getClientForUser(req.user!.userId, req.user!.tenantId);

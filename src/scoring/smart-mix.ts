@@ -75,6 +75,15 @@ const COLOR_PHRASES = new Set<string>([
   'karma şal', 'bohem şal', 'pötikare', 'karanfil', 'raya', 'vera',
   'bloomix', 'calypso', 'caliypso', 'melonia', 'fractal', 'glitzy',
   'papatya', 'palmera', 'tropical', 'dotta', 'rustica',
+  // ── Koleksiyon / Model isimleri (desen varyantı) ──
+  'palme', 'floria', 'flora', 'marine', 'dotti', 'dotto', 'viola', 'luna',
+  'stella', 'bella', 'nova', 'aurora', 'aria', 'mira', 'lara', 'sena',
+  'nora', 'zara', 'kira', 'maya', 'eden', 'alma', 'lena', 'mela',
+  'riva', 'java', 'bora', 'cora', 'dora', 'fora', 'gora', 'hera',
+  'linea', 'opera', 'petra', 'terra', 'vega', 'zena',
+  'basic', 'klasik', 'minimal', 'modern', 'retro', 'vintage', 'bohem',
+  'safari', 'tropic', 'tribal', 'ethnic', 'floral', 'animal',
+  'desen', 'desen 1', 'desen 2', 'desen 3', 'model 1', 'model 2', 'model 3',
   // ── Kombinasyon renkleri (tek kelime/tire birleşik) ──
   'siyah ekru', 'vizon kemik', 'ofis lacivert ekru',
   'bej-turuncu', 'kırık beyaz-kimyon', 'kırık beyaz-pembe',

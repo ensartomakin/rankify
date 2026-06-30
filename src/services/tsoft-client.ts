@@ -22,7 +22,7 @@ const salesCache = new Map<string, { data: TSoftSalesData[]; expiresAt: number }
 
 // Kategori ürün listesi önbelleği — `${cacheKey}::cat::${categoryId}` → { data, expiresAt }
 const categoryProductsCache = new Map<string, { data: TSoftProduct[]; expiresAt: number }>();
-const CATEGORY_CACHE_TTL = 5 * 60 * 1000; // 5 dakika
+const CATEGORY_CACHE_TTL = 0; // önbellek kapalı — sezon verisi doğrulandıktan sonra açılacak
 
 /**
  * T-Soft'un site sıralamasını yeniden oluşturur:
@@ -413,11 +413,6 @@ export class TSoftClient {
       this._loggedProductKeys = true;
       logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
     }
-    // İlk üründe Label7 ve Additional7 değerlerini logla
-    if (!this._loggedAdditional) {
-      this._loggedAdditional = true;
-      logger.info(`[DEBUG-EK-BILGI] ürün=${p.ProductCode} | Additional7="${p.Additional7}" | Label7="${p.Label7}" | Details=${JSON.stringify(p.Details)?.slice(0, 300)}`);
-    }
     const stock = Number(p.Stock ?? p.stock ?? 0);
     const rawVariants = (p.SubProducts ?? p.Variants ?? p.Details ?? []) as Record<string, unknown>[];
     const variants: import('../types/tsoft').TSoftVariant[] = Array.isArray(rawVariants) && rawVariants.length > 0
@@ -456,8 +451,8 @@ export class TSoftClient {
         ? rawActive
         : rawActive === 1 || rawActive === '1' || String(rawActive).toLowerCase() === 'true';
 
-    // Ek Bilgi 7 — sezon etiketi
-    const season = this.extractExtraField(p, 7);
+    // Ek Bilgi 6 — sezon etiketi
+    const season = this.extractExtraField(p, 6);
 
     return {
       productId:        String(p.ProductId ?? p.productId ?? p.Id ?? p.id ?? ''),

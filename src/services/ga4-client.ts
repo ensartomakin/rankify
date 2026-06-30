@@ -70,7 +70,7 @@ export async function fetchGa4ProductMetrics(
 
   const [response] = await analyticsClient.runReport({
     property:   `properties/${propertyId}`,
-    dateRanges: [{ startDate, endDate: 'today' }],
+    dateRanges: [{ startDate, endDate: 'yesterday' }],
     dimensions: [{ name: 'itemId' }],
     metrics: [
       { name: 'itemsViewed' },

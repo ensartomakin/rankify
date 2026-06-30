@@ -107,16 +107,24 @@ function applySeasonPreSort(products: NormalizedProduct[], filter: SeasonPreFilt
   const qualified    = products.filter(p => !p.isDisqualified);
   const disqualified = products.filter(p =>  p.isDisqualified);
 
-  const sorted = [...qualified].sort((a, b) => {
-    const aKey = seasonSortKey(a.season, filter);
-    const bKey = seasonSortKey(b.season, filter);
-    if (aKey !== bKey) return bKey - aKey; // yüksek anahtar önce
-    return a.finalRank - b.finalRank;      // aynı sezonda mevcut sıralama korunur
-  });
+  // Tercih edilen ve edilmeyen sezon grupları — kriter puanı sırası (finalRank) korunur
+  const preferred  = qualified.filter(p => seasonSortKey(p.season, filter) >= 1_000_000_000);
+  const other      = qualified.filter(p => seasonSortKey(p.season, filter) <  1_000_000_000);
 
-  // Aktif ürünlere yeni sıra numarası ver; dışlananlar arkaya eklenir (rank değişmez)
-  const reranked = sorted.map((p, i) => ({ ...p, finalRank: i + 1 }));
-  return [...reranked, ...disqualified];
+  // Her iki grup kendi içinde tercih sırasına göre sıralanır (yıl azalan)
+  const sortGroup = (arr: NormalizedProduct[]) =>
+    [...arr].sort((a, b) => {
+      const diff = seasonSortKey(b.season, filter) - seasonSortKey(a.season, filter);
+      return diff !== 0 ? diff : a.finalRank - b.finalRank;
+    });
+
+  const result = [
+    ...sortGroup(preferred),
+    ...sortGroup(other),
+    ...disqualified,
+  ];
+
+  return result.map((p, i) => ({ ...p, finalRank: i + 1 }));
 }
 
 export interface CurrentRankItem {
@@ -258,6 +266,7 @@ export async function runRankingPipeline(
     normalized = computeRankingScores(normalized, config);
 
     // Phase 3: Sıralama ve yazma
+    // 1) Kriter puanı → 2) Smart mix → 3) Sezon gruplandırması (en son, smart mix'e dokunmaz)
     let ranked = buildFinalRanking(normalized);
     if (config.smartMix) ranked = applySmartMix(ranked);
     if (config.seasonPreFilter && config.seasonPreFilter !== 'none') {

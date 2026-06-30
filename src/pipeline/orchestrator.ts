@@ -258,11 +258,12 @@ export async function runRankingPipeline(
     normalized = computeRankingScores(normalized, config);
 
     // Phase 3: Sıralama ve yazma
+    // Önce sezon ön-sıralaması (sezon grupları oluşturur), ardından smart mix kendi içinde dağıtır
     let ranked = buildFinalRanking(normalized);
-    if (config.smartMix) ranked = applySmartMix(ranked);
     if (config.seasonPreFilter && config.seasonPreFilter !== 'none') {
       ranked = applySeasonPreSort(ranked, config.seasonPreFilter);
     }
+    if (config.smartMix) ranked = applySmartMix(ranked);
     const disqualifiedCount = ranked.filter(p => p.isDisqualified).length;
     const qualifiedCount    = ranked.length - disqualifiedCount;
 
@@ -366,10 +367,10 @@ export async function previewRanking(
   normalized = applyDisqualification(normalized, availabilityThreshold);
   normalized = computeRankingScores(normalized, config);
   let ranked = buildFinalRanking(normalized);
-  if (config.smartMix) ranked = applySmartMix(ranked);
   if (config.seasonPreFilter && config.seasonPreFilter !== 'none') {
     ranked = applySeasonPreSort(ranked, config.seasonPreFilter);
   }
+  if (config.smartMix) ranked = applySmartMix(ranked);
   const qualifiedCount   = ranked.filter(p => !p.isDisqualified).length;
   const disqualifiedCount = ranked.length - qualifiedCount;
 

@@ -77,7 +77,7 @@ function parseSeasonInfo(season: string): { year: number; isYaz: boolean; isIlkb
     year,
     isYaz:      lower.includes('yaz'),
     isIlkbahar: lower.includes('ilkbahar') || lower.includes('i̇lkbahar'),
-    isKis:      lower.includes('kış') || lower.includes('kis'),
+    isKis:      lower.includes('kış') || lower.includes('kis') || lower.includes('kıs'),
     isSonbahar: lower.includes('sonbahar'),
   };
 }

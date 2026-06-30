@@ -64,8 +64,51 @@ import { applySmartMix } from '../scoring/smart-mix';
 import { logger } from '../utils/logger';
 import { sleep } from '../utils/helpers';
 import { insertAuditLog } from '../db/audit.repo';
-import type { WeightConfig, NormalizedProduct, CriterionKey } from '../types/product';
+import type { WeightConfig, NormalizedProduct, CriterionKey, SeasonPreFilter } from '../types/product';
 import type { TSoftProduct, TSoftSalesData } from '../types/tsoft';
+
+// ── Sezon ön-sıralama ────────────────────────────────────────────────────────
+
+function parseSeasonInfo(season: string): { year: number; isYaz: boolean; isIlkbahar: boolean; isKis: boolean; isSonbahar: boolean } {
+  const yearMatch = season.match(/\b(\d{4})\b/);
+  const year = yearMatch ? parseInt(yearMatch[1], 10) : 0;
+  const lower = season.toLowerCase();
+  return {
+    year,
+    isYaz:      lower.includes('yaz'),
+    isIlkbahar: lower.includes('ilkbahar') || lower.includes('i̇lkbahar'),
+    isKis:      lower.includes('kış') || lower.includes('kis'),
+    isSonbahar: lower.includes('sonbahar'),
+  };
+}
+
+/** Sezon etiketi için sıralama anahtarı üretir — yüksek değer = önce gelir. */
+function seasonSortKey(season: string, filter: SeasonPreFilter): number {
+  if (!season || filter === 'none') return 0;
+  const { year, isYaz, isIlkbahar, isKis, isSonbahar } = parseSeasonInfo(season);
+  if (year === 0 && !isYaz && !isIlkbahar && !isKis && !isSonbahar) return 0;
+
+  if (filter === 'yaz-ilkbahar') {
+    const isPreferred = isYaz || isIlkbahar;
+    const subScore    = isYaz ? 2 : isIlkbahar ? 1 : isSonbahar ? 2 : isKis ? 1 : 0;
+    return isPreferred ? 1_000_000_000 + year * 10 + subScore : year * 10 + subScore;
+  } else {
+    const isPreferred = isKis || isSonbahar;
+    const subScore    = isKis ? 2 : isSonbahar ? 1 : isYaz ? 2 : isIlkbahar ? 1 : 0;
+    return isPreferred ? 1_000_000_000 + year * 10 + subScore : year * 10 + subScore;
+  }
+}
+
+function applySeasonPreSort(products: NormalizedProduct[], filter: SeasonPreFilter): NormalizedProduct[] {
+  if (!filter || filter === 'none') return products;
+  const sorted = [...products].sort((a, b) => {
+    const aKey = seasonSortKey(a.season, filter);
+    const bKey = seasonSortKey(b.season, filter);
+    if (aKey !== bKey) return bKey - aKey; // yüksek anahtar önce
+    return a.finalRank - b.finalRank;      // aynı sezonda mevcut sıralama korunur
+  });
+  return sorted.map((p, i) => ({ ...p, finalRank: i + 1 }));
+}
 
 export interface CurrentRankItem {
   currentRank: number;
@@ -127,6 +170,7 @@ export interface ProductPreviewItem {
   registrationDate:     string;
   imageCount:           number;
   imageUrl:             string;
+  season:               string;
   ga4?: NormalizedProduct['ga4'];
 }
 
@@ -191,6 +235,7 @@ export async function runRankingPipeline(
         salesQty:         soldQty,
         discountRate:     p.discountRate,
         isActive:         p.isActive,
+        season:           p.season ?? '',
         sizeAvailability,
         ga4: ga4 ? { views: ga4.views, cartAdds: ga4.cartAdds, conversionRate: ga4.conversionRate } : undefined,
         scores: { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
@@ -206,6 +251,9 @@ export async function runRankingPipeline(
     // Phase 3: Sıralama ve yazma
     let ranked = buildFinalRanking(normalized);
     if (config.smartMix) ranked = applySmartMix(ranked);
+    if (config.seasonPreFilter && config.seasonPreFilter !== 'none') {
+      ranked = applySeasonPreSort(ranked, config.seasonPreFilter);
+    }
     const disqualifiedCount = ranked.filter(p => p.isDisqualified).length;
     const qualifiedCount    = ranked.length - disqualifiedCount;
 
@@ -296,6 +344,7 @@ export async function previewRanking(
       salesQty:         soldQty,
       discountRate:     p.discountRate,
       isActive:         p.isActive,
+      season:           p.season ?? '',
       sizeAvailability,
       ga4: ga4 ? { views: ga4.views, cartAdds: ga4.cartAdds, conversionRate: ga4.conversionRate } : undefined,
       scores:        { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
@@ -309,6 +358,9 @@ export async function previewRanking(
   normalized = computeRankingScores(normalized, config);
   let ranked = buildFinalRanking(normalized);
   if (config.smartMix) ranked = applySmartMix(ranked);
+  if (config.seasonPreFilter && config.seasonPreFilter !== 'none') {
+    ranked = applySeasonPreSort(ranked, config.seasonPreFilter);
+  }
   const qualifiedCount   = ranked.filter(p => !p.isDisqualified).length;
   const disqualifiedCount = ranked.length - qualifiedCount;
 
@@ -338,6 +390,7 @@ export async function previewRanking(
       registrationDate:      p.registrationDate.toISOString(),
       imageCount:            imageCountMap.get(p.productCode) ?? 0,
       imageUrl:              imageUrlMap.get(p.productCode) ?? '',
+      season:                p.season,
       ga4:                   p.ga4,
     };
   });

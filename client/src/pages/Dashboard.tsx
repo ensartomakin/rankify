@@ -22,7 +22,7 @@ import type {
 import { saveConfig } from '../api/config';
 import { fetchGa4Status } from '../api/ga4';
 import { getStoredThreshold } from '../utils/threshold';
-import type { WeightCriterion, CriterionKey } from '../types';
+import type { WeightCriterion, CriterionKey, SeasonPreFilter } from '../types';
 import type { SavedConfig } from '../api/config';
 import { SCENARIOS } from '../data/scenarios';
 import type { Scenario } from '../data/scenarios';
@@ -416,10 +416,18 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
         )}
       </div>
 
-      <div className="px-3 py-2 flex items-center justify-between gap-2"
+      <div className="px-3 py-2 flex flex-col gap-1"
         style={{ borderTop: '1px solid var(--border)' }}>
-        <span className="text-[11px] font-mono truncate min-w-0" style={{ color: 'var(--tx3)' }}>#{p.productCode}</span>
-        <span className="text-[11px] shrink-0" style={{ color: 'var(--tx3)' }}>Stok: {p.totalStock.toLocaleString('tr-TR')}</span>
+        {p.season && (
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full self-start"
+            style={{ background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)' }}>
+            🗓 {p.season}
+          </span>
+        )}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] font-mono truncate min-w-0" style={{ color: 'var(--tx3)' }}>#{p.productCode}</span>
+          <span className="text-[11px] shrink-0" style={{ color: 'var(--tx3)' }}>Stok: {p.totalStock.toLocaleString('tr-TR')}</span>
+        </div>
       </div>
     </div>
   );
@@ -461,6 +469,7 @@ export function Dashboard({ prefill }: Props) {
     prefill?.criteria ?? DEFAULT_CRITERIA
   );
   const [smartMix,        setSmartMix]        = useState(true);
+  const [seasonPreFilter, setSeasonPreFilter] = useState<SeasonPreFilter>('none');
   const [ga4Connected,    setGa4Connected]    = useState(false);
   const [scenarioOpen,    setScenarioOpen]    = useState(false);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
@@ -553,14 +562,14 @@ export function Dashboard({ prefill }: Props) {
     return () => { cancelled = true; };
   }, [categoryId]);
 
-  // Kriter/eşik değişince önizlemeyi sıfırla
+  // Kriter/eşik/sezon değişince önizlemeyi sıfırla
   useEffect(() => {
     setPreviewResult(null);
     setPreviewStatus('idle');
     setPreviewError('');
     if (view === 'preview') setView('current');
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threshold, JSON.stringify(criteria), smartMix]);
+  }, [threshold, JSON.stringify(criteria), smartMix, seasonPreFilter]);
 
   function togglePin(code: string, rank: number) {
     setPinnedPositions(prev => {
@@ -757,7 +766,7 @@ export function Dashboard({ prefill }: Props) {
     if (!isValid) return;
     setPreviewStatus('loading'); setPreviewError(''); setPreviewResult(null);
     try {
-      const result = await previewRanking({ categoryId: categoryId.trim(), availabilityThreshold: threshold, criteria, smartMix });
+      const result = await previewRanking({ categoryId: categoryId.trim(), availabilityThreshold: threshold, criteria, smartMix, seasonPreFilter });
       setPreviewResult(result);
       setPreviewOrder(applyPinnedPositions(result.products));
       setPreviewStatus('idle');
@@ -1137,6 +1146,56 @@ export function Dashboard({ prefill }: Props) {
                 transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
               }} />
             </button>
+          </div>
+        </div>
+
+        {/* Sezon Filtresi */}
+        <div style={{ ...cardSt, borderRadius: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '16px 16px 0 0' }}>
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+              </svg>
+            </div>
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>Sezon Ön-Sıralaması</span>
+              {seasonPreFilter !== 'none' && (
+                <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                  style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
+                  Aktif
+                </span>
+              )}
+            </div>
+          </div>
+          <div style={{ padding: '16px 28.3px' }}>
+            <p className="text-sm mb-4" style={{ color: 'var(--tx2)', maxWidth: '520px' }}>
+              Ürünleri sıralama öncesinde sezon etiketine (Ek Bilgi 7) göre grupla — tercih ettiğin sezon en yeni yıldan eskiye gelsin, ardından diğer sezon
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {([
+                { value: 'none'          as SeasonPreFilter, label: 'Tümü', desc: 'Sezon filtresi yok' },
+                { value: 'yaz-ilkbahar' as SeasonPreFilter, label: '☀ Yaz · İlkbahar', desc: 'Yaz/İlkbahar ürünleri önce (yeniden eskiye), ardından Kış/Sonbahar' },
+                { value: 'kis-sonbahar' as SeasonPreFilter, label: '❄ Kış · Sonbahar', desc: 'Kış/Sonbahar ürünleri önce (yeniden eskiye), ardından Yaz/İlkbahar' },
+              ] as { value: SeasonPreFilter; label: string; desc: string }[]).map(opt => {
+                const isActive = seasonPreFilter === opt.value;
+                return (
+                  <button key={opt.value} onClick={() => setSeasonPreFilter(opt.value)}
+                    title={opt.desc}
+                    className="flex flex-col items-start gap-0.5 px-4 py-2.5 rounded-xl transition-all"
+                    style={{
+                      border: isActive ? '1.5px solid var(--acc-bd)' : '1px solid var(--border)',
+                      background: isActive ? 'var(--acc-bg)' : 'var(--surface2)',
+                      cursor: 'pointer',
+                      boxShadow: isActive ? '0 0 0 3px rgba(226,50,96,0.08)' : 'none',
+                    }}
+                    onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; } }}
+                    onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; } }}>
+                    <span className="text-[13px] font-semibold" style={{ color: isActive ? 'var(--acc-tx)' : 'var(--tx1)' }}>{opt.label}</span>
+                    <span className="text-[10px] leading-snug max-w-[200px]" style={{ color: 'var(--tx3)' }}>{opt.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

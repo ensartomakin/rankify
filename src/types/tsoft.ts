@@ -23,6 +23,7 @@ export interface TSoftProduct {
   isActive:         boolean;  // T-Soft görünürlük durumu — false ise sıralamadan dışlanır
   statViews:        number;   // product/get StatViews — toplam görüntülenme
   countTotalSales:  number;   // product/get CountTotalSales — toplam satış adedi
+  season:           string;   // Ek Bilgi 7 — sezon etiketi (örn: "2026 Yaz")
 }
 
 export interface TSoftSalesData {

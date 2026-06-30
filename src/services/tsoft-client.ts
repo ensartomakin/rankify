@@ -406,16 +406,25 @@ export class TSoftClient {
     return '';
   }
 
+  private _loggedAdditional = false;
+
   private mapProduct(p: Record<string, unknown>): TSoftProduct {
     if (!this._loggedProductKeys) {
       this._loggedProductKeys = true;
       logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
-      // Additional1-10 değerlerini logla — Ek Bilgi alanları
+    }
+    // Dolu olan ilk Additional alanını bul ve logla (her üründe kontrol et, tek sefer logla)
+    if (!this._loggedAdditional) {
+      const doluAdditionals: string[] = [];
       for (let i = 1; i <= 10; i++) {
         const val = p[`Additional${i}`];
         if (val !== undefined && val !== null && val !== '') {
-          logger.info(`[mapProduct] Additional${i} = ${JSON.stringify(val)}`);
+          doluAdditionals.push(`Additional${i}="${val}"`);
         }
+      }
+      if (doluAdditionals.length > 0) {
+        this._loggedAdditional = true;
+        logger.info(`[mapProduct] İLK DOLU ADDITIONAL — ürün=${p.ProductCode}: ${doluAdditionals.join(', ')}`);
       }
     }
     const stock = Number(p.Stock ?? p.stock ?? 0);

@@ -413,18 +413,24 @@ export class TSoftClient {
       this._loggedProductKeys = true;
       logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
     }
-    // Dolu olan ilk Additional alanını bul ve logla (her üründe kontrol et, tek sefer logla)
+    // Dolu olan ilk Label/Additional alanını bul ve logla (her üründe kontrol et, tek sefer logla)
     if (!this._loggedAdditional) {
-      const doluAdditionals: string[] = [];
-      for (let i = 1; i <= 10; i++) {
-        const val = p[`Additional${i}`];
-        if (val !== undefined && val !== null && val !== '') {
-          doluAdditionals.push(`Additional${i}="${val}"`);
+      const doluFields: string[] = [];
+      for (let i = 1; i <= 20; i++) {
+        const lblVal = p[`Label${i}`];
+        if (lblVal !== undefined && lblVal !== null && lblVal !== '') {
+          doluFields.push(`Label${i}="${lblVal}"`);
         }
       }
-      if (doluAdditionals.length > 0) {
+      for (let i = 1; i <= 10; i++) {
+        const addVal = p[`Additional${i}`];
+        if (addVal !== undefined && addVal !== null && addVal !== '') {
+          doluFields.push(`Additional${i}="${addVal}"`);
+        }
+      }
+      if (doluFields.length > 0) {
         this._loggedAdditional = true;
-        logger.info(`[mapProduct] İLK DOLU ADDITIONAL — ürün=${p.ProductCode}: ${doluAdditionals.join(', ')}`);
+        logger.info(`[mapProduct] İLK DOLU ALAN — ürün=${p.ProductCode}: ${doluFields.join(', ')}`);
       }
     }
     const stock = Number(p.Stock ?? p.stock ?? 0);

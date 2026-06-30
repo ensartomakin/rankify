@@ -413,25 +413,9 @@ export class TSoftClient {
       this._loggedProductKeys = true;
       logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
     }
-    // Dolu olan ilk Label/Additional alanını bul ve logla (her üründe kontrol et, tek sefer logla)
-    if (!this._loggedAdditional) {
-      const doluFields: string[] = [];
-      for (let i = 1; i <= 20; i++) {
-        const lblVal = p[`Label${i}`];
-        if (lblVal !== undefined && lblVal !== null && lblVal !== '') {
-          doluFields.push(`Label${i}="${lblVal}"`);
-        }
-      }
-      for (let i = 1; i <= 10; i++) {
-        const addVal = p[`Additional${i}`];
-        if (addVal !== undefined && addVal !== null && addVal !== '') {
-          doluFields.push(`Additional${i}="${addVal}"`);
-        }
-      }
-      if (doluFields.length > 0) {
-        this._loggedAdditional = true;
-        logger.info(`[mapProduct] İLK DOLU ALAN — ürün=${p.ProductCode}: ${doluFields.join(', ')}`);
-      }
+    // T7726 için tüm raw veriyi logla
+    if (String(p.ProductCode) === 'T7726') {
+      logger.info(`[DEBUG-T7726] FULL RAW: ${JSON.stringify(p)}`);
     }
     const stock = Number(p.Stock ?? p.stock ?? 0);
     const rawVariants = (p.SubProducts ?? p.Variants ?? p.Details ?? []) as Record<string, unknown>[];

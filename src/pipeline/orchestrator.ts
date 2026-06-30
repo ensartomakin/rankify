@@ -101,13 +101,20 @@ function seasonSortKey(season: string, filter: SeasonPreFilter): number {
 
 function applySeasonPreSort(products: NormalizedProduct[], filter: SeasonPreFilter): NormalizedProduct[] {
   if (!filter || filter === 'none') return products;
-  const sorted = [...products].sort((a, b) => {
+
+  const qualified    = products.filter(p => !p.isDisqualified);
+  const disqualified = products.filter(p =>  p.isDisqualified);
+
+  const sorted = [...qualified].sort((a, b) => {
     const aKey = seasonSortKey(a.season, filter);
     const bKey = seasonSortKey(b.season, filter);
     if (aKey !== bKey) return bKey - aKey; // yüksek anahtar önce
     return a.finalRank - b.finalRank;      // aynı sezonda mevcut sıralama korunur
   });
-  return sorted.map((p, i) => ({ ...p, finalRank: i + 1 }));
+
+  // Aktif ürünlere yeni sıra numarası ver; dışlananlar arkaya eklenir (rank değişmez)
+  const reranked = sorted.map((p, i) => ({ ...p, finalRank: i + 1 }));
+  return [...reranked, ...disqualified];
 }
 
 export interface CurrentRankItem {

@@ -17,11 +17,14 @@ export interface WeightCriterion {
   salesPeriod?: '1d' | '3d' | '7d' | '14d' | '21d' | '1m' | '2m' | '3m';
 }
 
+export type SeasonPreFilter = 'none' | 'yaz-ilkbahar' | 'kis-sonbahar';
+
 export interface WeightConfig {
   categoryId: string;
   criteria: WeightCriterion[];
   availabilityThreshold: number; // 0.0 - 1.0
   smartMix?: boolean;
+  seasonPreFilter?: SeasonPreFilter;
 }
 
 export interface SizeAvailability {
@@ -61,6 +64,7 @@ export interface NormalizedProduct {
   salesQty: number; // seçilen salesPeriod'a göre çekilen satış adedi
   discountRate: number;
   isActive: boolean;
+  season: string;   // Ek Bilgi 7 — sezon etiketi
   sizeAvailability: SizeAvailability;
   ga4?: Ga4RawMetrics;
   scores: ProductScores;

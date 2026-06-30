@@ -26,11 +26,14 @@ const criteriaSchema = z
     { message: 'Ağırlık toplamı 100 olmalı' }
   );
 
+const seasonPreFilterSchema = z.enum(['none', 'yaz-ilkbahar', 'kis-sonbahar']).optional();
+
 const triggerSchema = z.object({
   categoryId:            z.string().min(1),
   availabilityThreshold: z.number().min(0).max(1).default(0.6),
   criteria:              criteriaSchema,
   smartMix:              z.boolean().optional(),
+  seasonPreFilter:       seasonPreFilterSchema,
 });
 
 const previewSchema = z.object({
@@ -38,6 +41,7 @@ const previewSchema = z.object({
   availabilityThreshold: z.number().min(0).max(1).optional(),
   criteria:              criteriaSchema.optional(),
   smartMix:              z.boolean().optional(),
+  seasonPreFilter:       seasonPreFilterSchema,
 });
 
 const DEFAULT_CRITERIA = [
@@ -189,7 +193,7 @@ rankingRouter.post('/preview', async (req: Request, res: Response) => {
   const parsed = previewSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
-  const { categoryId, availabilityThreshold, criteria, smartMix } = parsed.data;
+  const { categoryId, availabilityThreshold, criteria, smartMix, seasonPreFilter } = parsed.data;
   const userId = req.user!.userId;
 
   try {
@@ -201,11 +205,12 @@ rankingRouter.post('/preview', async (req: Request, res: Response) => {
         availabilityThreshold: availabilityThreshold ?? 0.6,
         criteria: criteria as typeof DEFAULT_CRITERIA,
         smartMix: smartMix ?? false,
+        seasonPreFilter: seasonPreFilter ?? 'none',
       };
     } else {
       const saved = await getConfigByCategoryId(userId, categoryId);
       const base  = saved ?? { categoryId, availabilityThreshold: availabilityThreshold ?? 0.6, criteria: DEFAULT_CRITERIA };
-      config = { ...base, smartMix: smartMix ?? false };
+      config = { ...base, smartMix: smartMix ?? false, seasonPreFilter: seasonPreFilter ?? 'none' };
     }
 
     const result = await previewRanking(config, userId, req.user!.tenantId);

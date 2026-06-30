@@ -1,5 +1,5 @@
 import { apiFetch } from './http';
-import type { WeightConfig, WeightCriterion, TriggerResponse, CriterionKey } from '../types';
+import type { WeightConfig, WeightCriterion, TriggerResponse, CriterionKey, SeasonPreFilter } from '../types';
 
 /* ─── Mevcut sıralama ─── */
 export interface CurrentRankItem {
@@ -53,6 +53,7 @@ export interface ProductPreviewItem {
   registrationDate:      string;
   imageCount:            number;
   imageUrl:              string;
+  season:                string;
   ga4?: {
     views:          number;
     sessions:       number;
@@ -75,6 +76,7 @@ export interface PreviewRequest {
   availabilityThreshold?: number;
   criteria?:              WeightCriterion[];
   smartMix?:              boolean;
+  seasonPreFilter?:       SeasonPreFilter;
 }
 
 export async function previewRanking(req: PreviewRequest): Promise<PreviewResponse> {

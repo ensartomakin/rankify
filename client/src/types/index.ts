@@ -55,11 +55,14 @@ export interface WeightCriterion {
   salesPeriod?: SalesPeriod;
 }
 
+export type SeasonPreFilter = 'none' | 'yaz-ilkbahar' | 'kis-sonbahar';
+
 export interface WeightConfig {
   categoryId: string;
   availabilityThreshold: number;
   criteria: WeightCriterion[];
   smartMix?: boolean;
+  seasonPreFilter?: SeasonPreFilter;
 }
 
 export interface TriggerResponse {

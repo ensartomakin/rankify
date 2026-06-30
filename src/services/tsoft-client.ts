@@ -413,6 +413,13 @@ export class TSoftClient {
         ? rawActive
         : rawActive === 1 || rawActive === '1' || String(rawActive).toLowerCase() === 'true';
 
+    // Ek Bilgi 7 — sezon etiketi (T-Soft çeşitli alan adları kullanabilir)
+    const season = String(
+      p.ExtraField7 ?? p.extraField7 ?? p.AdditionalInfo7 ?? p.additionalInfo7 ??
+      p.EkBilgi7    ?? p.ekBilgi7    ?? p.ExtraInfo7      ?? p.extraInfo7      ??
+      p.Extra7      ?? p.extra7      ?? ''
+    );
+
     return {
       productId:        String(p.ProductId ?? p.productId ?? p.Id ?? p.id ?? ''),
       productCode:      String(p.ProductCode ?? p.productCode ?? ''),
@@ -432,6 +439,7 @@ export class TSoftClient {
       isActive,
       statViews:       Number(p.StatViews ?? p.statViews ?? 0),
       countTotalSales: Number(p.CountTotalSales ?? p.countTotalSales ?? 0),
+      season,
     };
   }
 

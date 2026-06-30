@@ -389,6 +389,7 @@ export class TSoftClient {
     }
     // 2. Skaler alan adları — farklı kural setleri
     const candidates = [
+      `Additional${n}`,     `additional${n}`,     // T-Soft REST1 gerçek alan adı (Additional7)
       `AdditionalInfo${n}`, `additionalInfo${n}`,
       `EkBilgi${n}`,        `ekBilgi${n}`,
       `ExtraField${n}`,     `extraField${n}`,

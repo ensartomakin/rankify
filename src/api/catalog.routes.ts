@@ -43,26 +43,27 @@ catalogRouter.get('/debug/categories', requireSuperAdmin, async (req: Request, r
 catalogRouter.get('/debug/product-by-code/:productCode', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const client = await getClientForUser(req.user!.userId, req.user!.tenantId);
-    const products = await client.getProductDetails([req.params.productCode]);
-    // Ayrıca ham veriyi doğrudan çek
     const raw = await (client as unknown as {
       post: (ep: string, p: Record<string, unknown>) => Promise<{ data: Record<string, unknown>[] }>
     }).post('product/get', {
-      ProductCode:      req.params.productCode,
-      FetchDetails:     'true',
-      StockFields:      'true',
-      AdditionalFields: 'true',
-      limit:            '1',
+      ProductCode:  req.params.productCode,
+      FetchDetails: 'true',
+      StockFields:  'true',
+      limit:        '1',
     });
-    const rawProduct = raw?.data?.[0] ?? {};
-    // Label ve Additional alanlarını filtrele
+    const p = raw?.data?.[0] ?? {};
     const labelFields: Record<string, unknown> = {};
     const additionalFields: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(rawProduct)) {
+    for (const [k, v] of Object.entries(p)) {
       if (/^Label\d+$/i.test(k)) labelFields[k] = v;
       if (/^Additional\d+$/i.test(k)) additionalFields[k] = v;
     }
-    res.json({ mappedProduct: products[0], labelFields, additionalFields, allKeys: Object.keys(rawProduct) });
+    res.json({
+      labelFields,
+      additionalFields,
+      Details: p.Details,
+      allKeys: Object.keys(p),
+    });
   } catch (err) {
     res.status(502).json({ error: String(err) });
   }

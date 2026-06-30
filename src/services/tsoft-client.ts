@@ -265,9 +265,8 @@ export class TSoftClient {
         CategoryIds:  categoryId,
         start:        '0',
         limit:        String(Math.max(limit, 50)),
-        FetchDetails:     'true',
-        StockFields:      'true',
-        AdditionalFields: 'true',
+        FetchDetails: 'true',
+        StockFields:  'true',
       }
     );
     return (data.data ?? []).slice(0, limit);

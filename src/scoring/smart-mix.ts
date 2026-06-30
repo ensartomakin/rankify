@@ -76,14 +76,37 @@ const COLOR_PHRASES = new Set<string>([
   'bloomix', 'calypso', 'caliypso', 'melonia', 'fractal', 'glitzy',
   'papatya', 'palmera', 'tropical', 'dotta', 'rustica',
   // ── Koleksiyon / Model isimleri (desen varyantı) ──
-  'palme', 'floria', 'flora', 'marine', 'dotti', 'dotto', 'viola', 'luna',
-  'stella', 'bella', 'nova', 'aurora', 'aria', 'mira', 'lara', 'sena',
-  'nora', 'zara', 'kira', 'maya', 'eden', 'alma', 'lena', 'mela',
-  'riva', 'java', 'bora', 'cora', 'dora', 'fora', 'gora', 'hera',
-  'linea', 'opera', 'petra', 'terra', 'vega', 'zena',
-  'basic', 'klasik', 'minimal', 'modern', 'retro', 'vintage', 'bohem',
-  'safari', 'tropic', 'tribal', 'ethnic', 'floral', 'animal',
-  'desen', 'desen 1', 'desen 2', 'desen 3', 'model 1', 'model 2', 'model 3',
+  // Bitkisel / Doğa
+  'palme', 'palmiye', 'flora', 'floria', 'floral', 'çiçek', 'yaprak', 'orman',
+  'okyanus', 'deniz', 'marine', 'koral', 'mercan', 'bahçe', 'gül bahçesi',
+  'zeytin', 'defne', 'selvi', 'manolya', 'mimoza', 'akasya', 'lavanta bahçesi',
+  // İtalyanca / Kozmopolit isimler
+  'viola', 'luna', 'stella', 'bella', 'nova', 'aurora', 'aria', 'mira',
+  'lara', 'nora', 'kira', 'maya', 'eden', 'alma', 'lena', 'mela',
+  'riva', 'cora', 'dora', 'hera', 'linea', 'opera', 'petra', 'terra',
+  'vega', 'zena', 'rosa', 'luce', 'fiore', 'sera', 'alba', 'brisa',
+  'camila', 'leila', 'layla', 'zara', 'vera', 'nina', 'lina', 'dina',
+  'rina', 'tina', 'mina', 'sina', 'gina', 'vita', 'rita', 'anita',
+  // Coğrafi / Şehir / Destinasyon
+  'capri', 'roma', 'milano', 'sicilya', 'toskana', 'venedik', 'napoli',
+  'paris', 'riviera', 'monaco', 'cannes', 'saint tropez', 'ibiza',
+  'santorini', 'mykonos', 'bali', 'java', 'havana', 'miami', 'marbella',
+  'bodrum', 'çeşme', 'alaçatı', 'datça', 'kaş', 'antalya', 'manavgat',
+  // Desen türleri
+  'dotti', 'dotto', 'dotta', 'puan', 'puantiye', 'polka', 'ekose', 'pötikare',
+  'çizgi', 'raya', 'rayure', 'vichy', 'gingham', 'madras', 'tartan', 'paisley',
+  'damask', 'toile', 'batik', 'ikat', 'shibori', 'tie dye', 'ombre', 'degrade',
+  'abstract', 'geometrik', 'tribal', 'etnik', 'bohem', 'patchwork', 'mozaik',
+  // Koleksiyon/seri isimleri (Türk moda markalarında yaygın)
+  'bloomix', 'calypso', 'caliypso', 'melonia', 'fractal', 'glitzy', 'rustica',
+  'tropical', 'safari', 'vintage', 'minimal', 'basic', 'klasik', 'modern',
+  'bohem', 'retro', 'grunge', 'preppy', 'sporty', 'casual', 'elegant',
+  'luxe', 'chic', 'glam', 'rocker', 'punk', 'artsy', 'urban', 'street',
+  // Numara / harf varyantları
+  'desen', 'desen 1', 'desen 2', 'desen 3', 'desen 4', 'desen 5',
+  'model 1', 'model 2', 'model 3', 'model 4', 'model 5',
+  'no 1', 'no 2', 'no 3', 'no:1', 'no:2', 'no:3',
+  'a', 'b', 'c', 'd', 'e',  // tek harf varyantları
   // ── Kombinasyon renkleri (tek kelime/tire birleşik) ──
   'siyah ekru', 'vizon kemik', 'ofis lacivert ekru',
   'bej-turuncu', 'kırık beyaz-kimyon', 'kırık beyaz-pembe',

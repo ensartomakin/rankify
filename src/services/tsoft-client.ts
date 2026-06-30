@@ -451,8 +451,8 @@ export class TSoftClient {
         ? rawActive
         : rawActive === 1 || rawActive === '1' || String(rawActive).toLowerCase() === 'true';
 
-    // Ek Bilgi 7 — sezon etiketi
-    const season = this.extractExtraField(p, 7);
+    // Ek Bilgi 6 — sezon etiketi
+    const season = this.extractExtraField(p, 6);
 
     return {
       productId:        String(p.ProductId ?? p.productId ?? p.Id ?? p.id ?? ''),

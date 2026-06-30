@@ -410,22 +410,12 @@ export class TSoftClient {
     if (!this._loggedProductKeys) {
       this._loggedProductKeys = true;
       logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
-      // Ek Bilgi / ExtraField benzeri tüm alanları logla
-      const extraLike = Object.keys(p).filter(k =>
-        /extra|field|bilgi|detail|spec|custom|add|prop|attr|value/i.test(k)
-      );
-      if (extraLike.length > 0) {
-        for (const k of extraLike) {
-          logger.info(`[mapProduct] extra-field-candidate: ${k} = ${JSON.stringify(p[k])?.slice(0, 200)}`);
+      // Additional1-10 değerlerini logla — Ek Bilgi alanları
+      for (let i = 1; i <= 10; i++) {
+        const val = p[`Additional${i}`];
+        if (val !== undefined && val !== null && val !== '') {
+          logger.info(`[mapProduct] Additional${i} = ${JSON.stringify(val)}`);
         }
-      }
-      // Fiyat & URL & görünürlük değerlerini logla
-      const watched = ['Price','price','ListPrice','OldPrice','SalePrice','CampaignPrice',
-        'DiscountedPrice','SellingPrice','DiscountRate','SEOUrl','SeoUrl','SEOLink','SeoLink',
-        'Url','url','Link','link','DetailUrl','ProductUrl','Slug',
-        'IsActive','isActive','Active','active','IsVisible','isVisible','Visible','visible','Status','status'];
-      for (const k of watched) {
-        if (p[k] !== undefined) logger.info(`[mapProduct] ${k} = ${JSON.stringify(p[k])}`);
       }
     }
     const stock = Number(p.Stock ?? p.stock ?? 0);

@@ -362,18 +362,61 @@ export class TSoftClient {
 
   private _loggedProductKeys = false;
 
+  /**
+   * T-Soft "Ek Bilgi N" (Extra Info N) alanını çeşitli API yapılarından çeker.
+   * REST1 yanıtlarında bu alan şu formatlarda gelebilir:
+   *  - Dizi: AdditionalInfo / EkBilgiler / ExtraFields → [{Id: N, Value: "..."}]
+   *  - Skaler: AdditionalInfo7 / EkBilgi7 / ExtraField7 / ExtraInfo7 vb.
+   */
+  private extractExtraField(p: Record<string, unknown>, n: number): string {
+    // 1. Dizi formatları — [{Id: N, Value: "..."}, ...]
+    const arrayFields = [
+      p.AdditionalInfo, p.additionalInfo,
+      p.EkBilgiler, p.ekBilgiler,
+      p.ExtraFields, p.extraFields,
+      p.ExtraInfos, p.extraInfos,
+      p.CustomFields, p.customFields,
+      p.AdditionalInfos, p.additionalInfos,
+    ];
+    for (const arr of arrayFields) {
+      if (!Array.isArray(arr)) continue;
+      for (const item of arr as Record<string, unknown>[]) {
+        const id = Number(item.Id ?? item.id ?? item.Key ?? item.key ?? item.No ?? item.no ?? -1);
+        if (id === n) {
+          return String(item.Value ?? item.value ?? item.Text ?? item.text ?? '');
+        }
+      }
+    }
+    // 2. Skaler alan adları — farklı kural setleri
+    const candidates = [
+      `Additional${n}`,     `additional${n}`,     // T-Soft REST1 gerçek alan adı (Additional7)
+      `AdditionalInfo${n}`, `additionalInfo${n}`,
+      `EkBilgi${n}`,        `ekBilgi${n}`,
+      `ExtraField${n}`,     `extraField${n}`,
+      `ExtraInfo${n}`,      `extraInfo${n}`,
+      `Extra${n}`,          `extra${n}`,
+      `CustomField${n}`,    `customField${n}`,
+      `Bilgi${n}`,          `bilgi${n}`,
+    ];
+    for (const key of candidates) {
+      if (p[key] !== undefined && p[key] !== null && p[key] !== '') {
+        return String(p[key]);
+      }
+    }
+    return '';
+  }
+
+  private _loggedAdditional = false;
+
   private mapProduct(p: Record<string, unknown>): TSoftProduct {
     if (!this._loggedProductKeys) {
       this._loggedProductKeys = true;
       logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
-      // Fiyat & URL & görünürlük değerlerini logla
-      const watched = ['Price','price','ListPrice','OldPrice','SalePrice','CampaignPrice',
-        'DiscountedPrice','SellingPrice','DiscountRate','SEOUrl','SeoUrl','SEOLink','SeoLink',
-        'Url','url','Link','link','DetailUrl','ProductUrl','Slug',
-        'IsActive','isActive','Active','active','IsVisible','isVisible','Visible','visible','Status','status'];
-      for (const k of watched) {
-        if (p[k] !== undefined) logger.info(`[mapProduct] ${k} = ${JSON.stringify(p[k])}`);
-      }
+    }
+    // İlk üründe Label7 ve Additional7 değerlerini logla
+    if (!this._loggedAdditional) {
+      this._loggedAdditional = true;
+      logger.info(`[DEBUG-EK-BILGI] ürün=${p.ProductCode} | Additional7="${p.Additional7}" | Label7="${p.Label7}" | Details=${JSON.stringify(p.Details)?.slice(0, 300)}`);
     }
     const stock = Number(p.Stock ?? p.stock ?? 0);
     const rawVariants = (p.SubProducts ?? p.Variants ?? p.Details ?? []) as Record<string, unknown>[];
@@ -413,12 +456,8 @@ export class TSoftClient {
         ? rawActive
         : rawActive === 1 || rawActive === '1' || String(rawActive).toLowerCase() === 'true';
 
-    // Ek Bilgi 7 — sezon etiketi (T-Soft çeşitli alan adları kullanabilir)
-    const season = String(
-      p.ExtraField7 ?? p.extraField7 ?? p.AdditionalInfo7 ?? p.additionalInfo7 ??
-      p.EkBilgi7    ?? p.ekBilgi7    ?? p.ExtraInfo7      ?? p.extraInfo7      ??
-      p.Extra7      ?? p.extra7      ?? ''
-    );
+    // Ek Bilgi 7 — sezon etiketi
+    const season = this.extractExtraField(p, 7);
 
     return {
       productId:        String(p.ProductId ?? p.productId ?? p.Id ?? p.id ?? ''),

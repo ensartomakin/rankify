@@ -39,6 +39,59 @@ catalogRouter.get('/debug/categories', requireSuperAdmin, async (req: Request, r
   res.json(results);
 });
 
+// Tek ürün ham verisini döndüren debug endpoint
+catalogRouter.get('/debug/product-by-code/:productCode', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const client = await getClientForUser(req.user!.userId, req.user!.tenantId);
+    const raw = await (client as unknown as {
+      post: (ep: string, p: Record<string, unknown>) => Promise<{ data: Record<string, unknown>[] }>
+    }).post('product/get', {
+      ProductCode:  req.params.productCode,
+      FetchDetails: 'true',
+      StockFields:  'true',
+      limit:        '1',
+    });
+    const p = raw?.data?.[0] ?? {};
+    const labelFields: Record<string, unknown> = {};
+    const additionalFields: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(p)) {
+      if (/^Label\d+$/i.test(k)) labelFields[k] = v;
+      if (/^Additional\d+$/i.test(k)) additionalFields[k] = v;
+    }
+    res.json({
+      labelFields,
+      additionalFields,
+      Details: p.Details,
+      allKeys: Object.keys(p),
+    });
+  } catch (err) {
+    res.status(502).json({ error: String(err) });
+  }
+});
+
+// Ham ürün alanlarını döndüren debug endpoint — sezon alanını bulmak için
+catalogRouter.get('/debug/product-fields/:categoryId', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const client = await getClientForUser(req.user!.userId, req.user!.tenantId);
+    const raw = await (client as unknown as { getCategoryProductsRawSample: (id: string, n: number) => Promise<Record<string, unknown>[]> })
+      .getCategoryProductsRawSample(req.params.categoryId, 3);
+    // Her üründen anahtar listesi + "bilgi/extra/ek/field/info" içeren tüm alanlar
+    const result = raw.map(p => {
+      const allKeys = Object.keys(p);
+      const extraLike: Record<string, unknown> = {};
+      for (const k of allKeys) {
+        if (/extra|field|bilgi|detail|spec|custom|add|prop|attr|value|info|ek/i.test(k)) {
+          extraLike[k] = p[k];
+        }
+      }
+      return { allKeys, extraLike };
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(502).json({ error: String(err) });
+  }
+});
+
 catalogRouter.get('/categories/:categoryId/products', async (req: Request, res: Response) => {
   try {
     const client       = await getClientForUser(req.user!.userId, req.user!.tenantId);

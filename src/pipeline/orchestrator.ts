@@ -70,15 +70,17 @@ import type { TSoftProduct, TSoftSalesData } from '../types/tsoft';
 // ── Sezon ön-sıralama ────────────────────────────────────────────────────────
 
 function parseSeasonInfo(season: string): { year: number; isYaz: boolean; isIlkbahar: boolean; isKis: boolean; isSonbahar: boolean } {
-  const yearMatch = season.match(/\b(\d{4})\b/);
+  const yearMatch = season.match(/(\d{4})/);
   const year = yearMatch ? parseInt(yearMatch[1], 10) : 0;
-  const lower = season.toLowerCase();
+  // Büyük harfli T-Soft formatı: "2023-KIŞ", "2025-İLKBAHAR" vb.
+  // Güvenli karşılaştırma için ASCII normalize edilmiş uppercase kullan
+  const upper = season.toUpperCase();
   return {
     year,
-    isYaz:      lower.includes('yaz'),
-    isIlkbahar: lower.includes('ilkbahar') || lower.includes('i̇lkbahar'),
-    isKis:      lower.includes('kış') || lower.includes('kis') || lower.includes('kıs'),
-    isSonbahar: lower.includes('sonbahar'),
+    isYaz:      upper.includes('YAZ'),
+    isIlkbahar: upper.includes('LKBAHAR'),   // İLKBAHAR veya ILKBAHAR her ikisini de yakalar
+    isKis:      upper.includes('KI'),        // KIŞ veya KIS her ikisini de yakalar
+    isSonbahar: upper.includes('SONBAHAR'),
   };
 }
 

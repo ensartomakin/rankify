@@ -1,9 +1,10 @@
 import { getClientForUser } from '../services/tsoft-client';
 import { computeSizeAvailability } from '../scoring/availability';
-import { getGa4Credentials, getGa4Metrics, upsertGa4Metrics } from '../db/ga4.repo';
+import { getGa4Credentials, getGa4Metrics, upsertGa4Metrics, getGa4LastSyncForRange } from '../db/ga4.repo';
 import { fetchGa4ProductMetrics, } from '../services/ga4-client';
 
-const GA4_KEYS   = new Set(['ga4Views','ga4CartAdds','ga4ConversionRate']);
+const GA4_KEYS         = new Set(['ga4Views','ga4CartAdds','ga4ConversionRate']);
+const GA4_CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 saat — bu sürenin ötesinde önbellek bayat sayılır
 
 function salesPeriodToGa4Range(period?: string): string {
   switch (period) {
@@ -26,7 +27,11 @@ async function resolveGa4Map(
   if (!ga4Criterion) return new Map();
   const dateRange = salesPeriodToGa4Range(ga4Criterion.salesPeriod);
   let map = await getGa4Metrics(userId, dateRange).catch(() => new Map());
-  if (map.size === 0) {
+
+  const lastSync = await getGa4LastSyncForRange(userId, dateRange).catch(() => null);
+  const isStale  = !lastSync || (Date.now() - lastSync.getTime()) > GA4_CACHE_TTL_MS;
+
+  if (map.size === 0 || isStale) {
     try {
       const creds = await getGa4Credentials(userId);
       if (creds) {
@@ -37,6 +42,7 @@ async function resolveGa4Map(
       }
     } catch (e) {
       logger.warn(`[GA4] auto-sync başarısız: ${e}`);
+      // senkronizasyon başarısız olsa bile, varsa eski (bayat) önbelleği kullanmaya devam et
     }
   }
   return map;

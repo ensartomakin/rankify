@@ -160,3 +160,11 @@ export async function getGa4LastSync(userId: number): Promise<Date | null> {
   );
   return rows[0]?.cached_at ?? null;
 }
+
+export async function getGa4LastSyncForRange(userId: number, dateRange: string): Promise<Date | null> {
+  const rows = await query<{ cached_at: Date | null }>(
+    'SELECT MAX(cached_at) as cached_at FROM ga4_product_metrics WHERE user_id = $1 AND date_range = $2',
+    [userId, dateRange]
+  );
+  return rows[0]?.cached_at ?? null;
+}

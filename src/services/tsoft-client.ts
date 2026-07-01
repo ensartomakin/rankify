@@ -286,11 +286,12 @@ export class TSoftClient {
     while (true) {
       const data = await this.post<{ success: boolean; data: Record<string, unknown>[] }>(
         'product/get', {
-          CategoryIds:  categoryId,
-          start:        String(start),
-          limit:        String(limit),
-          FetchDetails: 'true',
-          StockFields:  'true',
+          CategoryIds:     categoryId,
+          start:           String(start),
+          limit:           String(limit),
+          FetchDetails:    'true',
+          StockFields:     'true',
+          FetchSubProducts:'true',
         }
       );
       const batch = data.data ?? [];
@@ -322,11 +323,12 @@ export class TSoftClient {
     while (true) {
       const data = await this.post<{ success: boolean; data: Record<string, unknown>[] }>(
         'product/get', {
-          CategoryIds:  categoryId,
-          start:        String(start),
-          limit:        String(limit),
-          FetchDetails: 'true',
-          StockFields:  'true',
+          CategoryIds:     categoryId,
+          start:           String(start),
+          limit:           String(limit),
+          FetchDetails:    'true',
+          StockFields:     'true',
+          FetchSubProducts:'true',
         }
       );
       const batch = data.data ?? [];
@@ -414,16 +416,33 @@ export class TSoftClient {
       logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
     }
     const stock = Number(p.Stock ?? p.stock ?? 0);
-    const rawVariants = (p.SubProducts ?? p.Variants ?? p.Details ?? []) as Record<string, unknown>[];
+    // T-Soft REST1: sub-product (beden varyantı) verisi farklı alan adlarında gelebilir
+    const rawVariants = (
+      p.SubProducts     ?? p.subProducts     ??
+      p.Variants        ?? p.variants        ??
+      p.SubProductList  ?? p.subProductList  ??
+      p.ProductVariants ?? p.productVariants ??
+      p.SizeVariants    ?? p.sizeVariants    ??
+      p.ChildProducts   ?? p.childProducts   ??
+      []
+    ) as Record<string, unknown>[];
     const variants: import('../types/tsoft').TSoftVariant[] = Array.isArray(rawVariants) && rawVariants.length > 0
       ? rawVariants.map(v => ({
-          variantId: String(v.ProductId ?? v.VariantId ?? v.variantId ?? ''),
-          sizeName:  String(v.SizeName ?? v.VariantName ?? v.sizeName ?? ''),
+          variantId: String(v.ProductId ?? v.Id ?? v.VariantId ?? v.variantId ?? v.SubProductId ?? ''),
+          sizeName:  String(v.SizeName ?? v.VariantName ?? v.VariantValue ?? v.sizeName ?? v.Name ?? v.name ?? ''),
           barcode:   String(v.Barcode ?? v.barcode ?? ''),
-          stock:     Number(v.Stock ?? v.stock ?? 0),
+          stock:     Number(v.Stock ?? v.stock ?? v.StockQuantity ?? v.stockQuantity ?? 0),
           price:     Number(v.SellingPrice ?? v.price ?? 0),
         }))
       : [{ variantId: String(p.ProductId ?? ''), sizeName: 'Tek Beden', barcode: String(p.Barcode ?? ''), stock, price: Number(p.SellingPrice ?? 0) }];
+    if (!this._loggedAdditional && Array.isArray(rawVariants) && rawVariants.length > 0) {
+      this._loggedAdditional = true;
+      logger.info(`[mapProduct] sub-product örneği: ${JSON.stringify(rawVariants[0])}`);
+    }
+    if (!this._loggedAdditional) {
+      logger.info(`[mapProduct] sub-product bulunamadı — HasSubProducts=${p.HasSubProducts ?? p.hasSubProducts} SubProductCount=${p.SubProductCount ?? p.subProductCount} rawKeys=${Object.keys(p).filter(k => /sub|variant|child|size/i.test(k)).join(',')}`);
+      this._loggedAdditional = true;
+    }
 
     const rawImageUrl = String(
       p.MainImageUrl ?? p.mainImageUrl ?? p.ImageUrl ?? p.imageUrl ??

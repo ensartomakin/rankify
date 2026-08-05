@@ -581,6 +581,11 @@ export function Dashboard({ prefill }: Props) {
     });
   }
 
+  function clearAllPins() {
+    setPinnedPositions({});
+    localStorage.removeItem(`rankify_pin_${categoryId}`);
+  }
+
   function applyPinnedPositions(items: ProductPreviewItem[], pins = pinnedPositions): ProductPreviewItem[] {
     const pinCodes = Object.keys(pins);
     if (pinCodes.length === 0) return items;
@@ -1264,6 +1269,15 @@ export function Dashboard({ prefill }: Props) {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                       </svg>
                       CSV
+                    </button>
+                  )}
+                  {Object.keys(pinnedPositions).length > 0 && (
+                    <button onClick={clearAllPins}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors"
+                      style={{ background: 'var(--acc-bg)', border: '1px solid var(--acc-bd)', color: 'var(--acc-tx)' }}
+                      title="Tüm sabitlemeleri kaldır">
+                      <PinIcon pinned={false} />
+                      Tüm Sabitlemeleri Kaldır ({Object.keys(pinnedPositions).length})
                     </button>
                   )}
                   {view === 'preview' && previewResult && previewResult.disqualifiedCount > 0 && (

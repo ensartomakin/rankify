@@ -12,17 +12,21 @@ const BATCH_SIZE       = 50;
 const RATE_DELAY       = 500;
 const MAX_RETRIES      = 3;
 const SALES_CACHE_TTL  = 15 * 60 * 1000; // 15 dakika
+const REAUTH_COOLDOWN  = 5 * 60 * 1000;  // aynı mağaza için zorla yeniden-login arası minimum süre
 
 // Token önbelleği — cacheKey → { token, expiresAt }
 const tokenCache   = new Map<string, { token: string; expiresAt: number }>();
 const tokenCacheV3 = new Map<string, { token: string; expiresAt: number }>();
+
+// Zorla yeniden-login zaman damgası — cacheKey → son deneme zamanı (auth/login fırtınasını önler)
+const lastReauthAt = new Map<string, number>();
 
 // Satış verisi önbelleği — `${cacheKey}::${days}` → { data, expiresAt }
 const salesCache = new Map<string, { data: TSoftSalesData[]; expiresAt: number }>();
 
 // Kategori ürün listesi önbelleği — `${cacheKey}::cat::${categoryId}` → { data, expiresAt }
 const categoryProductsCache = new Map<string, { data: TSoftProduct[]; expiresAt: number }>();
-const CATEGORY_CACHE_TTL = 0; // önbellek kapalı — sezon verisi doğrulandıktan sonra açılacak
+const CATEGORY_CACHE_TTL = 60 * 60 * 1000; // 1 saat
 
 /**
  * T-Soft'un site sıralamasını yeniden oluşturur:
@@ -200,6 +204,12 @@ export class TSoftClient {
       const msgStr  = Array.isArray(msgText) ? String(msgText[0]) : String(msgText ?? '');
       logger.info(`[REST1 ${endpoint}] success=false msg="${msgStr}"`);
       if (msgStr.toLowerCase().includes('token')) {
+        const lastAttempt = lastReauthAt.get(this.cacheKey) ?? 0;
+        if (Date.now() - lastAttempt < REAUTH_COOLDOWN) {
+          logger.warn(`[REST1 ${endpoint}] token hatası ama soğuma süresi dolmadı (${REAUTH_COOLDOWN / 1000}s) — yeniden login denenmiyor`);
+          return res.data;
+        }
+        lastReauthAt.set(this.cacheKey, Date.now());
         tokenCache.delete(this.cacheKey);
         const newToken = await getToken(this.cacheKey, this.http, this.creds);
         const retryBody = new URLSearchParams({ token: newToken, ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) });

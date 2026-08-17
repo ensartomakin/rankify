@@ -179,6 +179,7 @@ export interface ProductPreviewItem {
   productId:            string;
   productCode:          string;
   productName:          string;
+  categoryPath:         string;
   isDisqualified:       boolean;
   disqualifyReason?:    string;
   rankingScore:         number;
@@ -253,6 +254,7 @@ export async function runRankingPipeline(
         productCode:      p.productCode,
         productName:      p.productName,
         categoryId:       p.categoryId,
+        categoryPath:     p.categoryPath ?? '',
         registrationDate: new Date(p.registrationDate),
         reviewCount:      p.reviewCount,
         salesQty:         soldQty,
@@ -363,6 +365,7 @@ export async function previewRanking(
       productCode:      p.productCode,
       productName:      p.productName,
       categoryId:       p.categoryId,
+      categoryPath:     p.categoryPath ?? '',
       registrationDate: new Date(p.registrationDate),
       reviewCount:      p.reviewCount,
       salesQty:         soldQty,
@@ -400,6 +403,7 @@ export async function previewRanking(
       productId:             productIdMap.get(p.productCode) ?? '',
       productCode:           p.productCode,
       productName:           p.productName,
+      categoryPath:          p.categoryPath,
       isDisqualified:        p.isDisqualified,
       disqualifyReason:      p.disqualifyReason,
       rankingScore:          p.rankingScore,

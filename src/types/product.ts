@@ -59,6 +59,7 @@ export interface NormalizedProduct {
   productCode: string;
   productName: string;
   categoryId: string;
+  categoryPath: string;
   registrationDate: Date;
   reviewCount: number;
   salesQty: number; // seçilen salesPeriod'a göre çekilen satış adedi

@@ -457,6 +457,32 @@ interface ChatMessage {
   isError?: boolean;
 }
 
+// AI-adjust isteğine sadece sıralama için gereken alanları gönder — tüm skor/görsel
+// verisini tekrar yollamak büyük kategorilerde istek boyutu limitini aşıyor.
+function toAiAdjustProducts(products: ProductPreviewItem[]) {
+  return products.map(p => ({
+    productCode:    p.productCode,
+    productName:    p.productName,
+    categoryPath:   p.categoryPath,
+    isDisqualified: p.isDisqualified,
+    finalRank:      p.finalRank,
+  }));
+}
+
+// AI-adjust yanıtındaki (minimal) yeni sırayı, elimizdeki zengin ürün verisiyle birleştirir.
+function mergeAiOrder(
+  base: ProductPreviewItem[],
+  order: { productCode: string; finalRank: number }[]
+): ProductPreviewItem[] {
+  const byCode = new Map(base.map(p => [p.productCode, p]));
+  return order
+    .map(o => {
+      const full = byCode.get(o.productCode);
+      return full ? { ...full, finalRank: o.finalRank } : null;
+    })
+    .filter((p): p is ProductPreviewItem => p !== null);
+}
+
 /* ─── Ana bileşen ─── */
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -794,9 +820,9 @@ export function Dashboard({ prefill }: Props) {
       // Aktif AI kuralları varsa, yeni önizleme verisine yeniden uygula
       if (aiRules.length > 0) {
         try {
-          const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: result.products, rules: aiRules });
+          const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(result.products), rules: aiRules });
           setAiRules(resp.rules);
-          products = resp.products;
+          products = mergeAiOrder(result.products, resp.products);
         } catch {
           setAiRules([]);
         }
@@ -817,9 +843,9 @@ export function Dashboard({ prefill }: Props) {
     setMessages(m => [...m, { role: 'user', text: instruction }]);
     setAiInstruction('');
     try {
-      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: previewResult.products, rules: aiRules, instruction });
+      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(previewResult.products), rules: aiRules, instruction });
       setAiRules(resp.rules);
-      setPreviewOrder(applyPinnedPositions(resp.products));
+      setPreviewOrder(applyPinnedPositions(mergeAiOrder(previewResult.products, resp.products)));
       setView('preview');
       const reply = resp.addedRules.length > 0
         ? resp.addedRules.map(r => r.description).join(' ')
@@ -843,9 +869,9 @@ export function Dashboard({ prefill }: Props) {
     }
     setAiLoading(true);
     try {
-      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: previewResult.products, rules: newRules });
+      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(previewResult.products), rules: newRules });
       setAiRules(resp.rules);
-      setPreviewOrder(applyPinnedPositions(resp.products));
+      setPreviewOrder(applyPinnedPositions(mergeAiOrder(previewResult.products, resp.products)));
     } catch (err) {
       const text = err instanceof Error ? err.message : 'Kural kaldırılamadı';
       setMessages(m => [...m, { role: 'assistant', text, isError: true }]);

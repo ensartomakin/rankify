@@ -104,15 +104,25 @@ export type AdjustRule =
   | { type: 'keep_in_top';     matchField: AdjustMatchField; matchValue: string; topN: number; description: string }
   | { type: 'pin_product';     productCode: string; position: number; description: string };
 
+// Sunucu sadece sıralama için bu alanlara ihtiyaç duyar — tüm skor/görsel verisini
+// tekrar göndermek büyük kategorilerde istek boyutu limitini aşıyordu.
+export interface AiAdjustProduct {
+  productCode:    string;
+  productName:    string;
+  categoryPath:   string;
+  isDisqualified: boolean;
+  finalRank:      number;
+}
+
 export interface AiAdjustRequest {
   categoryId:   string;
-  products:     ProductPreviewItem[];
+  products:     AiAdjustProduct[];
   rules?:       AdjustRule[];
   instruction?: string;
 }
 
 export interface AiAdjustResponse {
-  products:    ProductPreviewItem[];
+  products:    AiAdjustProduct[];
   rules:       AdjustRule[];
   addedRules:  AdjustRule[];
 }

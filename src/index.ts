@@ -70,7 +70,8 @@ async function bootstrap() {
   app.use(cors({ origin: allowedOrigins, credentials: true }));
 
   app.use(cookieParser());
-  app.use(express.json({ limit: '64kb' }));
+  // 64kb varsayılanı büyük kategorilerin (yüzlerce ürün) AI sıralama isteklerini kırpıyordu
+  app.use(express.json({ limit: '2mb' }));
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });

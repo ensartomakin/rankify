@@ -33,6 +33,7 @@ export interface ProductPreviewItem {
   productId:             string;
   productCode:           string;
   productName:           string;
+  categoryPath:          string;
   isDisqualified:        boolean;
   disqualifyReason?:     string;
   rankingScore:          number;
@@ -90,6 +91,46 @@ export async function previewRanking(req: PreviewRequest): Promise<PreviewRespon
     const msg = typeof errVal === 'string'
       ? errVal
       : errVal?.formErrors?.[0] ?? JSON.stringify(errVal) ?? `Hata: ${res.status}`;
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+/* ─── AI destekli sıralama düzenleme ─── */
+export type AdjustMatchField = 'category' | 'name' | 'code';
+
+export type AdjustRule =
+  | { type: 'keep_out_of_top'; matchField: AdjustMatchField; matchValue: string; topN: number; description: string }
+  | { type: 'keep_in_top';     matchField: AdjustMatchField; matchValue: string; topN: number; description: string }
+  | { type: 'pin_product';     productCode: string; position: number; description: string };
+
+export interface AiAdjustRequest {
+  categoryId:   string;
+  products:     ProductPreviewItem[];
+  rules?:       AdjustRule[];
+  instruction?: string;
+}
+
+export interface AiAdjustResponse {
+  products:    ProductPreviewItem[];
+  rules:       AdjustRule[];
+  addedRules:  AdjustRule[];
+}
+
+export async function aiAdjustRanking(req: AiAdjustRequest): Promise<AiAdjustResponse> {
+  const res = await apiFetch('/api/ranking/ai-adjust', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const errVal = body?.error;
+    const msg = typeof errVal === 'string'
+      ? errVal
+      : errVal?.formErrors?.[0]
+        ?? (errVal?.fieldErrors ? Object.values(errVal.fieldErrors).flat()[0] : undefined)
+        ?? JSON.stringify(errVal)
+        ?? `Hata: ${res.status}`;
     throw new Error(msg);
   }
   return res.json();

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { CategoryPicker } from '../components/CategoryPicker';
-import { previewRanking, type ProductPreviewItem, type PreviewResponse } from '../api/ranking';
+import {
+  previewRanking, aiAdjustRanking, applyManualRanking,
+  type ProductPreviewItem, type PreviewResponse, type AdjustRule,
+} from '../api/ranking';
 import { CRITERION_LABELS, type CriterionKey } from '../types';
 
 function fmtDate(iso: string) {
@@ -187,15 +190,81 @@ export function Products() {
   const [filter,       setFilter]       = useState('');
   const [showDq,       setShowDq]       = useState(true);
 
+  // AI destekli sıralama düzenleme
+  const [baseProducts,  setBaseProducts]  = useState<ProductPreviewItem[] | null>(null);
+  const [rules,         setRules]         = useState<AdjustRule[]>([]);
+  const [aiInstruction, setAiInstruction] = useState('');
+  const [aiLoading,     setAiLoading]     = useState(false);
+  const [aiError,       setAiError]       = useState('');
+  const [applyLoading,  setApplyLoading]  = useState(false);
+  const [applyMsg,      setApplyMsg]      = useState('');
+
   async function handleLoad() {
     if (!categoryId) return;
     setLoading(true); setError(''); setResult(null); setFilter('');
+    setBaseProducts(null); setRules([]); setAiInstruction(''); setAiError(''); setApplyMsg('');
     try {
-      setResult(await previewRanking({ categoryId }));
+      const data = await previewRanking({ categoryId });
+      setResult(data);
+      setBaseProducts(data.products);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Yüklenemedi');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleAiInstruction() {
+    const instruction = aiInstruction.trim();
+    if (!instruction || !baseProducts || !categoryId || aiLoading) return;
+    setAiLoading(true); setAiError(''); setApplyMsg('');
+    try {
+      const resp = await aiAdjustRanking({ categoryId, products: baseProducts, rules, instruction });
+      setRules(resp.rules);
+      setResult(r => (r ? { ...r, products: resp.products } : r));
+      setAiInstruction('');
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'Talimat uygulanamadı');
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  async function handleRemoveRule(idx: number) {
+    if (!baseProducts || !categoryId || aiLoading) return;
+    const newRules = rules.filter((_, i) => i !== idx);
+    setApplyMsg('');
+    if (newRules.length === 0) {
+      setRules([]);
+      setResult(r => (r ? { ...r, products: baseProducts } : r));
+      return;
+    }
+    setAiLoading(true); setAiError('');
+    try {
+      const resp = await aiAdjustRanking({ categoryId, products: baseProducts, rules: newRules });
+      setRules(resp.rules);
+      setResult(r => (r ? { ...r, products: resp.products } : r));
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'Kural kaldırılamadı');
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  async function handleApplyToTsoft() {
+    if (!result || !categoryId || applyLoading) return;
+    if (!window.confirm('Bu sıralama T-Soft mağazasındaki kategoriye canlı olarak uygulanacak. Emin misiniz?')) return;
+    setApplyLoading(true); setAiError(''); setApplyMsg('');
+    try {
+      const items = result.products
+        .filter(p => !p.isDisqualified)
+        .map(p => ({ productCode: p.productCode, rank: p.finalRank }));
+      await applyManualRanking(categoryId, items);
+      setApplyMsg('Sıralama T-Soft’a uygulandı.');
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'Sıralama uygulanamadı');
+    } finally {
+      setApplyLoading(false);
     }
   }
 
@@ -306,6 +375,68 @@ export function Products() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* AI ile sıralama düzenleme */}
+          <div className="mb-4 rounded-2xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="text-sm font-semibold mb-2" style={{ color: 'var(--tx1)' }}>
+              AI ile sıralamayı güncelle
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder='Örn: "ilk 100 sırada çanta kategorisinden ürün olmasın"'
+                value={aiInstruction}
+                onChange={e => setAiInstruction(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAiInstruction(); }}
+                disabled={aiLoading}
+                className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx1)' }}
+              />
+              <button
+                onClick={handleAiInstruction}
+                disabled={aiLoading || !aiInstruction.trim()}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all shrink-0"
+                style={aiLoading || !aiInstruction.trim()
+                  ? { background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx3)', cursor: 'not-allowed' }
+                  : { background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 4px 16px rgba(16,185,129,0.3)' }
+                }
+              >
+                {aiLoading ? 'Uygulanıyor…' : 'Uygula'}
+              </button>
+            </div>
+
+            {aiError && (
+              <p className="text-xs mt-2.5" style={{ color: 'var(--err-tx)' }}>✕ {aiError}</p>
+            )}
+
+            {rules.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                {rules.map((r, i) => (
+                  <span key={i}
+                    className="text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-full flex items-center gap-1.5"
+                    style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)' }}>
+                    {r.description}
+                    <button onClick={() => handleRemoveRule(i)} disabled={aiLoading}
+                      className="w-4 h-4 rounded-full flex items-center justify-center hover:opacity-70 shrink-0"
+                      style={{ background: 'rgba(0,0,0,0.08)' }}>
+                      ✕
+                    </button>
+                  </span>
+                ))}
+                <button
+                  onClick={handleApplyToTsoft}
+                  disabled={applyLoading}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-full text-white transition-all ml-1"
+                  style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                  {applyLoading ? 'Uygulanıyor…' : "Bu Sıralamayı T-Soft'a Uygula"}
+                </button>
+              </div>
+            )}
+
+            {applyMsg && (
+              <p className="text-xs mt-2.5 font-medium" style={{ color: 'var(--ok-tx)' }}>✓ {applyMsg}</p>
+            )}
           </div>
 
           {/* Grid */}

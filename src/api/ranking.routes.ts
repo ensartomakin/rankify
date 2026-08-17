@@ -5,6 +5,8 @@ import { runRankingPipeline, previewRanking, getCurrentRanking, applyManualRanki
 import { getConfigByCategoryId } from '../db/config.repo';
 import { getClientForUser } from '../services/tsoft-client';
 import { logger } from '../utils/logger';
+import { applyAdjustRules, type AdjustRule } from '../scoring/ai-adjust';
+import { parseInstructionToRules, AiInstructionError, adjustRuleSchema } from '../services/ai-instruction';
 
 export const rankingRouter = Router();
 rankingRouter.use(requireAuth);
@@ -218,5 +220,54 @@ rankingRouter.post('/preview', async (req: Request, res: Response) => {
   } catch (err) {
     logger.error(`Preview hatası [${categoryId}]: ${err}`);
     res.status(500).json({ error: 'Önizleme hesaplaması başarısız' });
+  }
+});
+
+// AI destekli sıralama düzenleme: önizlemedeki ürünleri, doğal dil talimatına göre yeniden sıralar.
+// products her zaman değişmemiş temel önizleme listesi olmalı — kurallar birikimli olarak buna uygulanır.
+const adjustProductSchema = z.object({
+  finalRank:      z.number(),
+  productCode:    z.string().min(1),
+  productName:    z.string(),
+  categoryPath:   z.string().optional().default(''),
+  isDisqualified: z.boolean(),
+}).passthrough();
+
+const aiAdjustSchema = z.object({
+  categoryId:  z.string().min(1),
+  products:    z.array(adjustProductSchema).min(1).max(2000),
+  rules:       z.array(adjustRuleSchema).max(20).optional(),
+  instruction: z.string().trim().min(1).max(500).optional(),
+});
+
+rankingRouter.post('/ai-adjust', async (req: Request, res: Response) => {
+  const parsed = aiAdjustSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+
+  const { products, instruction } = parsed.data;
+  let rules: AdjustRule[] = parsed.data.rules ?? [];
+  let addedRules: AdjustRule[] = [];
+
+  try {
+    if (instruction) {
+      const categoryPaths = Array.from(
+        new Set(products.map(p => p.categoryPath).filter((c): c is string => !!c))
+      );
+      addedRules = await parseInstructionToRules(instruction, {
+        categoryPaths,
+        totalProducts: products.length,
+      });
+      rules = [...rules, ...addedRules];
+    }
+
+    const reordered = applyAdjustRules(products, rules);
+    res.json({ products: reordered, rules, addedRules });
+  } catch (err) {
+    if (err instanceof AiInstructionError) {
+      res.status(422).json({ error: err.message });
+      return;
+    }
+    logger.error(`ai-adjust hatası [${parsed.data.categoryId}]: ${err}`);
+    res.status(500).json({ error: 'Sıralama güncellenemedi' });
   }
 });

@@ -36,6 +36,12 @@ function buildImageUrls(apiUrl: string, product: ProductPreviewItem): string[] {
   return urls;
 }
 
+interface ChatMessage {
+  role:     'user' | 'assistant';
+  text:     string;
+  isError?: boolean;
+}
+
 interface CardProps {
   product:  ProductPreviewItem;
   criteria: PreviewResponse['criteria'];
@@ -190,19 +196,19 @@ export function Products() {
   const [filter,       setFilter]       = useState('');
   const [showDq,       setShowDq]       = useState(true);
 
-  // AI destekli sıralama düzenleme
+  // AI destekli sıralama düzenleme (yüzen sohbet paneli)
   const [baseProducts,  setBaseProducts]  = useState<ProductPreviewItem[] | null>(null);
   const [rules,         setRules]         = useState<AdjustRule[]>([]);
+  const [messages,      setMessages]      = useState<ChatMessage[]>([]);
+  const [chatOpen,      setChatOpen]      = useState(false);
   const [aiInstruction, setAiInstruction] = useState('');
   const [aiLoading,     setAiLoading]     = useState(false);
-  const [aiError,       setAiError]       = useState('');
   const [applyLoading,  setApplyLoading]  = useState(false);
-  const [applyMsg,      setApplyMsg]      = useState('');
 
   async function handleLoad() {
     if (!categoryId) return;
     setLoading(true); setError(''); setResult(null); setFilter('');
-    setBaseProducts(null); setRules([]); setAiInstruction(''); setAiError(''); setApplyMsg('');
+    setBaseProducts(null); setRules([]); setMessages([]); setAiInstruction('');
     try {
       const data = await previewRanking({ categoryId });
       setResult(data);
@@ -217,14 +223,20 @@ export function Products() {
   async function handleAiInstruction() {
     const instruction = aiInstruction.trim();
     if (!instruction || !baseProducts || !categoryId || aiLoading) return;
-    setAiLoading(true); setAiError(''); setApplyMsg('');
+    setAiLoading(true);
+    setMessages(m => [...m, { role: 'user', text: instruction }]);
+    setAiInstruction('');
     try {
       const resp = await aiAdjustRanking({ categoryId, products: baseProducts, rules, instruction });
       setRules(resp.rules);
       setResult(r => (r ? { ...r, products: resp.products } : r));
-      setAiInstruction('');
+      const reply = resp.addedRules.length > 0
+        ? resp.addedRules.map(r => r.description).join(' ')
+        : 'Sıralama güncellendi.';
+      setMessages(m => [...m, { role: 'assistant', text: reply }]);
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : 'Talimat uygulanamadı');
+      const text = err instanceof Error ? err.message : 'Talimat uygulanamadı';
+      setMessages(m => [...m, { role: 'assistant', text, isError: true }]);
     } finally {
       setAiLoading(false);
     }
@@ -233,19 +245,19 @@ export function Products() {
   async function handleRemoveRule(idx: number) {
     if (!baseProducts || !categoryId || aiLoading) return;
     const newRules = rules.filter((_, i) => i !== idx);
-    setApplyMsg('');
     if (newRules.length === 0) {
       setRules([]);
       setResult(r => (r ? { ...r, products: baseProducts } : r));
       return;
     }
-    setAiLoading(true); setAiError('');
+    setAiLoading(true);
     try {
       const resp = await aiAdjustRanking({ categoryId, products: baseProducts, rules: newRules });
       setRules(resp.rules);
       setResult(r => (r ? { ...r, products: resp.products } : r));
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : 'Kural kaldırılamadı');
+      const text = err instanceof Error ? err.message : 'Kural kaldırılamadı';
+      setMessages(m => [...m, { role: 'assistant', text, isError: true }]);
     } finally {
       setAiLoading(false);
     }
@@ -254,15 +266,16 @@ export function Products() {
   async function handleApplyToTsoft() {
     if (!result || !categoryId || applyLoading) return;
     if (!window.confirm('Bu sıralama T-Soft mağazasındaki kategoriye canlı olarak uygulanacak. Emin misiniz?')) return;
-    setApplyLoading(true); setAiError(''); setApplyMsg('');
+    setApplyLoading(true);
     try {
       const items = result.products
         .filter(p => !p.isDisqualified)
         .map(p => ({ productCode: p.productCode, rank: p.finalRank }));
       await applyManualRanking(categoryId, items);
-      setApplyMsg('Sıralama T-Soft’a uygulandı.');
+      setMessages(m => [...m, { role: 'assistant', text: 'Sıralama T-Soft’a uygulandı.' }]);
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : 'Sıralama uygulanamadı');
+      const text = err instanceof Error ? err.message : 'Sıralama uygulanamadı';
+      setMessages(m => [...m, { role: 'assistant', text, isError: true }]);
     } finally {
       setApplyLoading(false);
     }
@@ -377,68 +390,6 @@ export function Products() {
             </div>
           </div>
 
-          {/* AI ile sıralama düzenleme */}
-          <div className="mb-4 rounded-2xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <div className="text-sm font-semibold mb-2" style={{ color: 'var(--tx1)' }}>
-              AI ile sıralamayı güncelle
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                placeholder='Örn: "ilk 100 sırada çanta kategorisinden ürün olmasın"'
-                value={aiInstruction}
-                onChange={e => setAiInstruction(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleAiInstruction(); }}
-                disabled={aiLoading}
-                className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
-                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx1)' }}
-              />
-              <button
-                onClick={handleAiInstruction}
-                disabled={aiLoading || !aiInstruction.trim()}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all shrink-0"
-                style={aiLoading || !aiInstruction.trim()
-                  ? { background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx3)', cursor: 'not-allowed' }
-                  : { background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 4px 16px rgba(16,185,129,0.3)' }
-                }
-              >
-                {aiLoading ? 'Uygulanıyor…' : 'Uygula'}
-              </button>
-            </div>
-
-            {aiError && (
-              <p className="text-xs mt-2.5" style={{ color: 'var(--err-tx)' }}>✕ {aiError}</p>
-            )}
-
-            {rules.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 mt-3">
-                {rules.map((r, i) => (
-                  <span key={i}
-                    className="text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-full flex items-center gap-1.5"
-                    style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)' }}>
-                    {r.description}
-                    <button onClick={() => handleRemoveRule(i)} disabled={aiLoading}
-                      className="w-4 h-4 rounded-full flex items-center justify-center hover:opacity-70 shrink-0"
-                      style={{ background: 'rgba(0,0,0,0.08)' }}>
-                      ✕
-                    </button>
-                  </span>
-                ))}
-                <button
-                  onClick={handleApplyToTsoft}
-                  disabled={applyLoading}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-full text-white transition-all ml-1"
-                  style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
-                  {applyLoading ? 'Uygulanıyor…' : "Bu Sıralamayı T-Soft'a Uygula"}
-                </button>
-              </div>
-            )}
-
-            {applyMsg && (
-              <p className="text-xs mt-2.5 font-medium" style={{ color: 'var(--ok-tx)' }}>✓ {applyMsg}</p>
-            )}
-          </div>
-
           {/* Grid */}
           {visible.length === 0 ? (
             <div className="flex items-center justify-center h-40 rounded-2xl"
@@ -470,6 +421,135 @@ export function Products() {
             Sıralamayı görmek için bir kategori seçin ve Yükle'ye basın
           </p>
         </div>
+      )}
+
+      {/* AI sohbet — yüzen buton + panel */}
+      {result && (
+        <>
+          <button
+            onClick={() => setChatOpen(v => !v)}
+            className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center text-white transition-all"
+            style={{ background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 8px 24px rgba(16,185,129,0.4)' }}
+          >
+            {chatOpen ? (
+              <span className="text-xl leading-none">✕</span>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+              </svg>
+            )}
+            {!chatOpen && rules.length > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+                style={{ background: 'var(--err-tx)', color: 'white' }}>
+                {rules.length}
+              </span>
+            )}
+          </button>
+
+          {chatOpen && (
+            <div className="fixed bottom-24 right-6 z-40 w-[380px] max-w-[calc(100vw-3rem)] rounded-2xl flex flex-col overflow-hidden animate-fade-in"
+              style={{
+                height: '540px', maxHeight: 'calc(100vh - 140px)',
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                boxShadow: '0 16px 48px rgba(0,0,0,0.18)',
+              }}>
+
+              {/* Başlık */}
+              <div className="shrink-0 px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
+                <div>
+                  <div className="text-sm font-semibold" style={{ color: 'var(--tx1)' }}>AI Sıralama Asistanı</div>
+                  <div className="text-[11px]" style={{ color: 'var(--tx3)' }}>{categoryName || categoryId}</div>
+                </div>
+                <button onClick={() => setChatOpen(false)}
+                  className="w-7 h-7 rounded-full flex items-center justify-center hover:opacity-70 shrink-0"
+                  style={{ color: 'var(--tx3)' }}>✕</button>
+              </div>
+
+              {/* Mesaj akışı */}
+              <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2.5">
+                {messages.length === 0 && (
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--tx3)' }}>
+                    Sıralamayla ilgili bir talimat yazın, örn: <em>"ilk 100 sırada çanta kategorisinden ürün olmasın"</em>
+                  </p>
+                )}
+                {messages.map((m, i) => (
+                  <div key={i}
+                    className="max-w-[85%] px-3 py-2 rounded-2xl text-[13px] leading-snug"
+                    style={{
+                      alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                      ...(m.role === 'user'
+                        ? { background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white' }
+                        : m.isError
+                          ? { background: 'var(--err-bg)', color: 'var(--err-tx)', border: '1px solid var(--err-bd)' }
+                          : { background: 'var(--surface2)', color: 'var(--tx1)', border: '1px solid var(--border)' }),
+                    }}>
+                    {m.text}
+                  </div>
+                ))}
+                {aiLoading && (
+                  <div className="px-3 py-2 rounded-2xl text-[13px] flex items-center gap-1.5"
+                    style={{ alignSelf: 'flex-start', background: 'var(--surface2)', color: 'var(--tx3)' }}>
+                    <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
+                    düşünüyor…
+                  </div>
+                )}
+              </div>
+
+              {/* Aktif kurallar */}
+              {rules.length > 0 && (
+                <div className="shrink-0 px-4 py-2.5 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border)' }}>
+                  <div className="flex flex-wrap gap-1.5">
+                    {rules.map((r, i) => (
+                      <span key={i}
+                        className="text-[11px] font-medium pl-2 pr-1 py-1 rounded-full flex items-center gap-1"
+                        style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)' }}>
+                        {r.description}
+                        <button onClick={() => handleRemoveRule(i)} disabled={aiLoading}
+                          className="w-3.5 h-3.5 rounded-full flex items-center justify-center hover:opacity-70 shrink-0 text-[10px]"
+                          style={{ background: 'rgba(0,0,0,0.08)' }}>
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <button
+                    onClick={handleApplyToTsoft}
+                    disabled={applyLoading}
+                    className="w-full text-xs font-semibold px-3 py-2 rounded-xl text-white transition-all"
+                    style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                    {applyLoading ? 'Uygulanıyor…' : "Bu Sıralamayı T-Soft'a Uygula"}
+                  </button>
+                </div>
+              )}
+
+              {/* Giriş */}
+              <div className="shrink-0 p-3 flex items-center gap-2" style={{ borderTop: '1px solid var(--border)' }}>
+                <input
+                  type="text"
+                  placeholder="Talimat yazın…"
+                  value={aiInstruction}
+                  onChange={e => setAiInstruction(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAiInstruction(); }}
+                  disabled={aiLoading}
+                  className="flex-1 px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+                  style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx1)' }}
+                />
+                <button
+                  onClick={handleAiInstruction}
+                  disabled={aiLoading || !aiInstruction.trim()}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white transition-all shrink-0"
+                  style={aiLoading || !aiInstruction.trim()
+                    ? { background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx3)', cursor: 'not-allowed' }
+                    : { background: 'linear-gradient(135deg, #10b981, #059669)' }
+                  }>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-7.5-15-7.5v6l10 1.5-10 1.5v6z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

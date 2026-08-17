@@ -13,11 +13,11 @@ import { WeightBar } from '../components/WeightBar';
 import { CriterionCard } from '../components/CriterionCard';
 import { CategoryPicker } from '../components/CategoryPicker';
 import {
-  getCurrentRanking, previewRanking, applyManualRanking,
+  getCurrentRanking, previewRanking, applyManualRanking, aiAdjustRanking,
 } from '../api/ranking';
 import type {
   CurrentRankingResponse, CurrentRankItem,
-  PreviewResponse, ProductPreviewItem,
+  PreviewResponse, ProductPreviewItem, AdjustRule,
 } from '../api/ranking';
 import { saveConfig } from '../api/config';
 import { fetchGa4Status } from '../api/ga4';
@@ -451,6 +451,12 @@ function SortablePreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isP
   );
 }
 
+interface ChatMessage {
+  role:     'user' | 'assistant';
+  text:     string;
+  isError?: boolean;
+}
+
 /* ─── Ana bileşen ─── */
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -501,6 +507,13 @@ export function Dashboard({ prefill }: Props) {
   // Sabitleme
   const [pinnedPositions, setPinnedPositions] = useState<Record<string, number>>({});
 
+  // AI destekli sıralama düzenleme (yüzen sohbet paneli)
+  const [aiRules,      setAiRules]      = useState<AdjustRule[]>([]);
+  const [messages,     setMessages]     = useState<ChatMessage[]>([]);
+  const [chatOpen,     setChatOpen]     = useState(false);
+  const [aiInstruction, setAiInstruction] = useState('');
+  const [aiLoading,    setAiLoading]    = useState(false);
+
   // Filtre & görünüm
   const [filter, setFilter] = useState('');
   const [showDq,  setShowDq]  = useState(true);
@@ -540,6 +553,8 @@ export function Dashboard({ prefill }: Props) {
     setPreviewError('');
     setView('current');
     setManualDirty(false);
+    setAiRules([]);
+    setMessages([]);
     if (!categoryId) { setCurrentResult(null); setCurrentStatus('idle'); setManualOrder([]); setPinnedPositions({}); return; }
 
     const stored = localStorage.getItem(`rankify_pin_${categoryId}`);
@@ -567,6 +582,8 @@ export function Dashboard({ prefill }: Props) {
     setPreviewResult(null);
     setPreviewStatus('idle');
     setPreviewError('');
+    setAiRules([]);
+    setMessages([]);
     if (view === 'preview') setView('current');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threshold, JSON.stringify(criteria), smartMix, seasonPreFilter]);
@@ -773,12 +790,67 @@ export function Dashboard({ prefill }: Props) {
     try {
       const result = await previewRanking({ categoryId: categoryId.trim(), availabilityThreshold: threshold, criteria, smartMix, seasonPreFilter });
       setPreviewResult(result);
-      setPreviewOrder(applyPinnedPositions(result.products));
+      let products = result.products;
+      // Aktif AI kuralları varsa, yeni önizleme verisine yeniden uygula
+      if (aiRules.length > 0) {
+        try {
+          const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: result.products, rules: aiRules });
+          setAiRules(resp.rules);
+          products = resp.products;
+        } catch {
+          setAiRules([]);
+        }
+      }
+      setPreviewOrder(applyPinnedPositions(products));
       setPreviewStatus('idle');
       setView('preview');
     } catch (err) {
       setPreviewError(err instanceof Error ? err.message : 'Önizleme hatası');
       setPreviewStatus('error');
+    }
+  }
+
+  async function handleAiInstruction() {
+    const instruction = aiInstruction.trim();
+    if (!instruction || !previewResult || !categoryId || aiLoading) return;
+    setAiLoading(true);
+    setMessages(m => [...m, { role: 'user', text: instruction }]);
+    setAiInstruction('');
+    try {
+      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: previewResult.products, rules: aiRules, instruction });
+      setAiRules(resp.rules);
+      setPreviewOrder(applyPinnedPositions(resp.products));
+      setView('preview');
+      const reply = resp.addedRules.length > 0
+        ? resp.addedRules.map(r => r.description).join(' ')
+        : 'Sıralama güncellendi.';
+      setMessages(m => [...m, { role: 'assistant', text: reply }]);
+    } catch (err) {
+      const text = err instanceof Error ? err.message : 'Talimat uygulanamadı';
+      setMessages(m => [...m, { role: 'assistant', text, isError: true }]);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  async function handleRemoveAiRule(idx: number) {
+    if (!previewResult || !categoryId || aiLoading) return;
+    const newRules = aiRules.filter((_, i) => i !== idx);
+    if (newRules.length === 0) {
+      setAiRules([]);
+      setPreviewOrder(applyPinnedPositions(previewResult.products));
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: previewResult.products, rules: newRules });
+      setAiRules(resp.rules);
+      setPreviewOrder(applyPinnedPositions(resp.products));
+    } catch (err) {
+      const text = err instanceof Error ? err.message : 'Kural kaldırılamadı';
+      setMessages(m => [...m, { role: 'assistant', text, isError: true }]);
+    } finally {
+      setAiLoading(false);
     }
   }
 
@@ -1491,6 +1563,126 @@ export function Dashboard({ prefill }: Props) {
           </button>
         </div>
       </div>
+
+      {/* AI sohbet — yüzen buton + panel */}
+      {previewResult && (
+        <>
+          <button
+            onClick={() => setChatOpen(v => !v)}
+            className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center text-white transition-all"
+            style={{ background: 'var(--cta-bg)', color: 'var(--cta-tx)', boxShadow: '0 8px 24px rgba(226,50,96,0.4)' }}
+          >
+            {chatOpen ? (
+              <span className="text-xl leading-none">✕</span>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+              </svg>
+            )}
+            {!chatOpen && aiRules.length > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+                style={{ background: 'var(--err-tx)', color: 'white' }}>
+                {aiRules.length}
+              </span>
+            )}
+          </button>
+
+          {chatOpen && (
+            <div className="fixed bottom-24 right-6 z-40 w-[380px] max-w-[calc(100vw-3rem)] rounded-2xl flex flex-col overflow-hidden"
+              style={{
+                height: '540px', maxHeight: 'calc(100vh - 140px)',
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                boxShadow: '0 16px 48px rgba(0,0,0,0.18)',
+              }}>
+
+              {/* Başlık */}
+              <div className="shrink-0 px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
+                <div>
+                  <div className="text-sm font-semibold" style={{ color: 'var(--tx1)' }}>AI Sıralama Asistanı</div>
+                  <div className="text-[11px]" style={{ color: 'var(--tx3)' }}>{categoryName || categoryId}</div>
+                </div>
+                <button onClick={() => setChatOpen(false)}
+                  className="w-7 h-7 rounded-full flex items-center justify-center hover:opacity-70 shrink-0"
+                  style={{ color: 'var(--tx3)' }}>✕</button>
+              </div>
+
+              {/* Mesaj akışı */}
+              <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2.5">
+                {messages.length === 0 && (
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--tx3)' }}>
+                    Önizleme sıralamasıyla ilgili bir talimat yazın, örn: <em>"ilk 100 sırada çanta kategorisinden ürün olmasın"</em>. Sonuç Önizleme sekmesine uygulanır.
+                  </p>
+                )}
+                {messages.map((m, i) => (
+                  <div key={i}
+                    className="max-w-[85%] px-3 py-2 rounded-2xl text-[13px] leading-snug"
+                    style={{
+                      alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                      ...(m.role === 'user'
+                        ? { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }
+                        : m.isError
+                          ? { background: 'var(--err-bg)', color: 'var(--err-tx)', border: '1px solid var(--err-bd)' }
+                          : { background: 'var(--surface2)', color: 'var(--tx1)', border: '1px solid var(--border)' }),
+                    }}>
+                    {m.text}
+                  </div>
+                ))}
+                {aiLoading && (
+                  <div className="px-3 py-2 rounded-2xl text-[13px] flex items-center gap-1.5"
+                    style={{ alignSelf: 'flex-start', background: 'var(--surface2)', color: 'var(--tx3)' }}>
+                    <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
+                    düşünüyor…
+                  </div>
+                )}
+              </div>
+
+              {/* Aktif kurallar */}
+              {aiRules.length > 0 && (
+                <div className="shrink-0 px-4 py-2.5 flex flex-wrap gap-1.5" style={{ borderTop: '1px solid var(--border)' }}>
+                  {aiRules.map((r, i) => (
+                    <span key={i}
+                      className="text-[11px] font-medium pl-2 pr-1 py-1 rounded-full flex items-center gap-1"
+                      style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)' }}>
+                      {r.description}
+                      <button onClick={() => handleRemoveAiRule(i)} disabled={aiLoading}
+                        className="w-3.5 h-3.5 rounded-full flex items-center justify-center hover:opacity-70 shrink-0 text-[10px]"
+                        style={{ background: 'rgba(0,0,0,0.08)' }}>
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Giriş */}
+              <div className="shrink-0 p-3 flex items-center gap-2" style={{ borderTop: '1px solid var(--border)' }}>
+                <input
+                  type="text"
+                  placeholder="Talimat yazın…"
+                  value={aiInstruction}
+                  onChange={e => setAiInstruction(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAiInstruction(); }}
+                  disabled={aiLoading}
+                  className="flex-1 px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+                  style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx1)' }}
+                />
+                <button
+                  onClick={handleAiInstruction}
+                  disabled={aiLoading || !aiInstruction.trim()}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white transition-all shrink-0"
+                  style={aiLoading || !aiInstruction.trim()
+                    ? { background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx3)', cursor: 'not-allowed' }
+                    : { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }
+                  }>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-7.5-15-7.5v6l10 1.5-10 1.5v6z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
     </div>
   );

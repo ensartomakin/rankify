@@ -231,7 +231,7 @@ const adjustProductSchema = z.object({
   productName:    z.string(),
   categoryPath:   z.string().optional().default(''),
   isDisqualified: z.boolean(),
-}).passthrough();
+});
 
 const aiAdjustSchema = z.object({
   categoryId:  z.string().min(1),

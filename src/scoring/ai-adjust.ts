@@ -146,8 +146,11 @@ export interface ApplyAdjustRulesOptions {
 }
 
 /**
- * Verilen kuralları sırasıyla uygular ve finalRank'i yeniden hesaplar.
- * Kurallar, önceki kuralın çıktısı üzerine uygulanır — birikimli çalışır.
+ * Verilen kuralları uygular ve finalRank'i yeniden hesaplar. Kurallar, önceki kuralın
+ * çıktısı üzerine uygulanır — birikimli çalışır. pin_product kuralları, verilme sırasından
+ * bağımsız olarak HER ZAMAN en son uygulanır: aksi halde sonradan gelen bir
+ * keep_out_of_top/keep_in_top kuralı, "boşluğu doldurmak" için tam da az önce sabitlenen
+ * ürünü bir sıra kaydırabilir — açık bir konum isteği örtük biçimde bozulmamalı.
  */
 export function applyAdjustRules<T extends AdjustableProduct>(
   products: T[],
@@ -157,7 +160,12 @@ export function applyAdjustRules<T extends AdjustableProduct>(
   const respace = options.respaceSameProduct ?? false;
   let arr = [...products].sort((a, b) => a.finalRank - b.finalRank);
 
-  for (const rule of rules) {
+  const orderedRules = [
+    ...rules.filter(r => r.type !== 'pin_product'),
+    ...rules.filter(r => r.type === 'pin_product'),
+  ];
+
+  for (const rule of orderedRules) {
     switch (rule.type) {
       case 'keep_out_of_top':
         arr = applyKeepOutOfTop(arr, buildMatcher(rule.matchField, rule.matchValue), rule.topN, respace);

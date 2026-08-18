@@ -249,7 +249,8 @@ rankingRouter.post('/ai-adjust', async (req: Request, res: Response) => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
   const { products, instruction, smartMix } = parsed.data;
-  let rules: AdjustRule[] = parsed.data.rules ?? [];
+  const existingRules: AdjustRule[] = parsed.data.rules ?? [];
+  let rules: AdjustRule[] = existingRules;
   let addedRules: AdjustRule[] = [];
 
   try {
@@ -257,9 +258,15 @@ rankingRouter.post('/ai-adjust', async (req: Request, res: Response) => {
       const categoryPaths = Array.from(
         new Set(products.map(p => p.categoryPath).filter((c): c is string => !!c))
       );
+      // Kullanıcı "1. sıradaki ürün" derken ekranda o an GÖRDÜĞÜ sırayı kastediyor —
+      // yani önceki kuralların zaten uygulanmış hali, temel (değişmemiş) liste değil.
+      const currentlyDisplayed = applyAdjustRules(products, existingRules, { respaceSameProduct: smartMix });
       addedRules = await parseInstructionToRules(instruction, {
         categoryPaths,
         totalProducts: products.length,
+        orderedProducts: currentlyDisplayed.map(p => ({
+          finalRank: p.finalRank, productCode: p.productCode, productName: p.productName,
+        })),
       });
       rules = [...rules, ...addedRules];
     }

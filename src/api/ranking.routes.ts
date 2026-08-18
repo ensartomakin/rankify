@@ -238,14 +238,19 @@ const aiAdjustSchema = z.object({
   products:    z.array(adjustProductSchema).min(1).max(2000),
   rules:       z.array(adjustRuleSchema).max(20).optional(),
   instruction: z.string().trim().min(1).max(500).optional(),
+  // Önizleme Smart Mix ile üretildiyse true — kural uygulamaları o zaman Smart Mix'in
+  // ürettiği boşlukları da yeniden sağlamaya çalışır (aksi halde aynı ürün varyantları
+  // art arda gelebilir).
+  smartMix:    z.boolean().optional(),
 });
 
 rankingRouter.post('/ai-adjust', async (req: Request, res: Response) => {
   const parsed = aiAdjustSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
-  const { products, instruction } = parsed.data;
-  let rules: AdjustRule[] = parsed.data.rules ?? [];
+  const { products, instruction, smartMix } = parsed.data;
+  const existingRules: AdjustRule[] = parsed.data.rules ?? [];
+  let rules: AdjustRule[] = existingRules;
   let addedRules: AdjustRule[] = [];
 
   try {
@@ -253,14 +258,20 @@ rankingRouter.post('/ai-adjust', async (req: Request, res: Response) => {
       const categoryPaths = Array.from(
         new Set(products.map(p => p.categoryPath).filter((c): c is string => !!c))
       );
+      // Kullanıcı "1. sıradaki ürün" derken ekranda o an GÖRDÜĞÜ sırayı kastediyor —
+      // yani önceki kuralların zaten uygulanmış hali, temel (değişmemiş) liste değil.
+      const currentlyDisplayed = applyAdjustRules(products, existingRules, { respaceSameProduct: smartMix });
       addedRules = await parseInstructionToRules(instruction, {
         categoryPaths,
         totalProducts: products.length,
+        orderedProducts: currentlyDisplayed.map(p => ({
+          finalRank: p.finalRank, productCode: p.productCode, productName: p.productName,
+        })),
       });
       rules = [...rules, ...addedRules];
     }
 
-    const reordered = applyAdjustRules(products, rules);
+    const reordered = applyAdjustRules(products, rules, { respaceSameProduct: smartMix });
     res.json({ products: reordered, rules, addedRules });
   } catch (err) {
     if (err instanceof AiInstructionError) {

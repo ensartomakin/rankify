@@ -1,3 +1,5 @@
+import { getBaseName, SMART_MIX_GAP } from './smart-mix';
+
 export type AdjustMatchField = 'category' | 'name' | 'code';
 
 export interface KeepOutOfTopRule {
@@ -52,27 +54,62 @@ function buildMatcher<T extends AdjustableProduct>(
   }
 }
 
-// İlk topN sıradan eşleşen ürünleri çıkarır; kalan sıra (eşleşmeyenler + geriye kalan eşleşenler)
-// orijinal göreceli sırasını korur — yani diğer kriterlere göre sıralı kalırlar.
+// Adayları verilen sırayla, her pozisyon için eligibleAt() kısıtını karşılayan ilk adayı
+// seçerek yerleştirir. respace=true ise ayrıca aynı base name'e (Smart Mix) sahip bir ürünün
+// son SMART_MIX_GAP pozisyonda tekrar etmemesine çalışır — kısıt tatmin edilemezse (zorunlu
+// çakışma) sırayla gevşetilir: önce mix aralığı, sonra (asla olmaması gereken durumda) kısıt.
+// Bu, keep_out_of_top gibi kuralların üst sıralardan çektiği "araya giren" ürünlerin
+// Smart Mix'in oluşturduğu boşlukları taşımasını — yani eşleşen ürünlerin art arda
+// gelmesini — önler.
+function placeRespectingRule<T extends AdjustableProduct>(
+  candidates: T[],
+  eligibleAt: (p: T, position: number) => boolean,
+  respace: boolean
+): T[] {
+  const result: T[] = [];
+  const pool = [...candidates];
+
+  while (pool.length > 0) {
+    const position = result.length;
+    const recentBases = respace
+      ? new Set(result.slice(-SMART_MIX_GAP).map(p => getBaseName(p.productName)))
+      : null;
+
+    let idx = pool.findIndex(p =>
+      eligibleAt(p, position) && (!recentBases || !recentBases.has(getBaseName(p.productName)))
+    );
+    if (idx === -1) idx = pool.findIndex(p => eligibleAt(p, position));
+    if (idx === -1) {
+      // Hiçbir aday pozisyon kısıtını karşılamıyor — zorunlu çakışma, kalanları olduğu gibi ekle
+      result.push(...pool.splice(0));
+      break;
+    }
+    result.push(...pool.splice(idx, 1));
+  }
+
+  return result;
+}
+
+// İlk topN sıradan eşleşen ürünleri çıkarır; kalanlar diğer kriterlere göre aldıkları
+// göreceli sırayı korur. respace=true ise Smart Mix aralığı da yeniden sağlanır.
 function applyKeepOutOfTop<T extends AdjustableProduct>(
   arr: T[],
   matches: (p: T) => boolean,
-  topN: number
+  topN: number,
+  respace: boolean
 ): T[] {
   const n = Math.max(0, Math.min(topN, arr.length));
-  const unmatched = arr.filter(p => !matches(p));
-  const head = unmatched.slice(0, n);
-  const headSet = new Set(head);
-  const tail = arr.filter(p => !headSet.has(p));
-  return [...head, ...tail];
+  return placeRespectingRule(arr, (p, pos) => pos >= n || !matches(p), respace);
 }
 
 // İlk topN sırayı, mümkün olduğunca eşleşen ürünlerle doldurur (yetmezse eşleşmeyenlerle tamamlar).
-// Baştaki grup içi ve kalan grup içi göreceli sıra korunur.
+// Baştaki grup içi ve kalan grup içi göreceli sıra korunur. respace=true ise Smart Mix aralığı
+// bu sıralama üzerine ayrıca yeniden sağlanır.
 function applyKeepInTop<T extends AdjustableProduct>(
   arr: T[],
   matches: (p: T) => boolean,
-  topN: number
+  topN: number,
+  respace: boolean
 ): T[] {
   const n = Math.max(0, Math.min(topN, arr.length));
   const matched = arr.filter(matches);
@@ -83,7 +120,8 @@ function applyKeepInTop<T extends AdjustableProduct>(
   const headSet = new Set<T>([...headMatched, ...headUnmatched]);
   const head = arr.filter(p => headSet.has(p));
   const tail = arr.filter(p => !headSet.has(p));
-  return [...head, ...tail];
+  const ordered = [...head, ...tail];
+  return respace ? placeRespectingRule(ordered, () => true, true) : ordered;
 }
 
 function applyPinProduct<T extends AdjustableProduct>(
@@ -99,23 +137,41 @@ function applyPinProduct<T extends AdjustableProduct>(
   return [...rest.slice(0, pos - 1), item, ...rest.slice(pos - 1)];
 }
 
+export interface ApplyAdjustRulesOptions {
+  // Önizleme Smart Mix ile üretildiyse true geçin — aksi halde kural uygulamaları
+  // (özellikle keep_out_of_top) Smart Mix'in oluşturduğu boşlukları taşıyıp aynı ürünün
+  // varyantlarını art arda getirebilir. pin_product bu ayardan etkilenmez — açık bir
+  // sabitleme isteği olduğu için diğer kuralları geçersiz kılması beklenir.
+  respaceSameProduct?: boolean;
+}
+
 /**
- * Verilen kuralları sırasıyla uygular ve finalRank'i yeniden hesaplar.
- * Kurallar, önceki kuralın çıktısı üzerine uygulanır — birikimli çalışır.
+ * Verilen kuralları uygular ve finalRank'i yeniden hesaplar. Kurallar, önceki kuralın
+ * çıktısı üzerine uygulanır — birikimli çalışır. pin_product kuralları, verilme sırasından
+ * bağımsız olarak HER ZAMAN en son uygulanır: aksi halde sonradan gelen bir
+ * keep_out_of_top/keep_in_top kuralı, "boşluğu doldurmak" için tam da az önce sabitlenen
+ * ürünü bir sıra kaydırabilir — açık bir konum isteği örtük biçimde bozulmamalı.
  */
 export function applyAdjustRules<T extends AdjustableProduct>(
   products: T[],
-  rules: AdjustRule[]
+  rules: AdjustRule[],
+  options: ApplyAdjustRulesOptions = {}
 ): T[] {
+  const respace = options.respaceSameProduct ?? false;
   let arr = [...products].sort((a, b) => a.finalRank - b.finalRank);
 
-  for (const rule of rules) {
+  const orderedRules = [
+    ...rules.filter(r => r.type !== 'pin_product'),
+    ...rules.filter(r => r.type === 'pin_product'),
+  ];
+
+  for (const rule of orderedRules) {
     switch (rule.type) {
       case 'keep_out_of_top':
-        arr = applyKeepOutOfTop(arr, buildMatcher(rule.matchField, rule.matchValue), rule.topN);
+        arr = applyKeepOutOfTop(arr, buildMatcher(rule.matchField, rule.matchValue), rule.topN, respace);
         break;
       case 'keep_in_top':
-        arr = applyKeepInTop(arr, buildMatcher(rule.matchField, rule.matchValue), rule.topN);
+        arr = applyKeepInTop(arr, buildMatcher(rule.matchField, rule.matchValue), rule.topN, respace);
         break;
       case 'pin_product':
         arr = applyPinProduct(arr, rule.productCode, rule.position);

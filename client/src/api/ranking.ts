@@ -110,16 +110,18 @@ export interface AiAdjustProduct {
   productCode:    string;
   productName:    string;
   categoryPath:   string;
+  season:         string;
   isDisqualified: boolean;
   finalRank:      number;
 }
 
 export interface AiAdjustRequest {
-  categoryId:   string;
-  products:     AiAdjustProduct[];
-  rules?:       AdjustRule[];
-  instruction?: string;
-  smartMix?:    boolean;
+  categoryId:      string;
+  products:        AiAdjustProduct[];
+  rules?:          AdjustRule[];
+  instruction?:    string;
+  smartMix?:       boolean;
+  seasonPreFilter?: SeasonPreFilter;
 }
 
 export interface AiAdjustResponse {

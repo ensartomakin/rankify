@@ -1,4 +1,6 @@
 import { getBaseName, SMART_MIX_GAP } from './smart-mix';
+import { isPreferredSeason } from './season';
+import type { SeasonPreFilter } from '../types/product';
 
 export type AdjustMatchField = 'category' | 'name' | 'code';
 
@@ -31,6 +33,7 @@ export interface AdjustableProduct {
   productCode: string;
   productName: string;
   categoryPath: string;
+  season: string;
   isDisqualified: boolean;
   finalRank: number;
 }
@@ -55,32 +58,39 @@ function buildMatcher<T extends AdjustableProduct>(
 }
 
 // Adayları verilen sırayla, her pozisyon için eligibleAt() kısıtını karşılayan ilk adayı
-// seçerek yerleştirir. respace=true ise ayrıca aynı base name'e (Smart Mix) sahip bir ürünün
-// son SMART_MIX_GAP pozisyonda tekrar etmemesine çalışır — kısıt tatmin edilemezse (zorunlu
-// çakışma) sırayla gevşetilir: önce mix aralığı, sonra (asla olmaması gereken durumda) kısıt.
-// Bu, keep_out_of_top gibi kuralların üst sıralardan çektiği "araya giren" ürünlerin
-// Smart Mix'in oluşturduğu boşlukları taşımasını — yani eşleşen ürünlerin art arda
-// gelmesini — önler.
+// seçerek yerleştirir. groupOf verilmişse önce en düşük kalan grup numarasına sahip adaylar
+// arasından seçim yapılır — bir grubun havuzu tamamen tükenmeden bir sonraki gruba asla
+// geçilmez (örn. sezon ön-sıralaması: tercih edilen sezon ürünleri bitmeden diğer sezon
+// ürünleri gelmez). Bu kısıt HER ZAMAN katıdır, gevşetilmez. respace=true ise ayrıca aynı
+// base name'e (Smart Mix) sahip bir ürünün son SMART_MIX_GAP pozisyonda tekrar etmemesine
+// çalışılır; eligibleAt/respace kısıtları (grup kısıtının aksine) tatmin edilemezse sırayla
+// gevşetilir: önce mix aralığı, sonra pozisyon kısıtı. Bu, keep_out_of_top gibi kuralların
+// üst sıralardan çektiği "araya giren" ürünlerin Smart Mix'in oluşturduğu boşlukları
+// taşımasını — yani eşleşen ürünlerin art arda gelmesini — önler.
 function placeRespectingRule<T extends AdjustableProduct>(
   candidates: T[],
   eligibleAt: (p: T, position: number) => boolean,
-  respace: boolean
+  respace: boolean,
+  groupOf?: (p: T) => number
 ): T[] {
   const result: T[] = [];
   const pool = [...candidates];
 
   while (pool.length > 0) {
     const position = result.length;
+    const minGroup = groupOf ? Math.min(...pool.map(groupOf)) : 0;
+    const inGroup = (p: T) => !groupOf || groupOf(p) === minGroup;
     const recentBases = respace
       ? new Set(result.slice(-SMART_MIX_GAP).map(p => getBaseName(p.productName)))
       : null;
 
     let idx = pool.findIndex(p =>
-      eligibleAt(p, position) && (!recentBases || !recentBases.has(getBaseName(p.productName)))
+      inGroup(p) && eligibleAt(p, position) && (!recentBases || !recentBases.has(getBaseName(p.productName)))
     );
-    if (idx === -1) idx = pool.findIndex(p => eligibleAt(p, position));
+    if (idx === -1) idx = pool.findIndex(p => inGroup(p) && eligibleAt(p, position));
+    if (idx === -1) idx = pool.findIndex(inGroup); // grup içi zorunlu çakışma
     if (idx === -1) {
-      // Hiçbir aday pozisyon kısıtını karşılamıyor — zorunlu çakışma, kalanları olduğu gibi ekle
+      // Teorik olarak imkansız (minGroup tanımı gereği en az bir aday olmalı) — savunma amaçlı
       result.push(...pool.splice(0));
       break;
     }
@@ -91,32 +101,36 @@ function placeRespectingRule<T extends AdjustableProduct>(
 }
 
 // İlk topN sıradan eşleşen ürünleri çıkarır; kalanlar diğer kriterlere göre aldıkları
-// göreceli sırayı korur. respace=true ise Smart Mix aralığı da yeniden sağlanır.
-// Yalnızca AKTİF (dışlanmamış) ürünler arasında yeniden sıralama yapar — dışlanan ürünler
-// (stok yok, görünürlük kapalı vb.) her zaman en sonda, kendi bloklarında kalır; yeterli
-// aktif ürün olmadığında bile bu kural onları listenin başına taşımaz.
+// göreceli sırayı korur. respace=true ise Smart Mix aralığı da yeniden sağlanır. groupOf
+// verilmişse (örn. sezon ön-sıralaması) grup sınırları asla aşılmaz. Yalnızca AKTİF
+// (dışlanmamış) ürünler arasında yeniden sıralama yapar — dışlanan ürünler (stok yok,
+// görünürlük kapalı vb.) her zaman en sonda, kendi bloklarında kalır; yeterli aktif ürün
+// olmadığında bile bu kural onları listenin başına taşımaz.
 function applyKeepOutOfTop<T extends AdjustableProduct>(
   arr: T[],
   matches: (p: T) => boolean,
   topN: number,
-  respace: boolean
+  respace: boolean,
+  groupOf?: (p: T) => number
 ): T[] {
   const active = arr.filter(p => !p.isDisqualified);
   const disqualified = arr.filter(p => p.isDisqualified);
   const n = Math.max(0, Math.min(topN, active.length));
-  const placed = placeRespectingRule(active, (p, pos) => pos >= n || !matches(p), respace);
+  const placed = placeRespectingRule(active, (p, pos) => pos >= n || !matches(p), respace, groupOf);
   return [...placed, ...disqualified];
 }
 
 // İlk topN sırayı, mümkün olduğunca eşleşen ürünlerle doldurur (yetmezse eşleşmeyenlerle tamamlar).
-// Baştaki grup içi ve kalan grup içi göreceli sıra korunur. respace=true ise Smart Mix aralığı
-// bu sıralama üzerine ayrıca yeniden sağlanır. keep_out_of_top ile aynı nedenle sadece aktif
-// ürünler arasında çalışır — dışlanan ürünler her zaman en sonda kalır.
+// Baştaki grup içi ve kalan grup içi göreceli sıra korunur. respace veya groupOf verilmişse bu
+// sıralama üzerine ayrıca yeniden düzenleme yapılır (Smart Mix aralığı / sezon sınırları).
+// keep_out_of_top ile aynı nedenle sadece aktif ürünler arasında çalışır — dışlanan ürünler
+// her zaman en sonda kalır.
 function applyKeepInTop<T extends AdjustableProduct>(
   arr: T[],
   matches: (p: T) => boolean,
   topN: number,
-  respace: boolean
+  respace: boolean,
+  groupOf?: (p: T) => number
 ): T[] {
   const active = arr.filter(p => !p.isDisqualified);
   const disqualified = arr.filter(p => p.isDisqualified);
@@ -130,7 +144,7 @@ function applyKeepInTop<T extends AdjustableProduct>(
   const head = active.filter(p => headSet.has(p));
   const tail = active.filter(p => !headSet.has(p));
   const ordered = [...head, ...tail];
-  const placed = respace ? placeRespectingRule(ordered, () => true, true) : ordered;
+  const placed = (respace || groupOf) ? placeRespectingRule(ordered, () => true, respace, groupOf) : ordered;
   return [...placed, ...disqualified];
 }
 
@@ -153,6 +167,11 @@ export interface ApplyAdjustRulesOptions {
   // varyantlarını art arda getirebilir. pin_product bu ayardan etkilenmez — açık bir
   // sabitleme isteği olduğu için diğer kuralları geçersiz kılması beklenir.
   respaceSameProduct?: boolean;
+  // Önizleme bir sezon ön-sıralaması filtresiyle üretildiyse geçin — aksi halde kural
+  // uygulamaları (özellikle keep_out_of_top), tercih edilen sezon ürünleri tükenmeden diğer
+  // sezon ürünlerini öne çekip sezon gruplandırmasını bozabilir. pin_product bu ayardan
+  // etkilenmez.
+  seasonPreFilter?: SeasonPreFilter;
 }
 
 /**
@@ -168,6 +187,10 @@ export function applyAdjustRules<T extends AdjustableProduct>(
   options: ApplyAdjustRulesOptions = {}
 ): T[] {
   const respace = options.respaceSameProduct ?? false;
+  const seasonFilter = options.seasonPreFilter;
+  const groupOf = (seasonFilter && seasonFilter !== 'none')
+    ? (p: T) => (isPreferredSeason(p.season, seasonFilter) ? 0 : 1)
+    : undefined;
   let arr = [...products].sort((a, b) => a.finalRank - b.finalRank);
 
   const orderedRules = [
@@ -178,10 +201,10 @@ export function applyAdjustRules<T extends AdjustableProduct>(
   for (const rule of orderedRules) {
     switch (rule.type) {
       case 'keep_out_of_top':
-        arr = applyKeepOutOfTop(arr, buildMatcher(rule.matchField, rule.matchValue), rule.topN, respace);
+        arr = applyKeepOutOfTop(arr, buildMatcher(rule.matchField, rule.matchValue), rule.topN, respace, groupOf);
         break;
       case 'keep_in_top':
-        arr = applyKeepInTop(arr, buildMatcher(rule.matchField, rule.matchValue), rule.topN, respace);
+        arr = applyKeepInTop(arr, buildMatcher(rule.matchField, rule.matchValue), rule.topN, respace, groupOf);
         break;
       case 'pin_product':
         arr = applyPinProduct(arr, rule.productCode, rule.position);

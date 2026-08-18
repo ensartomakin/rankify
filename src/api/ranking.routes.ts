@@ -230,6 +230,7 @@ const adjustProductSchema = z.object({
   productCode:    z.string().min(1),
   productName:    z.string(),
   categoryPath:   z.string().optional().default(''),
+  season:         z.string().optional().default(''),
   isDisqualified: z.boolean(),
 });
 
@@ -241,14 +242,18 @@ const aiAdjustSchema = z.object({
   // Önizleme Smart Mix ile üretildiyse true — kural uygulamaları o zaman Smart Mix'in
   // ürettiği boşlukları da yeniden sağlamaya çalışır (aksi halde aynı ürün varyantları
   // art arda gelebilir).
-  smartMix:    z.boolean().optional(),
+  smartMix:        z.boolean().optional(),
+  // Önizleme bir sezon ön-sıralaması filtresiyle üretildiyse — kural uygulamaları o zaman
+  // tercih edilen sezon grubunu tüketmeden diğer sezona geçmez.
+  seasonPreFilter: seasonPreFilterSchema,
 });
 
 rankingRouter.post('/ai-adjust', async (req: Request, res: Response) => {
   const parsed = aiAdjustSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
-  const { products, instruction, smartMix } = parsed.data;
+  const { products, instruction, smartMix, seasonPreFilter } = parsed.data;
+  const adjustOptions = { respaceSameProduct: smartMix, seasonPreFilter };
   const existingRules: AdjustRule[] = parsed.data.rules ?? [];
   let rules: AdjustRule[] = existingRules;
   let addedRules: AdjustRule[] = [];
@@ -260,7 +265,7 @@ rankingRouter.post('/ai-adjust', async (req: Request, res: Response) => {
       );
       // Kullanıcı "1. sıradaki ürün" derken ekranda o an GÖRDÜĞÜ sırayı kastediyor —
       // yani önceki kuralların zaten uygulanmış hali, temel (değişmemiş) liste değil.
-      const currentlyDisplayed = applyAdjustRules(products, existingRules, { respaceSameProduct: smartMix });
+      const currentlyDisplayed = applyAdjustRules(products, existingRules, adjustOptions);
       addedRules = await parseInstructionToRules(instruction, {
         categoryPaths,
         totalProducts: products.length,
@@ -271,7 +276,7 @@ rankingRouter.post('/ai-adjust', async (req: Request, res: Response) => {
       rules = [...rules, ...addedRules];
     }
 
-    const reordered = applyAdjustRules(products, rules, { respaceSameProduct: smartMix });
+    const reordered = applyAdjustRules(products, rules, adjustOptions);
     res.json({ products: reordered, rules, addedRules });
   } catch (err) {
     if (err instanceof AiInstructionError) {

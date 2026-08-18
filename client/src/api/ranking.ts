@@ -119,6 +119,7 @@ export interface AiAdjustRequest {
   products:     AiAdjustProduct[];
   rules?:       AdjustRule[];
   instruction?: string;
+  smartMix?:    boolean;
 }
 
 export interface AiAdjustResponse {

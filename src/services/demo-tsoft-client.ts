@@ -353,10 +353,11 @@ export class DemoTSoftClient implements TSoftClientApi {
     return result;
   }
 
-  async setKategoriSira(payload: TSoftRankPayload[]): Promise<void> {
+  async setKategoriSira(payload: TSoftRankPayload[]): Promise<{ ok: number; fail: number }> {
     for (const item of payload) {
       this.sortOverrides.set(`${item.categoryId}::${item.productCode}`, item.sortOrder);
     }
+    return { ok: payload.length, fail: 0 };
   }
 }
 

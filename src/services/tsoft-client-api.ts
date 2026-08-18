@@ -11,5 +11,5 @@ export interface TSoftClientApi {
   getProductDetails(productCodes: string[]): Promise<TSoftProduct[]>;
 
   getSalesReport(productCodes: string[], days: number): Promise<TSoftSalesData[]>;
-  setKategoriSira(payload: TSoftRankPayload[]): Promise<void>;
+  setKategoriSira(payload: TSoftRankPayload[]): Promise<{ ok: number; fail: number }>;
 }

@@ -664,8 +664,8 @@ export class TSoftClient {
 
   getBaseUrl(): string { return this.creds.apiUrl; }
 
-  async setKategoriSira(payload: TSoftRankPayload[]): Promise<void> {
-    if (payload.length === 0) return;
+  async setKategoriSira(payload: TSoftRankPayload[]): Promise<{ ok: number; fail: number }> {
+    if (payload.length === 0) return { ok: 0, fail: 0 };
 
     const BATCH = 100;
     let ok = 0; let fail = 0;
@@ -698,6 +698,7 @@ export class TSoftClient {
       }
     }
     logger.info(`SetKategoriSira tamamlandı — ${ok} başarılı, ${fail} hatalı (toplam ${payload.length})`);
+    return { ok, fail };
   }
 }
 

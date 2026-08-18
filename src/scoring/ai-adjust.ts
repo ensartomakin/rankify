@@ -92,36 +92,46 @@ function placeRespectingRule<T extends AdjustableProduct>(
 
 // İlk topN sıradan eşleşen ürünleri çıkarır; kalanlar diğer kriterlere göre aldıkları
 // göreceli sırayı korur. respace=true ise Smart Mix aralığı da yeniden sağlanır.
+// Yalnızca AKTİF (dışlanmamış) ürünler arasında yeniden sıralama yapar — dışlanan ürünler
+// (stok yok, görünürlük kapalı vb.) her zaman en sonda, kendi bloklarında kalır; yeterli
+// aktif ürün olmadığında bile bu kural onları listenin başına taşımaz.
 function applyKeepOutOfTop<T extends AdjustableProduct>(
   arr: T[],
   matches: (p: T) => boolean,
   topN: number,
   respace: boolean
 ): T[] {
-  const n = Math.max(0, Math.min(topN, arr.length));
-  return placeRespectingRule(arr, (p, pos) => pos >= n || !matches(p), respace);
+  const active = arr.filter(p => !p.isDisqualified);
+  const disqualified = arr.filter(p => p.isDisqualified);
+  const n = Math.max(0, Math.min(topN, active.length));
+  const placed = placeRespectingRule(active, (p, pos) => pos >= n || !matches(p), respace);
+  return [...placed, ...disqualified];
 }
 
 // İlk topN sırayı, mümkün olduğunca eşleşen ürünlerle doldurur (yetmezse eşleşmeyenlerle tamamlar).
 // Baştaki grup içi ve kalan grup içi göreceli sıra korunur. respace=true ise Smart Mix aralığı
-// bu sıralama üzerine ayrıca yeniden sağlanır.
+// bu sıralama üzerine ayrıca yeniden sağlanır. keep_out_of_top ile aynı nedenle sadece aktif
+// ürünler arasında çalışır — dışlanan ürünler her zaman en sonda kalır.
 function applyKeepInTop<T extends AdjustableProduct>(
   arr: T[],
   matches: (p: T) => boolean,
   topN: number,
   respace: boolean
 ): T[] {
-  const n = Math.max(0, Math.min(topN, arr.length));
-  const matched = arr.filter(matches);
-  const unmatched = arr.filter(p => !matches(p));
+  const active = arr.filter(p => !p.isDisqualified);
+  const disqualified = arr.filter(p => p.isDisqualified);
+  const n = Math.max(0, Math.min(topN, active.length));
+  const matched = active.filter(matches);
+  const unmatched = active.filter(p => !matches(p));
   const headMatched = matched.slice(0, n);
   const remaining = n - headMatched.length;
   const headUnmatched = remaining > 0 ? unmatched.slice(0, remaining) : [];
   const headSet = new Set<T>([...headMatched, ...headUnmatched]);
-  const head = arr.filter(p => headSet.has(p));
-  const tail = arr.filter(p => !headSet.has(p));
+  const head = active.filter(p => headSet.has(p));
+  const tail = active.filter(p => !headSet.has(p));
   const ordered = [...head, ...tail];
-  return respace ? placeRespectingRule(ordered, () => true, true) : ordered;
+  const placed = respace ? placeRespectingRule(ordered, () => true, true) : ordered;
+  return [...placed, ...disqualified];
 }
 
 function applyPinProduct<T extends AdjustableProduct>(

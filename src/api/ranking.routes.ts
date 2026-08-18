@@ -162,7 +162,7 @@ rankingRouter.post('/manual', async (req: Request, res: Response) => {
     res.json({ success: true, count: products.length });
   } catch (err) {
     logger.error(`applyManualRanking hatası [${categoryId}]: ${err}`);
-    res.status(500).json({ error: 'Manuel sıralama uygulanamadı' });
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Manuel sıralama uygulanamadı' });
   }
 });
 

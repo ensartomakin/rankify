@@ -285,9 +285,12 @@ export async function runRankingPipeline(
 
     // Sadece aktif ürünleri gönder — T-Soft dışlananları zaten sona alır
     const toRank = ranked.filter(p => !p.isDisqualified);
-    await client.setKategoriSira(
+    const { ok, fail } = await client.setKategoriSira(
       toRank.map((p, i) => ({ productCode: p.productCode, categoryId, sortOrder: i + 1 }))
     );
+    if (fail > 0) {
+      throw new Error(`T-Soft ${fail} üründe sıralama güncellemesini reddetti (${ok} başarılı, toplam ${toRank.length})`);
+    }
 
     const durationMs = Date.now() - startedAt;
     logger.info(`Pipeline bitti — ${qualifiedCount} aktif, ${disqualifiedCount} disqualified (${durationMs}ms)`);
@@ -434,9 +437,20 @@ export async function applyManualRanking(
   tenantId?: number
 ): Promise<void> {
   const client = await getClientForUser(userId, tenantId);
-  await client.setKategoriSira(
+  const { ok, fail } = await client.setKategoriSira(
     items.map(item => ({ productCode: item.productCode, categoryId, sortOrder: item.rank }))
   );
+
+  if (fail > 0) {
+    const errorMessage = `T-Soft ${fail} üründe sıralama güncellemesini reddetti (${ok} başarılı, toplam ${items.length})`;
+    await insertAuditLog({
+      userId, categoryId, triggeredBy: 'manual',
+      totalProducts: items.length, qualifiedCount: ok, disqualifiedCount: 0,
+      durationMs: 0, status: 'error', errorMessage,
+    }).catch(() => {});
+    throw new Error(errorMessage);
+  }
+
   logger.info(`[applyManualRanking] kategori=${categoryId} ürün=${items.length}`);
   await insertAuditLog({
     userId, categoryId, triggeredBy: 'manual',

@@ -464,6 +464,7 @@ function toAiAdjustProducts(products: ProductPreviewItem[]) {
     productCode:    p.productCode,
     productName:    p.productName,
     categoryPath:   p.categoryPath,
+    season:         p.season,
     isDisqualified: p.isDisqualified,
     finalRank:      p.finalRank,
   }));
@@ -820,7 +821,7 @@ export function Dashboard({ prefill }: Props) {
       // Aktif AI kuralları varsa, yeni önizleme verisine yeniden uygula
       if (aiRules.length > 0) {
         try {
-          const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(result.products), rules: aiRules, smartMix });
+          const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(result.products), rules: aiRules, smartMix, seasonPreFilter });
           setAiRules(resp.rules);
           products = mergeAiOrder(result.products, resp.products);
         } catch {
@@ -843,7 +844,7 @@ export function Dashboard({ prefill }: Props) {
     setMessages(m => [...m, { role: 'user', text: instruction }]);
     setAiInstruction('');
     try {
-      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(previewResult.products), rules: aiRules, instruction, smartMix });
+      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(previewResult.products), rules: aiRules, instruction, smartMix, seasonPreFilter });
       setAiRules(resp.rules);
       setPreviewOrder(applyPinnedPositions(mergeAiOrder(previewResult.products, resp.products)));
       setView('preview');
@@ -869,7 +870,7 @@ export function Dashboard({ prefill }: Props) {
     }
     setAiLoading(true);
     try {
-      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(previewResult.products), rules: newRules, smartMix });
+      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(previewResult.products), rules: newRules, smartMix, seasonPreFilter });
       setAiRules(resp.rules);
       setPreviewOrder(applyPinnedPositions(mergeAiOrder(previewResult.products, resp.products)));
     } catch (err) {

@@ -796,7 +796,7 @@ export function Dashboard({ prefill }: Props) {
     }
     if (rows.length === 0) return;
 
-    const header = ['Ürün Web Servis Kodu', 'Ürün Adı', 'Kategori Web Servis Kodu', 'Kategori Sıralaması'];
+    const header = ['Ürün Web Servis Kodu', 'Ürün Adı', 'Kategori Web Servis Kodu', 'Kategori Sıra No'];
     const csvContent = [header, ...rows]
       .map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
       .join('\r\n');

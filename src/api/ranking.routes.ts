@@ -146,10 +146,13 @@ rankingRouter.get('/debug-sort', requireSuperAdmin, async (req: Request, res: Re
 
 const manualSchema = z.object({
   categoryId: z.string().min(1).max(100),
+  // setKategoriSira zaten T-Soft'a 100'lük gruplar halinde (yeniden denemeli) yazıyor —
+  // buradaki üst sınır sadece aşırı büyük payload'lara karşı bir güvenlik payı, T-Soft'un
+  // kendisi tek istekte kaç ürün kabul ettiğini sınırlamıyor.
   products:   z.array(z.object({
     productCode: z.string().min(1).max(200),
     rank:        z.number().int().min(1),
-  })).min(1).max(500),
+  })).min(1).max(5000),
 });
 
 rankingRouter.post('/manual', async (req: Request, res: Response) => {
@@ -236,7 +239,7 @@ const adjustProductSchema = z.object({
 
 const aiAdjustSchema = z.object({
   categoryId:  z.string().min(1),
-  products:    z.array(adjustProductSchema).min(1).max(2000),
+  products:    z.array(adjustProductSchema).min(1).max(5000),
   rules:       z.array(adjustRuleSchema).max(20).optional(),
   instruction: z.string().trim().min(1).max(500).optional(),
   // Önizleme Smart Mix ile üretildiyse true — kural uygulamaları o zaman Smart Mix'in

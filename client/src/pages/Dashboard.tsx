@@ -1273,13 +1273,13 @@ export function Dashboard({ prefill }: Props) {
           </div>
           <div style={{ padding: '16px 28.3px' }}>
             <p className="text-sm mb-4" style={{ color: 'var(--tx2)', maxWidth: '520px' }}>
-              Ürünleri sıralama öncesinde sezon etiketine (Ek Bilgi 7) göre grupla — tercih ettiğin sezon en yeni yıldan eskiye gelsin, ardından diğer sezon
+              Ürünleri sıralama öncesinde sezon etiketine (Ek Bilgi 7) göre grupla — tercih ettiğin sezon ürünleri kendi sıralarını (puan, stok, bulunurluk) koruyarak öne alınır, ardından diğer sezon; dışlanan ürünler bundan etkilenmez
             </p>
             <div className="flex flex-wrap gap-2">
               {([
                 { value: 'none'          as SeasonPreFilter, label: 'Tümü', desc: 'Sezon filtresi yok' },
-                { value: 'yaz-ilkbahar' as SeasonPreFilter, label: '☀ Yaz · İlkbahar', desc: 'Yaz/İlkbahar ürünleri önce (yeniden eskiye), ardından Kış/Sonbahar' },
-                { value: 'kis-sonbahar' as SeasonPreFilter, label: '❄ Kış · Sonbahar', desc: 'Kış/Sonbahar ürünleri önce (yeniden eskiye), ardından Yaz/İlkbahar' },
+                { value: 'yaz-ilkbahar' as SeasonPreFilter, label: '☀ Yaz · İlkbahar', desc: 'Yaz/İlkbahar ürünleri önce (kendi sıralamasıyla), ardından Kış/Sonbahar' },
+                { value: 'kis-sonbahar' as SeasonPreFilter, label: '❄ Kış · Sonbahar', desc: 'Kış/Sonbahar ürünleri önce (kendi sıralamasıyla), ardından Yaz/İlkbahar' },
               ] as { value: SeasonPreFilter; label: string; desc: string }[]).map(opt => {
                 const isActive = seasonPreFilter === opt.value;
                 return (

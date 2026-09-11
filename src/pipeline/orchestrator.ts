@@ -67,6 +67,7 @@ import {
   buildFinalRanking,
 } from '../scoring/ranker';
 import { applySmartMix } from '../scoring/smart-mix';
+import { isPreferredSeason } from '../scoring/season';
 import { logger } from '../utils/logger';
 import { sleep } from '../utils/helpers';
 import { insertAuditLog } from '../db/audit.repo';
@@ -75,60 +76,22 @@ import type { TSoftProduct, TSoftSalesData } from '../types/tsoft';
 
 // ── Sezon ön-sıralama ────────────────────────────────────────────────────────
 
-function parseSeasonInfo(season: string): { year: number; isYaz: boolean; isIlkbahar: boolean; isKis: boolean; isSonbahar: boolean } {
-  const yearMatch = season.match(/(\d{4})/);
-  const year = yearMatch ? parseInt(yearMatch[1], 10) : 0;
-  // Büyük harfli T-Soft formatı: "2023-KIŞ", "2025-İLKBAHAR" vb.
-  // Güvenli karşılaştırma için ASCII normalize edilmiş uppercase kullan
-  const upper = season.toUpperCase();
-  return {
-    year,
-    isYaz:      upper.includes('YAZ'),
-    isIlkbahar: upper.includes('LKBAHAR'),   // İLKBAHAR veya ILKBAHAR her ikisini de yakalar
-    isKis:      upper.includes('KI'),        // KIŞ veya KIS her ikisini de yakalar
-    isSonbahar: upper.includes('SONBAHAR'),
-  };
-}
-
-/** Sezon etiketi için sıralama anahtarı üretir — yüksek değer = önce gelir. */
-function seasonSortKey(season: string, filter: SeasonPreFilter): number {
-  if (!season || filter === 'none') return 0;
-  const { year, isYaz, isIlkbahar, isKis, isSonbahar } = parseSeasonInfo(season);
-  if (year === 0 && !isYaz && !isIlkbahar && !isKis && !isSonbahar) return 0;
-
-  if (filter === 'yaz-ilkbahar') {
-    const isPreferred = isYaz || isIlkbahar;
-    const subScore    = isYaz ? 2 : isIlkbahar ? 1 : isSonbahar ? 2 : isKis ? 1 : 0;
-    return isPreferred ? 1_000_000_000 + year * 10 + subScore : year * 10 + subScore;
-  } else {
-    const isPreferred = isKis || isSonbahar;
-    const subScore    = isKis ? 2 : isSonbahar ? 1 : isYaz ? 2 : isIlkbahar ? 1 : 0;
-    return isPreferred ? 1_000_000_000 + year * 10 + subScore : year * 10 + subScore;
-  }
-}
-
 function applySeasonPreSort(products: NormalizedProduct[], filter: SeasonPreFilter): NormalizedProduct[] {
   if (!filter || filter === 'none') return products;
 
   const qualified    = products.filter(p => !p.isDisqualified);
   const disqualified = products.filter(p =>  p.isDisqualified);
 
-  // Tercih edilen ve edilmeyen sezon grupları — kriter puanı sırası (finalRank) korunur
-  const preferred  = qualified.filter(p => seasonSortKey(p.season, filter) >= 1_000_000_000);
-  const other      = qualified.filter(p => seasonSortKey(p.season, filter) <  1_000_000_000);
+  // Tercih edilen sezona uyan ve uymayan gruplar — her grubun İÇİNDE mevcut sıralama
+  // (kriter puanı, stok/bulunurluk dahil tüm filtreler) aynen korunur; sadece sezon
+  // eşleşmesine göre ikiye bölünür. Sezon hiçbir zaman kriter puanının yerini almaz:
+  // dışlanan (isDisqualified) ürünler bu bölünmeden etkilenmeden en sonda kalır, ve
+  // tercih edilen sezona uyan ama puanı düşük (örn. stoğu tükenmek üzere olan) bir ürün
+  // salt sezon eşleşmesi yüzünden üst sıralara sıçramaz.
+  const preferred = qualified.filter(p => isPreferredSeason(p.season, filter));
+  const other     = qualified.filter(p => !isPreferredSeason(p.season, filter));
 
-  // Her iki grup kendi içinde tercih sırasına göre sıralanır (yıl azalan)
-  const sortGroup = (arr: NormalizedProduct[]) =>
-    [...arr].sort((a, b) => {
-      const diff = seasonSortKey(b.season, filter) - seasonSortKey(a.season, filter);
-      return diff !== 0 ? diff : a.finalRank - b.finalRank;
-    });
-
-  const result = [
-    ...sortGroup(preferred),
-    ...sortGroup(other),
-    ...disqualified,
-  ];
+  const result = [...preferred, ...other, ...disqualified];
 
   return result.map((p, i) => ({ ...p, finalRank: i + 1 }));
 }
@@ -274,12 +237,14 @@ export async function runRankingPipeline(
     normalized = computeRankingScores(normalized, config);
 
     // Phase 3: Sıralama ve yazma
-    // 1) Kriter puanı → 2) Smart mix → 3) Sezon gruplandırması (en son, smart mix'e dokunmaz)
+    // 1) Kriter puanı → 2) Sezon gruplandırması → 3) Smart mix (en son — böylece sezon
+    // gruplandırmasının bir araya getirdiği aynı model/farklı renk ürünler arasına da
+    // Smart Mix'in araya koyduğu minimum ürün mesafesi bozulmadan uygulanır)
     let ranked = buildFinalRanking(normalized);
-    if (config.smartMix) ranked = applySmartMix(ranked);
     if (config.seasonPreFilter && config.seasonPreFilter !== 'none') {
       ranked = applySeasonPreSort(ranked, config.seasonPreFilter);
     }
+    if (config.smartMix) ranked = applySmartMix(ranked);
     const disqualifiedCount = ranked.filter(p => p.isDisqualified).length;
     const qualifiedCount    = ranked.length - disqualifiedCount;
 
@@ -387,10 +352,10 @@ export async function previewRanking(
   normalized = applyDisqualification(normalized, availabilityThreshold);
   normalized = computeRankingScores(normalized, config);
   let ranked = buildFinalRanking(normalized);
-  if (config.smartMix) ranked = applySmartMix(ranked);
   if (config.seasonPreFilter && config.seasonPreFilter !== 'none') {
     ranked = applySeasonPreSort(ranked, config.seasonPreFilter);
   }
+  if (config.smartMix) ranked = applySmartMix(ranked);
   const qualifiedCount   = ranked.filter(p => !p.isDisqualified).length;
   const disqualifiedCount = ranked.length - qualifiedCount;
 

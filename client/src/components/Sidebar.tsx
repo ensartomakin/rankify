@@ -103,10 +103,11 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
 
     {/* ── Desktop sidebar ───────────────────── */}
     <aside
-      className="hidden md:flex h-full flex-col shrink-0 overflow-hidden transition-all duration-300 rounded-2xl"
+      className="hidden md:flex h-full flex-col shrink-0 overflow-hidden transition-all duration-300"
       style={{
         width: collapsed ? '68px' : '230px',
         background: 'var(--sb-bg)',
+        borderRadius: '20px',
         margin: '0',
       }}
     >
@@ -115,22 +116,22 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
         {/* Logo */}
         {collapsed ? (
           <div className="w-full flex justify-center">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: '#E23260' }}>
-              <span className="text-white font-bold text-sm font-serif">R</span>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: 'var(--acc)' }}>
+              <span className="font-bold text-sm font-serif" style={{ color: 'var(--cta-tx)' }}>R</span>
             </div>
           </div>
         ) : (
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: '#E23260' }}>
-              <span className="text-white font-bold text-sm font-serif">R</span>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: 'var(--acc)' }}>
+              <span className="font-bold text-sm font-serif" style={{ color: 'var(--cta-tx)' }}>R</span>
             </div>
             <div className="min-w-0">
-              <div className="text-lg font-bold tracking-tight leading-none font-serif" style={{ color: '#1E3309' }}>
+              <div className="text-lg font-bold tracking-tight leading-none font-serif" style={{ color: 'var(--sb-tx-act)' }}>
                 Rankify
               </div>
-              <div className="text-[9px] font-semibold mt-0.5 tracking-widest uppercase" style={{ color: '#A04060' }}>
+              <div className="text-[9px] font-semibold mt-0.5 tracking-widest uppercase" style={{ color: 'var(--sb-tx)' }}>
                 T-Soft
               </div>
             </div>
@@ -142,7 +143,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
           <button
             onClick={() => setCollapsed(c => !c)}
             className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0 transition-all"
-            style={{ color: '#A04060', background: 'rgba(226,50,96,0.08)' }}
+            style={{ color: 'var(--sb-tx)', background: 'rgba(28,202,199,0.08)' }}
             title="Daralt"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
@@ -158,7 +159,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
           <button
             onClick={() => setCollapsed(false)}
             className="w-7 h-7 flex items-center justify-center rounded-lg transition-all"
-            style={{ color: '#A04060', background: 'rgba(226,50,96,0.08)' }}
+            style={{ color: 'var(--sb-tx)', background: 'rgba(28,202,199,0.08)' }}
             title="Genişlet"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
@@ -175,7 +176,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
       <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
         {!collapsed && (
           <div className="text-[9px] font-semibold uppercase tracking-[0.12em] px-2 pb-2 pt-0.5"
-            style={{ color: '#A04060' }}>
+            style={{ color: 'var(--sb-tx)' }}>
             Menü
           </div>
         )}
@@ -195,9 +196,8 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
                 padding: collapsed ? '9px 0' : '8px 10px',
                 justifyContent: collapsed ? 'center' : 'flex-start',
                 background: active ? 'var(--sb-act-bg)' : 'transparent',
-                color: active ? '#1E3309' : 'var(--sb-tx)',
-                border: active ? '1px solid #F8CDD5' : '1px solid transparent',
-                boxShadow: active ? '0 1px 4px rgba(226,50,96,0.1)' : 'none',
+                color: active ? 'var(--sb-tx-act)' : 'var(--sb-tx)',
+                border: '1px solid transparent',
               }}
               onMouseEnter={e => {
                 if (!active) {
@@ -277,9 +277,9 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
             style={{
-              background: '#E23260',
-              color: '#FFFFFF',
-              border: '1px solid #C82050',
+              background: 'var(--acc)',
+              color: 'var(--cta-tx)',
+              border: 'none',
             }}
             title={collapsed ? (user?.name ?? user?.email) : undefined}
           >
@@ -289,10 +289,10 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
           {!collapsed && (
             <>
               <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-semibold truncate leading-none" style={{ color: '#1E3309' }}>
+                <div className="text-[12px] font-semibold truncate leading-none" style={{ color: 'var(--sb-tx-act)' }}>
                   {user?.name ?? user?.email?.split('@')[0]}
                 </div>
-                <div className="text-[10px] truncate mt-0.5 leading-none" style={{ color: '#A04060' }}>
+                <div className="text-[10px] truncate mt-0.5 leading-none" style={{ color: 'var(--sb-tx)' }}>
                   {user?.role === 'super_admin' ? 'Süper Admin' : user?.email}
                 </div>
               </div>

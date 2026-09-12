@@ -12,7 +12,7 @@ function Badge({ active }: { active: boolean }) {
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold"
       style={active
-        ? { background: 'rgba(132,154,40,0.12)', color: '#849A28', border: '1px solid rgba(132,154,40,0.3)' }
+        ? { background: 'var(--ok-bg)', color: 'var(--ok-tx)', border: '1px solid var(--ok-bd)' }
         : { background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)' }
       }>
       {active ? 'Aktif' : 'Pasif'}
@@ -50,7 +50,7 @@ function TenantRow({ tenant, onSelect, onToggle, onDelete }: {
       <div className="flex items-center gap-2 shrink-0">
         <button onClick={onSelect}
           className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all"
-          style={{ background: 'var(--acc-bg)', color: 'var(--acc)', border: '1px solid rgba(226,50,96,0.2)' }}>
+          style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid rgba(28,202,199,0.2)' }}>
           Yönet
         </button>
         <button onClick={onToggle}
@@ -103,10 +103,10 @@ function NewTenantForm({ onCreated, onCancel }: { onCreated: (t: Tenant) => void
   }
 
   const inputSt = { background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' };
-  const inputCls = 'w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none transition-all';
+  const inputCls = 'w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none transition-all';
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl p-5 space-y-4"
+    <form onSubmit={handleSubmit} className="rounded-[20px] p-5 space-y-4"
       style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
       <div className="text-sm font-semibold" style={{ color: 'var(--tx1)' }}>Yeni Marka Ekle</div>
       <div className="grid grid-cols-2 gap-3">
@@ -127,18 +127,18 @@ function NewTenantForm({ onCreated, onCancel }: { onCreated: (t: Tenant) => void
           className={inputCls} style={inputSt} />
       </div>
       {error && (
-        <div className="px-4 py-3 rounded-xl text-[13px]"
+        <div className="px-4 py-3 rounded-lg text-[13px]"
           style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
           {error}
         </div>
       )}
       <div className="flex gap-3">
-        <button type="button" onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+        <button type="button" onClick={onCancel} className="flex-1 py-2.5 rounded-lg text-sm font-semibold"
           style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
           İptal
         </button>
-        <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
-          style={loading ? { background: 'var(--surface2)', cursor: 'not-allowed' } : { background: '#E23260' }}>
+        <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-lg text-sm font-semibold"
+          style={loading ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)' } : { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }}>
           {loading ? <Spinner /> : 'Ekle'}
         </button>
       </div>
@@ -193,7 +193,7 @@ function TenantDetail({ tenant, onBack, onImpersonate }: {
   }
 
   const inputSt  = { background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' };
-  const inputCls = 'w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none transition-all';
+  const inputCls = 'w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none transition-all';
 
   return (
     <div className="space-y-6">
@@ -208,8 +208,8 @@ function TenantDetail({ tenant, onBack, onImpersonate }: {
           <div className="text-xs" style={{ color: 'var(--tx3)' }}>/{tenant.slug}</div>
         </div>
         <button onClick={handleImpersonate} disabled={impLoad}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold"
-          style={{ background: 'rgba(226,50,96,0.1)', color: '#E23260', border: '1px solid rgba(226,50,96,0.25)' }}>
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold"
+          style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)', border: '1px solid rgba(28,202,199,0.25)' }}>
           {impLoad ? <Spinner /> : (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
@@ -220,7 +220,7 @@ function TenantDetail({ tenant, onBack, onImpersonate }: {
       </div>
 
       {/* Kullanıcı listesi */}
-      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+      <div className="rounded-[20px] overflow-hidden" style={{ border: '1px solid var(--border)' }}>
         <div className="px-5 py-3 flex items-center justify-between"
           style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
           <span className="text-sm font-semibold" style={{ color: 'var(--tx1)' }}>
@@ -228,7 +228,7 @@ function TenantDetail({ tenant, onBack, onImpersonate }: {
           </span>
           <button onClick={() => setShowForm(s => !s)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold"
-            style={{ background: '#E23260', color: '#fff' }}>
+            style={{ background: 'var(--cta-bg)', color: 'var(--cta-tx)' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
@@ -255,18 +255,18 @@ function TenantDetail({ tenant, onBack, onImpersonate }: {
               </select>
             </div>
             {formErr && (
-              <div className="px-3 py-2 rounded-xl text-[12px]"
+              <div className="px-3 py-2 rounded-lg text-[12px]"
                 style={{ background: 'var(--err-bg)', color: 'var(--err-tx)' }}>{formErr}</div>
             )}
             <div className="flex gap-2">
               <button type="button" onClick={() => setShowForm(false)}
-                className="flex-1 py-2 rounded-xl text-sm font-semibold"
+                className="flex-1 py-2 rounded-lg text-sm font-semibold"
                 style={{ background: 'var(--surface)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
                 İptal
               </button>
               <button type="submit" disabled={formLoad}
-                className="flex-1 py-2 rounded-xl text-sm font-semibold text-white"
-                style={{ background: '#E23260' }}>
+                className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: 'var(--cta-bg)', color: 'var(--cta-tx)' }}>
                 {formLoad ? 'Ekleniyor…' : 'Ekle'}
               </button>
             </div>
@@ -286,8 +286,8 @@ function TenantDetail({ tenant, onBack, onImpersonate }: {
             style={{ background: 'var(--surface)', borderTop: idx > 0 ? '1px solid var(--border)' : 'none' }}>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold"
               style={{
-                background: u.role === 'super_admin' ? '#E23260' : 'var(--surface2)',
-                color: u.role === 'super_admin' ? '#fff' : 'var(--tx2)',
+                background: u.role === 'super_admin' ? 'var(--acc)' : 'var(--surface2)',
+                color: u.role === 'super_admin' ? 'var(--cta-tx)' : 'var(--tx2)',
               }}>
               {(u.name ?? u.email).slice(0, 2).toUpperCase()}
             </div>
@@ -297,7 +297,7 @@ function TenantDetail({ tenant, onBack, onImpersonate }: {
             </div>
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
               style={u.role === 'super_admin'
-                ? { background: 'rgba(226,50,96,0.1)', color: '#E23260' }
+                ? { background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)' }
                 : { background: 'var(--surface2)', color: 'var(--tx2)' }}>
               {u.role === 'super_admin' ? 'Süper Admin' : 'Kullanıcı'}
             </span>
@@ -364,10 +364,10 @@ export function ProducerDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between px-8 py-4 border-b" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full" style={{ background: '#E23260' }} />
+          <div className="w-2 h-2 rounded-full" style={{ background: 'var(--acc)' }} />
           <span className="font-serif text-sm font-semibold" style={{ color: 'var(--tx1)' }}>Rankify</span>
           <span className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full"
-            style={{ background: 'rgba(226,50,96,0.1)', color: '#E23260' }}>Üretici Paneli</span>
+            style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)' }}>Üretici Paneli</span>
         </div>
         <button onClick={logout} className="text-[13px] font-semibold" style={{ color: 'var(--tx2)' }}>
           Çıkış Yap
@@ -385,8 +385,8 @@ export function ProducerDashboard() {
           </div>
           {!selected && !showForm && (
             <button onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
-              style={{ background: '#E23260', boxShadow: '0 3px 12px rgba(226,50,96,0.3)' }}>
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold"
+              style={{ background: 'var(--cta-bg)', color: 'var(--cta-tx)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
@@ -396,7 +396,7 @@ export function ProducerDashboard() {
         </div>
 
         {impErr && (
-          <div className="px-4 py-3 rounded-xl text-[13px]"
+          <div className="px-4 py-3 rounded-lg text-[13px]"
             style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
             {impErr}
           </div>
@@ -417,12 +417,12 @@ export function ProducerDashboard() {
             <Spinner /> Yükleniyor…
           </div>
         ) : tenants.length === 0 ? (
-          <div className="rounded-2xl py-16 text-center" style={{ border: '1px dashed var(--border)' }}>
+          <div className="rounded-[20px] py-16 text-center" style={{ border: '1px dashed var(--border)' }}>
             <div className="text-sm font-semibold mb-1" style={{ color: 'var(--tx2)' }}>Henüz marka yok</div>
             <div className="text-[13px]" style={{ color: 'var(--tx3)' }}>İlk markanızı ekleyerek başlayın</div>
           </div>
         ) : (
-          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+          <div className="rounded-[20px] overflow-hidden" style={{ border: '1px solid var(--border)' }}>
             <div className="px-5 py-3 text-xs font-semibold uppercase tracking-widest"
               style={{ background: 'var(--surface)', color: 'var(--tx3)', borderBottom: '1px solid var(--border)' }}>
               Tüm Markalar

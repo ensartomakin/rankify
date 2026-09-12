@@ -126,11 +126,11 @@ function CurrentCard({
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden flex flex-col"
+    <div className="rounded-[20px] overflow-hidden flex flex-col"
       style={{
         background: 'var(--surface)',
         border: isPinned ? '1.5px solid var(--acc-bd)' : '1px solid var(--border)',
-        boxShadow: isPinned ? '0 2px 12px rgba(226,50,96,0.12)' : '0 1px 4px rgba(0,0,0,0.06)',
+        
       }}>
 
       {/* Drag handle */}
@@ -166,7 +166,7 @@ function CurrentCard({
               onBlur={commitEdit}
               onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(false); }}
               className="w-14 text-center text-xs font-bold rounded-full px-2 py-1 outline-none"
-              style={{ background: 'var(--acc)', color: '#fff', border: '2px solid var(--acc)' }}
+              style={{ background: 'var(--acc)', color: 'var(--cta-tx)', border: '2px solid var(--acc)' }}
               onClick={e => e.stopPropagation()} />
           ) : (
             <button onClick={startEdit}
@@ -182,7 +182,7 @@ function CurrentCard({
           onClick={e => { e.stopPropagation(); onTogglePin(); }}
           className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full transition-all"
           style={isPinned
-            ? { background: 'var(--acc)', color: '#fff', boxShadow: '0 2px 8px rgba(226,50,96,0.4)' }
+            ? { background: 'var(--acc)', color: 'var(--cta-tx)' }
             : { background: 'rgba(0,0,0,0.45)', color: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(4px)' }
           }
           title={isPinned ? 'Sabitlemeyi kaldır' : 'Bu konuma sabitle'}>
@@ -266,11 +266,11 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden flex flex-col"
+    <div className="rounded-[20px] overflow-hidden flex flex-col"
       style={{
         background: 'var(--surface)',
         border: isPinned ? '1.5px solid var(--acc-bd)' : p.isDisqualified ? '1.5px solid var(--err-bd)' : '1px solid var(--border)',
-        boxShadow: isPinned ? '0 2px 12px rgba(226,50,96,0.12)' : '0 1px 4px rgba(0,0,0,0.06)',
+        
       }}>
 
       {/* Drag handle */}
@@ -306,7 +306,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
               onBlur={commitEdit}
               onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(false); }}
               className="w-14 text-center text-xs font-bold rounded-full px-2 py-1 outline-none"
-              style={{ background: 'var(--acc)', color: '#fff', border: '2px solid var(--acc)' }}
+              style={{ background: 'var(--acc)', color: 'var(--cta-tx)', border: '2px solid var(--acc)' }}
               onClick={e => e.stopPropagation()} />
           ) : (
             <button onClick={startEdit}
@@ -333,7 +333,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
           onClick={e => { e.stopPropagation(); onTogglePin(); }}
           className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full transition-all"
           style={isPinned
-            ? { background: 'var(--acc)', color: '#fff', boxShadow: '0 2px 8px rgba(226,50,96,0.4)' }
+            ? { background: 'var(--acc)', color: 'var(--cta-tx)' }
             : { background: 'rgba(0,0,0,0.45)', color: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(4px)' }
           }
           title={isPinned ? 'Sabitlemeyi kaldır' : 'Bu konuma sabitle'}>
@@ -363,7 +363,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
 
       {/* Puan dağılımı */}
       <div className="px-3 pb-1">
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+        <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {criteria.map(c => {
             const key = c.key as CriterionKey;
             const contrib = p.criteriaContributions[key] ?? 0;
@@ -487,7 +487,7 @@ function mergeAiOrder(
 /* ─── Ana bileşen ─── */
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
-const cardSt = { background: 'var(--surface)', border: '1.5px solid var(--border)', boxShadow: '0 2px 16px rgba(226,50,96,0.09), 0 1px 3px rgba(0,0,0,0.06)' };
+const cardSt = { background: 'var(--surface)', border: '1px solid var(--border)' };
 
 interface Props { prefill?: SavedConfig; }
 
@@ -993,19 +993,16 @@ export function Dashboard({ prefill }: Props) {
         <div>
           {/* wrapper: border+shadow ama overflow:visible — dropdown taşabilsin */}
           <div className="relative" style={{
-            borderRadius: '16px',
-            border: categoryId ? '2px solid #E23260' : '2px solid var(--border)',
+            borderRadius: '20px',
+            border: categoryId ? '1.5px solid var(--acc)' : '1.5px solid var(--border-strong)',
             background: 'var(--surface)',
-            boxShadow: categoryId
-              ? '0 4px 24px rgba(226,50,96,0.14)'
-              : '0 2px 8px rgba(0,0,0,0.04)',
-            transition: 'border-color 0.2s, box-shadow 0.2s',
+            transition: 'border-color 0.2s',
           }}>
             {/* Search icon */}
             <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none z-10">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                 className="w-5 h-5"
-                style={{ color: categoryId ? '#E23260' : 'var(--tx3)' }}>
+                style={{ color: categoryId ? 'var(--acc)' : 'var(--tx3)' }}>
                 <path strokeLinecap="round" strokeLinejoin="round"
                   d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z" />
               </svg>
@@ -1024,8 +1021,8 @@ export function Dashboard({ prefill }: Props) {
             {selectedCategories.length > 0 && (
               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none
                               flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                style={{ background: 'rgba(226,50,96,0.08)', border: '1px solid rgba(226,50,96,0.22)' }}>
-                <span className="text-[11px] font-mono font-semibold" style={{ color: '#E23260' }}>
+                style={{ background: 'rgba(28,202,199,0.08)', border: '1px solid rgba(28,202,199,0.22)' }}>
+                <span className="text-[11px] font-mono font-semibold" style={{ color: 'var(--acc-tx)' }}>
                   {selectedCategories.length > 1 ? `${selectedCategories.length} kategori` : `#${categoryId}`}
                 </span>
               </div>
@@ -1049,7 +1046,7 @@ export function Dashboard({ prefill }: Props) {
                   onClick={() => handleToggleCategory(id, name)}
                   className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all"
                   style={idx === 0
-                    ? { background: 'rgba(226,50,96,0.12)', border: '1px solid rgba(226,50,96,0.3)', color: '#E23260' }
+                    ? { background: 'rgba(28,202,199,0.12)', border: '1px solid rgba(28,202,199,0.3)', color: 'var(--acc-tx)' }
                     : { background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx2)' }}>
                   {idx === 0 && <span style={{ fontSize: '9px' }}>★</span>}
                   <span>{name || id}</span>
@@ -1063,9 +1060,9 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         {/* Ağırlık dağılımı */}
-        <div style={{ ...cardSt, borderRadius: '16px' }}>
+        <div style={{ ...cardSt, borderRadius: '20px' }}>
           {/* Kart başlık şeridi */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '16px 16px 0 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
             <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
@@ -1086,12 +1083,12 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         {/* Strateji Şablonları — ayrı kart */}
-        <div ref={scenarioRef} style={{ borderRadius: '16px', overflow: 'hidden', border: '1.5px solid var(--acc-bd)', boxShadow: '0 2px 20px rgba(226,50,96,0.10), 0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div ref={scenarioRef} style={{ borderRadius: '20px', overflow: 'hidden', border: '1.5px solid var(--acc-bd)' }}>
           {/* Başlık */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'linear-gradient(90deg, rgba(226,50,96,0.10) 0%, rgba(226,50,96,0.04) 100%)', borderBottom: '1px solid var(--acc-bd)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'var(--acc-bg)', borderBottom: '1px solid var(--acc-bd)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: 'var(--acc)', boxShadow: '0 2px 8px rgba(226,50,96,0.35)' }}>
+                style={{ background: 'var(--acc)' }}>
                 <span style={{ fontSize: '14px', lineHeight: 1 }}>⚡</span>
               </div>
               <div>
@@ -1120,7 +1117,7 @@ export function Dashboard({ prefill }: Props) {
                     padding: '10px 12px', borderRadius: '12px', cursor: 'pointer', textAlign: 'left',
                     border: isSelected ? '1.5px solid var(--acc-bd)' : '1px solid var(--border)',
                     background: isSelected ? 'var(--acc-bg)' : 'var(--surface2)',
-                    boxShadow: isSelected ? '0 0 0 3px rgba(226,50,96,0.08)' : 'none',
+                    
                     transition: 'all 0.15s',
                   }}
                   onMouseEnter={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface)'; } }}
@@ -1151,9 +1148,9 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         {/* Sıralama Kriterleri */}
-        <div style={{ ...cardSt, borderRadius: '16px' }}>
+        <div style={{ ...cardSt, borderRadius: '20px' }}>
           {/* Kart başlık şeridi */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '16px 16px 0 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
             <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
                 <path strokeLinecap="round" strokeLinejoin="round"
@@ -1176,7 +1173,7 @@ export function Dashboard({ prefill }: Props) {
               ))}
               {criteria.length < 5 && (
                 <button onClick={addCriterion}
-                  className="flex flex-col items-center justify-center gap-2 rounded-2xl transition-all"
+                  className="flex flex-col items-center justify-center gap-2 rounded-lg transition-all"
                   style={{
                     minHeight: '160px', border: '2px dashed var(--border)',
                     background: 'transparent', cursor: 'pointer', color: 'var(--tx3)',
@@ -1192,8 +1189,8 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         {/* Beden Bulunurluk Eşiği */}
-        <div style={{ ...cardSt, borderRadius: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '16px 16px 0 0' }}>
+        <div style={{ ...cardSt, borderRadius: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
             <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
@@ -1208,7 +1205,7 @@ export function Dashboard({ prefill }: Props) {
               <p className="text-sm" style={{ color: 'var(--tx2)', maxWidth: '460px' }}>
                 Bu eşiğin altındaki beden oranına sahip çok bedenli ürünler sıralamadan dışlanır
               </p>
-              <span className="text-lg font-bold tabular-nums px-4 py-1.5 rounded-xl shrink-0 ml-6"
+              <span className="text-lg font-bold tabular-nums px-4 py-1.5 rounded-lg shrink-0 ml-6"
                 style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
                 %{Math.round(threshold * 100)}
               </span>
@@ -1225,8 +1222,8 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         {/* Smart Mix toggle */}
-        <div style={{ ...cardSt, borderRadius: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '16px 16px 0 0' }}>
+        <div style={{ ...cardSt, borderRadius: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
             <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
               style={{ background: smartMix ? 'var(--acc-bg)' : 'var(--surface3)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke={smartMix ? 'var(--acc)' : 'var(--tx3)'} strokeWidth="2" className="w-3.5 h-3.5">
@@ -1247,15 +1244,15 @@ export function Dashboard({ prefill }: Props) {
               <span style={{
                 position: 'absolute', top: 4, left: smartMix ? 26 : 4,
                 width: 18, height: 18, borderRadius: '50%', background: '#fff',
-                transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                transition: 'left 0.2s',
               }} />
             </button>
           </div>
         </div>
 
         {/* Sezon Filtresi */}
-        <div style={{ ...cardSt, borderRadius: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '16px 16px 0 0' }}>
+        <div style={{ ...cardSt, borderRadius: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
             <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
@@ -1285,12 +1282,12 @@ export function Dashboard({ prefill }: Props) {
                 return (
                   <button key={opt.value} onClick={() => setSeasonPreFilter(opt.value)}
                     title={opt.desc}
-                    className="flex flex-col items-start gap-0.5 px-4 py-2.5 rounded-xl transition-all"
+                    className="flex flex-col items-start gap-0.5 px-4 py-2.5 rounded-lg transition-all"
                     style={{
                       border: isActive ? '1.5px solid var(--acc-bd)' : '1px solid var(--border)',
                       background: isActive ? 'var(--acc-bg)' : 'var(--surface2)',
                       cursor: 'pointer',
-                      boxShadow: isActive ? '0 0 0 3px rgba(226,50,96,0.08)' : 'none',
+                      
                     }}
                     onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; } }}
                     onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; } }}>
@@ -1305,19 +1302,19 @@ export function Dashboard({ prefill }: Props) {
 
         {/* Mesajlar */}
         {previewError && previewStatus === 'error' && (
-          <div className="px-5 py-3.5 rounded-xl text-sm font-medium"
+          <div className="px-5 py-3.5 rounded-lg text-sm font-medium"
             style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
             ✕ Önizleme hatası: {previewError}
           </div>
         )}
         {currentError && currentStatus === 'error' && (
-          <div className="px-5 py-3.5 rounded-xl text-sm font-medium"
+          <div className="px-5 py-3.5 rounded-lg text-sm font-medium"
             style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
             ✕ Yükleme hatası: {currentError}
           </div>
         )}
         {message && (
-          <div className="px-5 py-3.5 rounded-xl text-sm font-medium flex items-center gap-3"
+          <div className="px-5 py-3.5 rounded-lg text-sm font-medium flex items-center gap-3"
             style={isConfigError
               ? { background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }
               : { background: 'var(--ok-bg)',  border: '1px solid var(--ok-bd)',  color: 'var(--ok-tx)'  }
@@ -1328,16 +1325,16 @@ export function Dashboard({ prefill }: Props) {
 
         {/* Ürün listesi alanı */}
         {categoryId && (
-          <div style={{ border: '1px solid var(--border)', borderRadius: '16px' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: '20px' }}>
 
             {/* Liste başlığı / araç çubuğu */}
-            <div style={{ padding: '12px 20px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', borderRadius: '16px 16px 0 0' }}>
+            <div style={{ padding: '12px 20px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
               {/* Üst satır: sekmeler + arama */}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 {/* Sol: görünüm sekmeleri */}
                 <div className="flex items-center gap-2">
                   {previewResult ? (
-                    <div className="flex rounded-xl overflow-hidden"
+                    <div className="flex rounded-lg overflow-hidden"
                       style={{ border: '1px solid var(--border)' }}>
                       {(['current', 'preview'] as const).map(v => (
                         <button key={v} onClick={() => setView(v)}
@@ -1482,13 +1479,13 @@ export function Dashboard({ prefill }: Props) {
 
               {/* Boş durum */}
               {!isBusy && hasProducts && filteredCurrent.length === 0 && view === 'current' && (
-                <div className="flex items-center justify-center py-12 rounded-xl"
+                <div className="flex items-center justify-center py-12 rounded-lg"
                   style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                   <p style={{ color: 'var(--tx3)' }}>Ürün bulunamadı</p>
                 </div>
               )}
               {!isBusy && previewResult && filteredPreview.length === 0 && view === 'preview' && (
-                <div className="flex items-center justify-center py-12 rounded-xl"
+                <div className="flex items-center justify-center py-12 rounded-lg"
                   style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                   <p style={{ color: 'var(--tx3)' }}>Ürün bulunamadı</p>
                 </div>
@@ -1499,9 +1496,9 @@ export function Dashboard({ prefill }: Props) {
 
         {/* Kategori seçilmemiş boş durum */}
         {!categoryId && (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 rounded-2xl"
+          <div className="flex flex-col items-center justify-center gap-3 py-16 rounded-[20px]"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'var(--acc-bg)' }}>
+            <div className="w-14 h-14 rounded-lg flex items-center justify-center" style={{ background: 'var(--acc-bg)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="1.5" className="w-7 h-7">
                 <path strokeLinecap="round" strokeLinejoin="round"
                   d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
@@ -1537,7 +1534,7 @@ export function Dashboard({ prefill }: Props) {
 
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setCriteria(DEFAULT_CRITERIA)}
-            className="px-4 py-2 rounded-xl text-[13px] font-medium transition-all whitespace-nowrap"
+            className="px-4 py-2 rounded-lg text-[13px] font-medium transition-all whitespace-nowrap"
             style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--tx3)', cursor: 'pointer' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx2)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
@@ -1545,7 +1542,7 @@ export function Dashboard({ prefill }: Props) {
           </button>
 
           <button onClick={handleSave} disabled={!isValid || isBusy}
-            className="px-4 py-2 rounded-xl text-[13px] font-semibold transition-all whitespace-nowrap"
+            className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap"
             style={!isValid || isBusy
               ? { background: 'transparent', color: 'var(--tx3)', cursor: 'not-allowed', border: '1px solid var(--border)' }
               : { background: 'var(--ok-bg)', color: 'var(--ok-tx)', border: '1px solid var(--ok-bd)', cursor: 'pointer' }
@@ -1554,7 +1551,7 @@ export function Dashboard({ prefill }: Props) {
           </button>
 
           <button onClick={handlePreview} disabled={!isValid || isBusy}
-            className="px-4 py-2 rounded-xl text-[13px] font-semibold transition-all whitespace-nowrap"
+            className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap"
             style={!isValid || isBusy
               ? { background: 'transparent', color: 'var(--tx3)', cursor: 'not-allowed', border: '1px solid var(--border)' }
               : { background: 'transparent', color: 'var(--tx1)', border: '1px solid var(--border-2)', cursor: 'pointer' }
@@ -1575,10 +1572,10 @@ export function Dashboard({ prefill }: Props) {
             onClick={canManual ? handleApplyManual : handleTrigger}
             disabled={!canApply || isApplying}
             title={applyTooltip}
-            className="px-5 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap"
+            className="px-5 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap"
             style={!canApply || isApplying
               ? { background: 'var(--surface2)', color: 'var(--tx3)', cursor: 'not-allowed', border: '1px solid var(--border)' }
-              : { background: 'var(--cta-bg)', color: 'var(--cta-tx)', border: '1px solid transparent', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.18)' }
+              : { background: 'var(--cta-bg)', color: 'var(--cta-tx)', border: '1px solid transparent', cursor: 'pointer' }
             }>
             {isApplying ? (
               <span className="flex items-center gap-2">
@@ -1596,8 +1593,8 @@ export function Dashboard({ prefill }: Props) {
         <>
           <button
             onClick={() => setChatOpen(v => !v)}
-            className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center text-white transition-all"
-            style={{ background: 'var(--cta-bg)', color: 'var(--cta-tx)', boxShadow: '0 8px 24px rgba(226,50,96,0.4)' }}
+            className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center transition-all"
+            style={{ background: 'var(--cta-bg)', color: 'var(--cta-tx)' }}
           >
             {chatOpen ? (
               <span className="text-xl leading-none">✕</span>
@@ -1615,11 +1612,11 @@ export function Dashboard({ prefill }: Props) {
           </button>
 
           {chatOpen && (
-            <div className="fixed bottom-24 right-6 z-40 w-[380px] max-w-[calc(100vw-3rem)] rounded-2xl flex flex-col overflow-hidden"
+            <div className="fixed bottom-24 right-6 z-40 w-[380px] max-w-[calc(100vw-3rem)] flex flex-col overflow-hidden"
               style={{
                 height: '540px', maxHeight: 'calc(100vh - 140px)',
-                background: 'var(--surface)', border: '1px solid var(--border)',
-                boxShadow: '0 16px 48px rgba(0,0,0,0.18)',
+                background: 'var(--surface)', border: '1.5px solid var(--border-strong)',
+                borderRadius: '20px',
               }}>
 
               {/* Başlık */}
@@ -1642,7 +1639,7 @@ export function Dashboard({ prefill }: Props) {
                 )}
                 {messages.map((m, i) => (
                   <div key={i}
-                    className="max-w-[85%] px-3 py-2 rounded-2xl text-[13px] leading-snug"
+                    className="max-w-[85%] px-3 py-2 rounded-[20px] text-[13px] leading-snug"
                     style={{
                       alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
                       ...(m.role === 'user'
@@ -1655,7 +1652,7 @@ export function Dashboard({ prefill }: Props) {
                   </div>
                 ))}
                 {aiLoading && (
-                  <div className="px-3 py-2 rounded-2xl text-[13px] flex items-center gap-1.5"
+                  <div className="px-3 py-2 rounded-[20px] text-[13px] flex items-center gap-1.5"
                     style={{ alignSelf: 'flex-start', background: 'var(--surface2)', color: 'var(--tx3)' }}>
                     <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
                     düşünüyor…
@@ -1690,7 +1687,7 @@ export function Dashboard({ prefill }: Props) {
                   onChange={e => setAiInstruction(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleAiInstruction(); }}
                   disabled={aiLoading}
-                  className="flex-1 px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+                  className="flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none transition-all"
                   style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx1)' }}
                 />
                 <button

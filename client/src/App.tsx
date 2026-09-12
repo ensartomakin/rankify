@@ -55,8 +55,8 @@ function AppShell() {
         isSuperAdmin={isSuperAdmin}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden rounded-2xl pb-[60px] md:pb-0"
-        style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', boxShadow: '0 4px 24px rgba(226,50,96,0.12)' }}>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden pb-[60px] md:pb-0"
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px' }}>
         {configured === false && page !== 'settings' && (
           <div className="shrink-0 flex items-center justify-between px-6 py-2.5 text-sm"
             style={{ background: 'var(--warn-bg)', borderBottom: '1px solid var(--warn-bd)', color: 'var(--warn-tx)' }}>

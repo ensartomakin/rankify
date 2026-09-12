@@ -42,11 +42,11 @@ export function Audit() {
         {!loading && logs.length > 0 && (
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Toplam Çalışma',  value: logs.length,                           color: 'var(--acc)',    bg: 'var(--acc-bg)',  bd: 'var(--acc-bd)'  },
+              { label: 'Toplam Çalışma',  value: logs.length,                           color: 'var(--acc-tx)', bg: 'var(--acc-bg)',  bd: 'var(--acc-bd)'  },
               { label: 'Başarılı',         value: successCount,                          color: 'var(--ok-tx)', bg: 'var(--ok-bg)',   bd: 'var(--ok-bd)'   },
               { label: 'İşlenen Ürün',     value: totalProducts.toLocaleString('tr-TR'), color: 'var(--acc-tx)',bg: 'var(--acc-bg)',  bd: 'var(--acc-bd)'  },
             ].map(s => (
-              <div key={s.label} className="rounded-2xl p-5"
+              <div key={s.label} className="rounded-[20px] p-5"
                 style={{ background: s.bg, border: `1px solid ${s.bd}` }}>
                 <div className="text-2xl font-bold mb-1" style={{ color: s.color }}>{s.value}</div>
                 <div className="text-xs font-medium" style={{ color: 'var(--tx2)' }}>{s.label}</div>
@@ -64,12 +64,12 @@ export function Audit() {
             </svg>
             <input type="text" placeholder="Kategori ID ile filtrele…"
               value={filter} onChange={e => setFilter(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all"
+              className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm focus:outline-none transition-all"
               style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--tx1)' }} />
           </div>
           {filter && (
             <button onClick={() => setFilter('')}
-              className="text-xs px-3 py-2.5 rounded-xl transition-colors"
+              className="text-xs px-3 py-2.5 rounded-lg transition-colors"
               style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--tx2)' }}>
               Temizle
             </button>
@@ -83,7 +83,7 @@ export function Audit() {
             Yükleniyor…
           </div>
         ) : visible.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 rounded-2xl"
+          <div className="flex flex-col items-center justify-center h-48 rounded-[20px]"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <div className="font-medium mb-1" style={{ color: 'var(--tx1)' }}>
               {filter ? 'Eşleşen kayıt bulunamadı' : 'Henüz çalışma geçmişi yok'}
@@ -93,7 +93,7 @@ export function Audit() {
             </div>
           </div>
         ) : (
-          <div style={{ border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: '20px', overflow: 'hidden' }}>
             <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ minWidth: '640px' }}>
               <thead>

@@ -179,7 +179,7 @@ export function Settings({ onSaved }: Props) {
     }
   }
 
-  const inputCls = 'w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all';
+  const inputCls = 'w-full px-4 py-3 rounded-lg text-sm focus:outline-none transition-all';
   const inputSt  = { background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' };
 
   if (loading) return (
@@ -213,7 +213,7 @@ export function Settings({ onSaved }: Props) {
         </div>
 
         {/* Form card */}
-        <div className="rounded-2xl p-6 space-y-5"
+        <div className="rounded-[20px] p-6 space-y-5"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
 
           <div className="flex items-center justify-between gap-2 mb-2">
@@ -307,7 +307,7 @@ export function Settings({ onSaved }: Props) {
 
           {/* Test result */}
           {testStatus !== 'idle' && (
-            <div className="rounded-xl px-4 py-3 text-sm font-medium flex flex-col gap-1"
+            <div className="rounded-lg px-4 py-3 text-sm font-medium flex flex-col gap-1"
               style={testStatus === 'ok'
                 ? { background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)' }
                 : testStatus === 'fail'
@@ -328,7 +328,7 @@ export function Settings({ onSaved }: Props) {
 
           {/* Save result */}
           {saveStatus !== 'idle' && saveStatus !== 'saving' && (
-            <div className="rounded-xl px-4 py-3 text-sm font-medium"
+            <div className="rounded-lg px-4 py-3 text-sm font-medium"
               style={saveStatus === 'saved'
                 ? { background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)' }
                 : { background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }
@@ -341,15 +341,15 @@ export function Settings({ onSaved }: Props) {
           {isSuperAdmin && (
             <div className="flex gap-3 pt-1">
               <button onClick={handleTest} disabled={!canSubmit || testStatus === 'testing'}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+                className="flex-1 py-3 rounded-lg text-sm font-semibold transition-all"
                 style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
                 {testStatus === 'testing' ? 'Test ediliyor…' : 'Bağlantıyı Test Et'}
               </button>
               <button onClick={handleSave} disabled={!canSubmit || saveStatus === 'saving'}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-all"
+                className="flex-1 py-3 rounded-lg text-sm font-semibold transition-all"
                 style={!canSubmit || saveStatus === 'saving'
                   ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
-                  : { background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 4px 20px rgba(16,185,129,0.3)' }
+                  : { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }
                 }>
                 {saveStatus === 'saving' ? 'Kaydediliyor…' : 'Kaydet'}
               </button>
@@ -358,7 +358,7 @@ export function Settings({ onSaved }: Props) {
         </div>
 
         {/* Otomatik Zamanlama */}
-        <div className="rounded-2xl p-6 space-y-5"
+        <div className="rounded-[20px] p-6 space-y-5"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
 
           {/* Başlık + aktif/pasif toggle */}
@@ -387,7 +387,7 @@ export function Settings({ onSaved }: Props) {
                 className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0"
                 style={{ background: schedule.isEnabled ? 'var(--ok-tx)' : 'var(--border)' }}>
                 <span className="inline-block h-4 w-4 rounded-full bg-white transition-transform"
-                  style={{ transform: schedule.isEnabled ? 'translateX(22px)' : 'translateX(4px)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                  style={{ transform: schedule.isEnabled ? 'translateX(22px)' : 'translateX(4px)' }} />
               </button>
             </div>
           </div>
@@ -401,7 +401,7 @@ export function Settings({ onSaved }: Props) {
               const hours   = schedule.dayHours[day] ?? [];
               const enabled = hours.length > 0;
               return (
-                <div key={day} className="rounded-xl overflow-hidden"
+                <div key={day} className="rounded-lg overflow-hidden"
                   style={{ border: `1px solid ${enabled ? 'var(--acc-bd)' : 'var(--border)'}`, background: enabled ? 'var(--acc-bg)' : 'var(--surface2)' }}>
                   {/* Gün başlık satırı */}
                   <div className="flex items-center justify-between px-4 py-2.5">
@@ -419,7 +419,7 @@ export function Settings({ onSaved }: Props) {
                         className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
                         style={{ background: enabled ? 'var(--acc)' : 'var(--border)' }}>
                         <span className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
-                          style={{ transform: enabled ? 'translateX(18px)' : 'translateX(3px)', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+                          style={{ transform: enabled ? 'translateX(18px)' : 'translateX(3px)' }} />
                       </button>
                     </div>
                   </div>
@@ -433,7 +433,7 @@ export function Settings({ onSaved }: Props) {
                             <button key={h} onClick={() => toggleHourForDay(day, h)}
                               className="h-8 rounded-lg text-[11px] font-semibold tabular-nums transition-all"
                               style={sel
-                                ? { background: 'var(--acc)', color: '#fff', border: '1px solid var(--acc)' }
+                                ? { background: 'var(--acc)', color: 'var(--cta-tx)', border: '1px solid var(--acc)' }
                                 : { background: 'var(--surface)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
                               {String(h).padStart(2,'0')}
                             </button>
@@ -452,7 +452,7 @@ export function Settings({ onSaved }: Props) {
 
           {/* Schedule save result */}
           {schedSaveStatus !== 'idle' && schedSaveStatus !== 'saving' && (
-            <div className="rounded-xl px-4 py-3 text-sm font-medium"
+            <div className="rounded-lg px-4 py-3 text-sm font-medium"
               style={schedSaveStatus === 'saved'
                 ? { background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)' }
                 : { background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
@@ -461,16 +461,16 @@ export function Settings({ onSaved }: Props) {
           )}
 
           <button onClick={handleSaveSchedule} disabled={schedSaveStatus === 'saving'}
-            className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all"
+            className="w-full py-3 rounded-lg text-sm font-semibold transition-all"
             style={schedSaveStatus === 'saving'
               ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
-              : { background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 4px 20px rgba(16,185,129,0.3)' }}>
+              : { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }}>
             {schedSaveStatus === 'saving' ? 'Kaydediliyor…' : 'Zamanlamayı Kaydet'}
           </button>
         </div>
 
         {/* GA4 Entegrasyonu */}
-        <div className="rounded-2xl p-6 space-y-5"
+        <div className="rounded-[20px] p-6 space-y-5"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
 
           {/* Başlık */}
@@ -511,7 +511,7 @@ export function Settings({ onSaved }: Props) {
           </div>
 
           {/* Adım 1 — Google hesabı bağla */}
-          <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+          <div className="rounded-lg p-4 space-y-3" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
             <p className="text-xs font-semibold" style={{ color: 'var(--tx2)' }}>
               {ga4Status?.configured ? '✓ Google hesabı bağlandı' : 'Adım 1 — Google hesabınızı bağlayın'}
             </p>
@@ -529,10 +529,10 @@ export function Settings({ onSaved }: Props) {
             {isSuperAdmin ? (
               <div className="flex gap-3">
                 <button onClick={handleGa4Connect} disabled={ga4Connecting}
-                  className="flex-1 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                  className="flex-1 py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all"
                   style={ga4Connecting
                     ? { background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)', cursor: 'not-allowed' }
-                    : { background: '#fff', color: '#3c4043', border: '1px solid #dadce0', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                    : { background: '#fff', color: '#3c4043', border: '1px solid #dadce0' }
                   }>
                   {ga4Connecting
                     ? <><span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Bağlanıyor…</>
@@ -550,7 +550,7 @@ export function Settings({ onSaved }: Props) {
                 </button>
                 {ga4Status?.configured && (
                   <button onClick={handleGa4Delete}
-                    className="px-4 py-3 rounded-xl text-sm font-semibold transition-all"
+                    className="px-4 py-3 rounded-lg text-sm font-semibold transition-all"
                     style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
                     Kaldır
                   </button>
@@ -567,7 +567,7 @@ export function Settings({ onSaved }: Props) {
 
           {/* Adım 2 — Property ID (sadece hesap bağlıysa) */}
           {ga4Status?.configured && (
-            <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+            <div className="rounded-lg p-4 space-y-3" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
               <p className="text-xs font-semibold" style={{ color: 'var(--tx2)' }}>
                 {ga4Status.ready ? '✓ Property ID ayarlandı' : 'Adım 2 — GA4 Property ID girin'}
               </p>
@@ -580,10 +580,10 @@ export function Settings({ onSaved }: Props) {
                 {isSuperAdmin && (
                   <button onClick={handleGa4SaveProperty}
                     disabled={!ga4PropertyId.trim() || ga4PropStatus === 'saving'}
-                    className="px-5 py-3 rounded-xl text-sm font-semibold text-white shrink-0 transition-all"
+                    className="px-5 py-3 rounded-lg text-sm font-semibold shrink-0 transition-all"
                     style={!ga4PropertyId.trim()
                       ? { background: 'var(--surface)', color: 'var(--tx3)', border: '1px solid var(--border)', cursor: 'not-allowed' }
-                      : { background: 'linear-gradient(135deg, #6366f1, #4f46e5)', boxShadow: '0 4px 16px rgba(99,102,241,0.3)' }
+                      : { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }
                     }>
                     {ga4PropStatus === 'saving' ? '…' : 'Kaydet'}
                   </button>
@@ -603,7 +603,7 @@ export function Settings({ onSaved }: Props) {
             <div className="space-y-3 pt-1">
               {/* Test */}
               {ga4TestStatus !== 'idle' && (
-                <div className="rounded-xl px-4 py-3 text-sm font-medium flex items-center gap-2"
+                <div className="rounded-lg px-4 py-3 text-sm font-medium flex items-center gap-2"
                   style={ga4TestStatus === 'ok'
                     ? { background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)' }
                     : ga4TestStatus === 'fail'
@@ -617,7 +617,7 @@ export function Settings({ onSaved }: Props) {
               )}
 
               <button onClick={handleGa4Test} disabled={ga4TestStatus === 'testing'}
-                className="w-full py-3 rounded-xl text-sm font-semibold transition-all"
+                className="w-full py-3 rounded-lg text-sm font-semibold transition-all"
                 style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
                 Bağlantıyı Test Et
               </button>
@@ -633,7 +633,7 @@ export function Settings({ onSaved }: Props) {
                   )}
                 </div>
                 <select value={ga4DateRange} onChange={e => setGa4DateRange(e.target.value)}
-                  className="px-3 py-2 rounded-xl text-xs font-medium"
+                  className="px-3 py-2 rounded-lg text-xs font-medium"
                   style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx2)' }}>
                   <option value="7d">Son 7 Gün</option>
                   <option value="14d">Son 14 Gün</option>
@@ -643,7 +643,7 @@ export function Settings({ onSaved }: Props) {
               </div>
 
               {ga4SyncStatus !== 'idle' && (
-                <div className="rounded-xl px-4 py-3 text-sm font-medium flex items-center gap-2"
+                <div className="rounded-lg px-4 py-3 text-sm font-medium flex items-center gap-2"
                   style={ga4SyncStatus === 'done'
                     ? { background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)' }
                     : ga4SyncStatus === 'error'
@@ -657,10 +657,10 @@ export function Settings({ onSaved }: Props) {
               )}
 
               <button onClick={handleGa4Sync} disabled={ga4SyncStatus === 'syncing'}
-                className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all"
+                className="w-full py-3 rounded-lg text-sm font-semibold transition-all"
                 style={ga4SyncStatus === 'syncing'
                   ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
-                  : { background: 'linear-gradient(135deg, #6366f1, #4f46e5)', boxShadow: '0 4px 20px rgba(99,102,241,0.3)' }
+                  : { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }
                 }>
                 {ga4SyncStatus === 'syncing' ? 'Senkronize ediliyor…' : 'Şimdi Senkronize Et'}
               </button>
@@ -681,7 +681,7 @@ export function Settings({ onSaved }: Props) {
         </div>
 
         {/* Security note */}
-        <div className="rounded-xl px-5 py-4 text-xs space-y-1"
+        <div className="rounded-lg px-5 py-4 text-xs space-y-1"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2 font-semibold mb-2" style={{ color: 'var(--tx2)' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">

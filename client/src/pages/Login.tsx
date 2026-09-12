@@ -43,55 +43,55 @@ export function Login() {
   }
 
   const inputStyle: React.CSSProperties = {
-    background: 'var(--surface)',
-    border: '1px solid var(--border)',
+    background: 'var(--input-bg)',
+    border: '1px solid var(--border-strong)',
     color: 'var(--tx1)',
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: "'Work Sans', sans-serif",
   };
 
   return (
     <div className="h-full flex" style={{ background: 'var(--bg)' }}>
 
-      {/* Sol panel */}
+      {/* Sol panel — Deep Space Violet hero stage */}
       <div className="hidden lg:flex flex-col w-[400px] shrink-0 relative overflow-hidden"
-        style={{ background: '#1E3309' }}>
+        style={{ background: 'var(--sb-bg)' }}>
 
         <div className="absolute top-0 right-0 w-72 h-72 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 100% 0%, rgba(226,50,96,0.18) 0%, transparent 65%)' }} />
+          style={{ background: 'radial-gradient(ellipse at 100% 0%, rgba(28,202,199,0.18) 0%, transparent 65%)' }} />
         <div className="absolute bottom-0 left-0 w-64 h-64 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 0% 100%, rgba(132,154,40,0.22) 0%, transparent 65%)' }} />
+          style={{ background: 'radial-gradient(ellipse at 0% 100%, rgba(47,34,108,0.6) 0%, transparent 65%)' }} />
 
         <div className="relative z-10 px-10 pt-10 flex items-center gap-2.5">
-          <div className="w-2 h-2 rounded-full" style={{ background: '#E23260' }} />
-          <span className="text-sm font-semibold tracking-tight font-serif" style={{ color: '#FFFFFF' }}>
+          <div className="w-2 h-2 rounded-full" style={{ background: 'var(--acc)' }} />
+          <span className="text-sm font-semibold tracking-tight font-serif" style={{ color: 'var(--sb-tx-act)' }}>
             Rankify
           </span>
         </div>
 
         <div className="relative z-10 flex-1 flex flex-col justify-center px-10">
           <div className="text-[10px] font-semibold uppercase tracking-[0.18em] mb-6"
-            style={{ color: 'rgba(255,255,255,0.5)' }}>
+            style={{ color: 'rgba(250,250,250,0.5)' }}>
             T-Soft Sıralama Motoru
           </div>
           <h1 className="font-serif leading-[1.1] mb-5"
-            style={{ fontSize: '40px', fontWeight: 400, color: '#FFFFFF' }}>
+            style={{ fontSize: '40px', color: 'var(--sb-tx-act)' }}>
             Akıllı<br />
             Kategori<br />
-            Sıralama
+            <em>Sıralama</em>
           </h1>
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)', maxWidth: '260px' }}>
+          <p className="text-sm leading-relaxed" style={{ color: 'rgba(250,250,250,0.65)', maxWidth: '260px', letterSpacing: '-0.028em' }}>
             Stok, satış, yenilik ve yorum kriterlerine göre ürünlerinizi otomatik sıralayın.
           </p>
 
           <div className="mt-10 space-y-4">
             {[
-              { label: 'Smart Mix algoritması',    color: '#E23260' },
-              { label: 'Ağırlıklı kriter sistemi', color: '#849A28' },
-              { label: 'Anlık önizleme',            color: '#FCA9AA' },
+              { label: 'Smart Mix algoritması',    color: 'var(--acc)' },
+              { label: 'Ağırlıklı kriter sistemi', color: '#8A86A8' },
+              { label: 'Anlık önizleme',            color: '#5C5680' },
             ].map(({ label, color }) => (
               <div key={label} className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-                <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.75)' }}>{label}</span>
+                <span className="text-[13px]" style={{ color: 'rgba(250,250,250,0.75)' }}>{label}</span>
               </div>
             ))}
           </div>
@@ -99,8 +99,8 @@ export function Login() {
 
         <div className="relative z-10 px-10 pb-10">
           <div className="flex items-center gap-3">
-            <div style={{ height: '1px', flex: 1, background: 'rgba(255,255,255,0.15)' }} />
-            <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>01</span>
+            <div style={{ height: '1px', flex: 1, background: 'rgba(250,250,250,0.15)' }} />
+            <span className="text-[11px] font-medium" style={{ color: 'rgba(250,250,250,0.4)' }}>01</span>
           </div>
         </div>
       </div>
@@ -110,20 +110,20 @@ export function Login() {
         <div className="w-full max-w-[360px] animate-fade-up">
 
           <div className="mb-8 lg:hidden flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full" style={{ background: '#E23260' }} />
+            <div className="w-2 h-2 rounded-full" style={{ background: 'var(--acc)' }} />
             <span className="text-sm font-semibold font-serif" style={{ color: 'var(--tx1)' }}>Rankify</span>
           </div>
 
-          {/* Sekme geçişi */}
-          <div className="flex mb-8 rounded-xl p-1" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          {/* Sekme geçişi — tab radius per spec is 8px, not pill */}
+          <div className="flex mb-8 rounded-lg p-1" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
             {(['login', 'register'] as Mode[]).map(m => (
               <button
                 key={m}
                 type="button"
                 onClick={() => switchMode(m)}
-                className="flex-1 py-2.5 rounded-lg text-[13px] font-semibold transition-all"
+                className="flex-1 py-2.5 rounded-lg text-[13px] font-medium transition-all"
                 style={mode === m
-                  ? { background: '#E23260', color: '#FFFFFF', boxShadow: '0 2px 8px rgba(226,50,96,0.3)' }
+                  ? { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }
                   : { background: 'transparent', color: 'var(--tx2)', cursor: 'pointer' }
                 }
               >
@@ -134,7 +134,7 @@ export function Login() {
 
           {mode === 'register' ? (
             <>
-              <h2 className="font-serif mb-1" style={{ fontSize: '28px', fontWeight: 400, color: 'var(--tx1)', lineHeight: 1.2 }}>
+              <h2 className="font-serif mb-1" style={{ fontSize: '28px', color: 'var(--tx1)', lineHeight: 1.2 }}>
                 Hesap Oluştur
               </h2>
               <p className="text-[13px] mb-8" style={{ color: 'var(--tx2)' }}>
@@ -143,7 +143,7 @@ export function Login() {
             </>
           ) : (
             <>
-              <h2 className="font-serif mb-1" style={{ fontSize: '28px', fontWeight: 400, color: 'var(--tx1)', lineHeight: 1.2 }}>
+              <h2 className="font-serif mb-1" style={{ fontSize: '28px', color: 'var(--tx1)', lineHeight: 1.2 }}>
                 Hoş geldiniz
               </h2>
               <p className="text-[13px] mb-8" style={{ color: 'var(--tx2)' }}>
@@ -156,46 +156,46 @@ export function Login() {
             {mode === 'register' && (
               <input type="text" placeholder="Ad Soyad"
                 value={name} onChange={e => setName(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all"
+                className="w-full px-4 py-3 rounded-lg text-sm focus:outline-none transition-all"
                 style={inputStyle}
-                onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E23260'; }}
-                onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
+                onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx1)'; }}
+                onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; }}
               />
             )}
             <input type="email" placeholder="E-posta adresi" required
               value={email} onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all"
+              className="w-full px-4 py-3 rounded-lg text-sm focus:outline-none transition-all"
               style={inputStyle}
-              onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E23260'; }}
-              onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
+              onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx1)'; }}
+              onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; }}
             />
             <input type="password" placeholder="Şifre" required
               value={password} onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all"
+              className="w-full px-4 py-3 rounded-lg text-sm focus:outline-none transition-all"
               style={inputStyle}
-              onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E23260'; }}
-              onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
+              onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx1)'; }}
+              onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; }}
             />
 
             {error && (
-              <div className="px-4 py-3 rounded-xl text-[13px]"
+              <div className="px-4 py-3 rounded-lg text-[13px]"
                 style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
                 {error}
               </div>
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full py-3.5 rounded-xl text-[13px] font-semibold transition-all mt-1"
+              className="w-full py-3.5 rounded-lg text-[13px] font-medium transition-all mt-1"
               style={loading
                 ? { background: 'var(--surface3)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
-                : { background: '#E23260', color: '#FFFFFF', border: 'none', cursor: 'pointer', boxShadow: '0 3px 16px rgba(226,50,96,0.38)' }
+                : { background: 'var(--cta-bg)', color: 'var(--cta-tx)', border: 'none', cursor: 'pointer' }
               }>
               {loading ? 'Bekleniyor…' : mode === 'register' ? 'Üye Ol' : 'Giriş Yap'}
             </button>
           </form>
 
           <div className="flex items-center justify-center gap-1.5 mt-10">
-            {(['#E23260', '#849A28', '#FCA9AA'] as const).map((color, i) => (
+            {(['var(--acc)', '#8A86A8', '#5C5680'] as const).map((color, i) => (
               <div key={i} className="rounded-full transition-all"
                 style={{
                   width: i === 0 ? '20px' : '6px',

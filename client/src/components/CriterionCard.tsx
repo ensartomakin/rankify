@@ -1,5 +1,5 @@
 import {
-  CRITERION_COLORS, CRITERION_LABELS, SALES_PERIOD_LABELS, GA4_CRITERION_KEYS,
+  CRITERION_COLORS, CRITERION_TEXT_ON, CRITERION_LABELS, SALES_PERIOD_LABELS, GA4_CRITERION_KEYS,
   type CriterionKey, type SalesPeriod, type SortDirection, type WeightCriterion,
 } from '../types';
 
@@ -17,13 +17,14 @@ interface Props {
 
 export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, ga4Connected = false }: Props) {
   const color   = CRITERION_COLORS[index] ?? CRITERION_COLORS[0];
+  const onColor = CRITERION_TEXT_ON[index] ?? CRITERION_TEXT_ON[0];
   const allKeys = [...BASE_KEYS, ...(ga4Connected ? GA4_KEYS : [])];
   const options = allKeys.filter(k => k === criterion.key || !usedKeys.includes(k));
 
   const selectSt: React.CSSProperties = {
     width: '100%',
     padding: '9px 32.3px 9px 12.3px',
-    borderRadius: '10px',
+    borderRadius: '8px',
     fontSize: '13px',
     background: 'var(--input-bg)',
     border: '1px solid var(--border)',
@@ -37,9 +38,9 @@ export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, 
     <div style={{
       background: 'var(--surface)',
       border: '1px solid var(--border)',
-      borderRadius: '14px',
+      borderRadius: '20px',
       /* Sol aksan — overflow:hidden gerekmez, metin kırpılmaz */
-      boxShadow: `inset 4px 0 0 ${color}, 0 1px 6px rgba(0,0,0,0.05)`,
+      boxShadow: `inset 4px 0 0 ${color}`,
     }}>
       {/* Başlık */}
       <div style={{
@@ -49,10 +50,10 @@ export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, 
         padding: '12px 14.3px 12px 18.3px',
         background: color + '12',
         borderBottom: '1px solid var(--border)',
-        borderRadius: '14px 14px 0 0',
+        borderRadius: '20px 20px 0 0',
       }}>
         <div>
-          <div style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color }}>
+          <div style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--tx2)' }}>
             Kriter {index + 1}
           </div>
           <div style={{ fontSize: '13px', fontWeight: 700, marginTop: '2px', color: 'var(--tx1)' }}>
@@ -64,7 +65,7 @@ export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, 
             width: '30px', height: '30px', borderRadius: '8px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '12px', fontWeight: 700,
-            background: color + '18', color,
+            background: color, color: onColor,
           }}>
             K{index + 1}
           </div>
@@ -72,7 +73,7 @@ export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, 
             <button onClick={onRemove}
               title="Kriteri kaldır"
               style={{
-                width: '24px', height: '24px', borderRadius: '6px', border: 'none',
+                width: '24px', height: '24px', borderRadius: '8px', border: 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '14px', lineHeight: 1, cursor: 'pointer',
                 background: 'rgba(0,0,0,0.06)', color: 'var(--tx3)',
@@ -132,7 +133,7 @@ export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, 
 
         {/* Best Seller period */}
         {criterion.key === 'bestSeller' && (
-          <div style={{ borderRadius: '10px', padding: '10px 12px', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+          <div style={{ borderRadius: '8px', padding: '10px 12px', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
             <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--tx3)', marginBottom: '5px' }}>
               Satış Dönemi
             </label>
@@ -151,7 +152,7 @@ export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, 
 
         {/* GA4 veri dönemi */}
         {GA4_CRITERION_KEYS.has(criterion.key) && (
-          <div style={{ borderRadius: '10px', padding: '10px 12px', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+          <div style={{ borderRadius: '8px', padding: '10px 12px', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
             <label style={{ display: 'block', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--tx3)', marginBottom: '5px' }}>
               Veri Dönemi
             </label>

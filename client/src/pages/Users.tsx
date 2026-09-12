@@ -1,22 +1,27 @@
 import { useEffect, useState } from 'react';
 import { listUsers, createUser, deleteUser, type UserItem } from '../api/users';
 import { useAuth } from '../context/AuthContext';
-import { PageHeader, Pill, Button, Spinner, KpiStrip } from '../components/ui';
 
 const MAX_REGULAR_USERS = 3;
 
 function RoleBadge({ role }: { role: UserItem['role'] }) {
   if (role === 'super_admin') {
     return (
-      <Pill variant="accent">
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+        style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)', border: '1px solid rgba(28,202,199,0.25)' }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
         </svg>
         Süper Admin
-      </Pill>
+      </span>
     );
   }
-  return <Pill variant="neutral">Kullanıcı</Pill>;
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+      style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
+      Kullanıcı
+    </span>
+  );
 }
 
 interface AddUserFormProps {
@@ -49,7 +54,7 @@ function AddUserForm({ onAdd, onCancel }: AddUserFormProps) {
   const inputSt  = { background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' };
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg p-6 space-y-4"
+    <form onSubmit={handleSubmit} className="rounded-[20px] p-6 space-y-4"
       style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
       <div className="flex items-center gap-2 mb-1">
         <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'var(--acc-bg)' }}>
@@ -105,10 +110,19 @@ function AddUserForm({ onAdd, onCancel }: AddUserFormProps) {
       )}
 
       <div className="flex gap-3 pt-1">
-        <Button type="button" variant="secondary" fullWidth onClick={onCancel}>İptal</Button>
-        <Button type="submit" variant="primary" fullWidth disabled={loading} loading={loading}>
+        <button type="button" onClick={onCancel}
+          className="flex-1 py-3 rounded-lg text-sm font-semibold transition-all"
+          style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
+          İptal
+        </button>
+        <button type="submit" disabled={loading}
+          className="flex-1 py-3 rounded-lg text-sm font-semibold transition-all"
+          style={loading
+            ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
+            : { background: 'var(--cta-bg)', color: 'var(--cta-tx)', border: 'none' }
+          }>
           {loading ? 'Ekleniyor…' : 'Kullanıcı Ekle'}
-        </Button>
+        </button>
       </div>
     </form>
   );
@@ -151,42 +165,44 @@ export function Users() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64 gap-3 text-sm" style={{ color: 'var(--tx2)' }}>
-      <Spinner size={20} />
+      <span className="w-5 h-5 border-2 rounded-full animate-spin"
+        style={{ borderColor: 'var(--border)', borderTopColor: 'var(--acc)' }} />
       Yükleniyor…
     </div>
   );
 
   return (
-    <div className="h-full flex flex-col">
-      <div style={{ paddingLeft: '28px', paddingRight: '28px' }}>
-        <PageHeader
-          eyebrow="Ekip"
-          title="Kullanıcılar"
-          action={!showForm && (
-            <Button
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-2xl mx-auto py-8 space-y-6 animate-fade-up" style={{ paddingLeft: '28px', paddingRight: '28px' }}>
+
+        {/* Başlık */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--tx1)' }}>
+              Kullanıcılar
+            </h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--tx2)' }}>
+              {users.length} / 4 hesap · {regularCount} / {MAX_REGULAR_USERS} kullanıcı
+            </p>
+          </div>
+          {!showForm && (
+            <button
               onClick={() => setShowForm(true)}
               disabled={!canAdd}
-              title={!canAdd ? `En fazla ${MAX_REGULAR_USERS} kullanıcı eklenebilir` : undefined}
-              icon={
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all shrink-0"
+              style={canAdd
+                ? { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }
+                : { background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)', cursor: 'not-allowed' }
               }
+              title={!canAdd ? `En fazla ${MAX_REGULAR_USERS} kullanıcı eklenebilir` : undefined}
             >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
               Kullanıcı Ekle
-            </Button>
+            </button>
           )}
-        />
-      </div>
-
-      <KpiStrip items={[
-        { label: 'Toplam Hesap', value: `${users.length} / 4` },
-        { label: 'Kullanıcı Kotası', value: `${regularCount} / ${MAX_REGULAR_USERS}` },
-        { label: 'Süper Admin', value: users.filter(u => u.role === 'super_admin').length, tone: 'var(--acc-tx)' },
-      ]} />
-
-      <div className="flex-1 overflow-y-auto">
-      <div className="max-w-2xl mx-auto py-6 space-y-6 animate-fade-up" style={{ paddingLeft: '28px', paddingRight: '28px' }}>
+        </div>
 
         {/* Kullanıcı ekleme formu */}
         {showForm && (
@@ -204,7 +220,7 @@ export function Users() {
         )}
 
         {/* Kullanıcı listesi */}
-        <div className="rounded-lg overflow-hidden"
+        <div className="rounded-[20px] overflow-hidden"
           style={{ border: '1px solid var(--border)' }}>
           {users.map((u, idx) => {
             const isCurrentUser = u.id === currentUser?.id;
@@ -222,8 +238,8 @@ export function Users() {
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0"
                   style={{
                     background: u.role === 'super_admin' ? 'var(--acc)' : 'var(--surface2)',
-                    color: u.role === 'super_admin' ? '#FFFFFF' : 'var(--tx2)',
-                    border: u.role === 'super_admin' ? '1px solid var(--acc-hov)' : '1px solid var(--border)',
+                    color: u.role === 'super_admin' ? 'var(--cta-tx)' : 'var(--tx2)',
+                    border: u.role === 'super_admin' ? 'none' : '1px solid var(--border)',
                   }}>
                   {initials}
                 </div>
@@ -292,7 +308,6 @@ export function Users() {
           <div style={{ color: 'var(--tx3)' }}>Kullanıcılar sıralama, kategori ve zamanlama işlemlerini yönetebilir.</div>
           <div style={{ color: 'var(--tx3)' }}>Sisteme en fazla 1 süper admin + 3 kullanıcı eklenebilir.</div>
         </div>
-      </div>
       </div>
     </div>
   );

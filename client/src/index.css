@@ -1,116 +1,101 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;700&display=swap');
 
 /* ─────────────────────────────────────────────────
-   Design Tokens — Editorial Data Observatory
-   Canvas White #fff · Ash #efefef · Graphite #202020 · Ember Orange #ff682c · Brass #816729
-   95% achromatic — color is rationed to Ember + Brass, never a button fill.
+   Design Tokens — Penpot: midnight violet + one teal spark
+   Deep Space Violet #151035 · Bright Teal #1ccac7 · Rich Violet #2f226c · Off-White #fafafa
 ───────────────────────────────────────────────── */
 :root {
   /* Surfaces */
-  --bg:        #FFFFFF;  /* Canvas White */
-  --surface:   #EFEFEF;  /* Ash — card/section surface */
-  --surface2:  #F5F5F5;  /* Fog — nested containers, header strips */
-  --surface3:  #EBE6DD;  /* Ivory — accent wash */
+  --bg:        #FAFAFA;  /* Off-White canvas */
+  --surface:   #FAFAFA;  /* Card surface — same tone, separated by border not shadow */
+  --surface2:  #F2F2F2;  /* nested containers, header strips */
+  --surface3:  #EEEEEE;  /* Light Gray — tag/badge fills */
   --input-bg:  #FFFFFF;
 
   /* Borders */
-  --border:        #E8E8E8;  /* Mist */
-  --border-strong: #828282;  /* Slate */
-  --border-2:      #828282;
+  --border:        #EEEEEE;  /* Light Gray */
+  --border-strong: #D3D3D3;  /* Silver */
 
-  /* Text */
-  --tx1:    #202020;  /* Graphite */
-  --tx2:    #4D4D4D;  /* Steel */
-  --tx3:    #828282;  /* Slate */
-  --tx-ph:  #A8A8A8;
+  /* Text — Deep Space Violet handles most "dark" roles on light surfaces */
+  --tx1:    #151035;
+  --tx2:    #57536B;
+  --tx3:    #8A86A0;
+  --tx-ph:  #B4B0C4;
 
-  /* Sidebar — Graphite rail, the one dark achromatic surface */
-  --sb-bg:     #202020;
-  --sb-border: rgba(255,255,255,0.08);
-  --sb-tx:     rgba(255,255,255,0.55);
-  --sb-tx-act: #FFFFFF;
-  --sb-act-bg: rgba(255,255,255,0.08);
-  --sb-hover:  rgba(255,255,255,0.05);
+  /* Sidebar — Deep Space Violet panel, Rich Violet for active/selected state */
+  --sb-bg:     #151035;
+  --sb-border: #2F226C;
+  --sb-tx:     rgba(250,250,250,0.6);
+  --sb-tx-act: #FAFAFA;
+  --sb-act-bg: #2F226C;
+  --sb-hover:  rgba(250,250,250,0.06);
 
-  /* Accent — Ember Orange. Links, tags, highlights, chart lines. Never a button fill. */
-  --acc:     #FF682C;
-  --acc-hov: #E85723;
-  --acc-bg:  rgba(255,104,44,0.08);
-  --acc-bd:  rgba(255,104,44,0.28);
-  --acc-tx:  #FF682C;
+  /* Accent — Bright Teal. Rationed to CTA fills, one emphasis word, active-tab indicators. */
+  --acc:       #1CCAC7;
+  --acc-hov:   #17B0AD;
+  --acc-bg:    rgba(28,202,199,0.10);
+  --acc-bd:    rgba(28,202,199,0.32);
+  --acc-tx:    #0F9D9A;
 
-  /* Secondary accent — Brass. Chart strokes, captions, muted tags. */
-  --acc2:    #816729;
-  --acc2-bg: rgba(129,103,41,0.08);
-  --acc2-bd: rgba(129,103,41,0.28);
-  --acc2-tx: #816729;
+  /* Status — kept distinct from the teal accent per usual dashboard practice */
+  --ok-bg:     rgba(26,122,82,0.08);
+  --ok-bd:     rgba(26,122,82,0.25);
+  --ok-tx:     #1A7A52;
+  --err-bg:    rgba(179,53,47,0.07);
+  --err-bd:    rgba(179,53,47,0.25);
+  --err-tx:    #B3352F;
+  --warn-bg:   rgba(154,106,31,0.08);
+  --warn-bd:   rgba(154,106,31,0.28);
+  --warn-tx:   #9A6A1F;
 
-  /* Status — kept inside the achromatic + two-accent system: no green/blue introduced */
-  --ok-bg:   var(--surface2);
-  --ok-bd:   var(--border);
-  --ok-tx:   var(--tx1);
-  --err-bg:  rgba(255,104,44,0.08);
-  --err-bd:  rgba(255,104,44,0.28);
-  --err-tx:  #FF682C;
-  --warn-bg: rgba(129,103,41,0.08);
-  --warn-bd: rgba(129,103,41,0.3);
-  --warn-tx: #816729;
-
-  /* CTA — Graphite fill is the only button fill; orange is never a background */
-  --cta-bg:  #202020;
-  --cta-tx:  #FFFFFF;
-  --cta-hov: #383838;
+  /* CTA — Bright Teal fill, Deep Space Violet text (per spec, not white) */
+  --cta-bg:    #1CCAC7;
+  --cta-tx:    #151035;
+  --cta-hov:   #17B0AD;
 }
 
 [data-theme="dark"] {
-  --bg:        #141414;
-  --surface:   #1C1C1C;
-  --surface2:  #202020;
-  --surface3:  #26221B;
-  --input-bg:  #1C1C1C;
+  --bg:        #0E0B28;
+  --surface:   #171240;
+  --surface2:  #1D1850;
+  --surface3:  #241D5C;
+  --input-bg:  #171240;
 
-  --border:        #2C2C2C;
-  --border-strong: #5C5C5C;
-  --border-2:      #5C5C5C;
+  --border:        #2F226C;
+  --border-strong: #453690;
 
-  --tx1:    #F2F2F0;
-  --tx2:    #C2C2C2;
-  --tx3:    #8A8A8A;
-  --tx-ph:  #5C5C5C;
+  --tx1:    #FAFAFA;
+  --tx2:    #C4C1D6;
+  --tx3:    #8A86A8;
+  --tx-ph:  #4E4970;
 
-  --sb-bg:     #0D0D0D;
-  --sb-border: rgba(255,255,255,0.06);
-  --sb-tx:     rgba(255,255,255,0.5);
-  --sb-tx-act: #FFFFFF;
-  --sb-act-bg: rgba(255,255,255,0.07);
-  --sb-hover:  rgba(255,255,255,0.04);
+  --sb-bg:     #0A0820;
+  --sb-border: #2F226C;
+  --sb-tx:     rgba(250,250,250,0.55);
+  --sb-tx-act: #FAFAFA;
+  --sb-act-bg: #2F226C;
+  --sb-hover:  rgba(250,250,250,0.05);
 
-  --acc:     #FF8552;
-  --acc-hov: #FF9B70;
-  --acc-bg:  rgba(255,133,82,0.14);
-  --acc-bd:  rgba(255,133,82,0.32);
-  --acc-tx:  #FF8552;
+  --acc:       #35D9D6;
+  --acc-hov:   #5CE3E0;
+  --acc-bg:    rgba(53,217,214,0.14);
+  --acc-bd:    rgba(53,217,214,0.32);
+  --acc-tx:    #5CE3E0;
 
-  --acc2:    #A68A4A;
-  --acc2-bg: rgba(166,138,74,0.14);
-  --acc2-bd: rgba(166,138,74,0.32);
-  --acc2-tx: #A68A4A;
+  --ok-bg:     rgba(70,184,132,0.12);
+  --ok-bd:     rgba(70,184,132,0.3);
+  --ok-tx:     #6FCBA0;
+  --err-bg:    rgba(224,110,102,0.12);
+  --err-bd:    rgba(224,110,102,0.3);
+  --err-tx:    #E88F87;
+  --warn-bg:   rgba(214,161,84,0.12);
+  --warn-bd:   rgba(214,161,84,0.3);
+  --warn-tx:   #D6B067;
 
-  --ok-bg:   var(--surface2);
-  --ok-bd:   var(--border);
-  --ok-tx:   var(--tx1);
-  --err-bg:  rgba(255,133,82,0.14);
-  --err-bd:  rgba(255,133,82,0.32);
-  --err-tx:  #FF8552;
-  --warn-bg: rgba(166,138,74,0.14);
-  --warn-bd: rgba(166,138,74,0.32);
-  --warn-tx: #A68A4A;
-
-  /* Dark mode inverts the fill so it stays the strongest achromatic contrast on the page */
-  --cta-bg:  #F2F2F0;
-  --cta-tx:  #141414;
-  --cta-hov: #FFFFFF;
+  --cta-bg:    #35D9D6;
+  --cta-tx:    #151035;
+  --cta-hov:   #5CE3E0;
 }
 
 /* ── Base ──────────────────────────────────── */
@@ -123,27 +108,27 @@ body {
   background: var(--bg);
   color: var(--tx1);
   overflow: hidden;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Work Sans', ui-sans-serif, system-ui, sans-serif;
   font-size: 13.5px;
-  line-height: 1.55;
+  line-height: 1.5;
+  letter-spacing: -0.028em;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Display face — PolySans substitute (Inter Tight). Weight is ALWAYS 400 — never bolded;
-   the whisper-weight at large size is the signature. Used for headings, nav, button labels. */
-.font-display {
-  font-family: 'Inter Tight', 'Inter', system-ui, sans-serif !important;
-  font-weight: 400 !important;
-  letter-spacing: -0.02em;
-}
-/* Kept as an alias for existing call sites from the previous pass */
-.font-serif, .font-sans-tight {
-  font-family: 'Inter Tight', 'Inter', system-ui, sans-serif !important;
-  font-weight: 400 !important;
-  letter-spacing: -0.02em;
+/* Work Sans is the sole typeface — this utility carries the bold, tight-tracked
+   headline voice. Never weight 400 for headings; 700 is the signature. */
+.font-serif {
+  font-family: 'Work Sans', ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.028em;
   font-style: normal !important;
 }
-.font-serif em, .font-serif i { font-style: normal; }
+.font-serif em, .font-serif i { font-style: normal; color: var(--acc-tx); }
+.font-sans-tight {
+  font-family: 'Work Sans', ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 500;
+  letter-spacing: -0.028em;
+}
 
 /* ── Scrollbar ──────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -180,5 +165,4 @@ input[type=range]::-webkit-slider-thumb {
   background: var(--acc);
   border: 2px solid var(--surface);
   cursor: pointer;
-  transition: box-shadow .15s;
 }

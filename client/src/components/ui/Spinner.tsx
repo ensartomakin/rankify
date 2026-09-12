@@ -3,7 +3,7 @@ interface Props {
   color?: string;
 }
 
-export function Spinner({ size = 16, color = 'var(--acc)' }: Props) {
+export function Spinner({ size = 16, color = 'var(--acc-tx)' }: Props) {
   return (
     <span
       className="animate-spin shrink-0"

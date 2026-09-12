@@ -19,8 +19,8 @@ export function Toggle({ checked, onChange, disabled, size = 'md' }: Props) {
       onClick={() => onChange(!checked)}
       className="relative shrink-0"
       style={{
-        width: w, height: h, borderRadius: h,
-        background: checked ? 'var(--tx1)' : 'var(--border)',
+        width: w, height: h, borderRadius: 9999,
+        background: checked ? 'var(--acc)' : 'var(--border-strong)',
         border: 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,

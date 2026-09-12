@@ -5,36 +5,34 @@ interface Props {
   icon?: ReactNode;
   headerRight?: ReactNode;
   padding?: string;
-  /** The signature cut-corner treatment for featured/editorial blocks. */
-  asymmetric?: boolean;
   style?: React.CSSProperties;
   children: ReactNode;
 }
 
-/* Data Dashboard / Asymmetric Radius Card: Ash surface, no shadow — depth comes from
-   surface-color contrast against the white canvas, never elevation. */
-export function Card({ title, icon, headerRight, padding = '24px', asymmetric, style, children }: Props) {
+/* Card with 20px radius: hairline border defines the edge, no shadow — the larger
+   radius (vs 8px controls) signals a different functional layer. */
+export function Card({ title, icon, headerRight, padding = '20px', style, children }: Props) {
   return (
     <div style={{
       background: 'var(--surface)',
       border: '1px solid var(--border)',
-      borderRadius: asymmetric ? '6px 0px 0px 0px' : '8px',
+      borderRadius: '20px',
       overflow: 'hidden',
       ...style,
     }}>
       {title && (
         <div className="flex items-center justify-between gap-2" style={{
-          padding: '14px 24px',
+          padding: '14px 20px',
           background: 'var(--surface2)',
           borderBottom: '1px solid var(--border)',
         }}>
           <div className="flex items-center gap-2.5 min-w-0">
             {icon && (
-              <div className="w-6 h-6 flex items-center justify-center shrink-0" style={{ background: 'var(--surface3)', borderRadius: '4px' }}>
+              <div className="w-6 h-6 flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)', borderRadius: '8px' }}>
                 {icon}
               </div>
             )}
-            <span className="font-display text-xs uppercase tracking-widest truncate" style={{ color: 'var(--tx2)' }}>
+            <span className="font-sans-tight text-xs uppercase tracking-widest truncate" style={{ color: 'var(--tx2)' }}>
               {title}
             </span>
           </div>

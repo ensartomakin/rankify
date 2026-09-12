@@ -51,7 +51,7 @@ export function WeightDonut({ criteria }: Props) {
                 </div>
               </div>
             </div>
-            <span className="text-base font-bold tabular-nums" style={{ color: d.color }}>
+            <span className="text-base font-bold tabular-nums" style={{ color: 'var(--tx1)' }}>
               {d.value}%
             </span>
           </div>

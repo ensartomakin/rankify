@@ -41,12 +41,23 @@ export const SALES_PERIOD_LABELS: Record<SalesPeriod, string> = {
 };
 
 export const CRITERION_COLORS: string[] = [
-  '#FF682C', // K1 — Ember Orange
-  '#816729', // K2 — Brass
-  '#202020', // K3 — Graphite
-  '#4D4D4D', // K4 — Steel
-  '#828282', // K5 — Slate
+  '#1CCAC7', // K1 — Bright Teal
+  '#2F226C', // K2 — Rich Violet
+  '#151035', // K3 — Deep Space Violet
+  '#5C5680', // K4 — Muted violet-gray
+  '#9A94B8', // K5 — Light violet-gray
 ];
+
+/* Legible text color for each CRITERION_COLORS fill — teal and the light
+   violet-gray need dark text, the darker violets need white. */
+export const CRITERION_TEXT_ON: string[] = [
+  '#151035', // on Bright Teal
+  '#FAFAFA', // on Rich Violet
+  '#FAFAFA', // on Deep Space Violet
+  '#FAFAFA', // on Muted violet-gray
+  '#151035', // on Light violet-gray
+];
+
 
 export interface WeightCriterion {
   key: CriterionKey;

@@ -14,10 +14,9 @@ const VARIANT_ST: Record<Variant, React.CSSProperties> = {
   ok:      { background: 'var(--ok-bg)',   color: 'var(--ok-tx)',  border: '1px solid var(--ok-bd)' },
   err:     { background: 'var(--err-bg)',  color: 'var(--err-tx)', border: '1px solid var(--err-bd)' },
   warn:    { background: 'var(--warn-bg)', color: 'var(--warn-tx)',border: '1px solid var(--warn-bd)' },
-  neutral: { background: 'var(--surface2)', color: 'var(--tx3)',  border: '1px solid var(--border)' },
+  neutral: { background: 'var(--surface3)', color: 'var(--tx2)',  border: '1px solid var(--border)' },
 };
 
-/* Tag radius (20px) per the type scale — not the fully-round nav-pill shape. */
 export function Pill({ variant = 'neutral', children, icon, size = 'sm' }: Props) {
   return (
     <span
@@ -25,9 +24,9 @@ export function Pill({ variant = 'neutral', children, icon, size = 'sm' }: Props
       style={{
         ...VARIANT_ST[variant],
         gap: '5px',
-        borderRadius: '20px',
-        padding: size === 'sm' ? '3px 10px' : '5px 14px',
-        fontSize: size === 'sm' ? '11px' : '12.5px',
+        borderRadius: '9999px',
+        padding: size === 'sm' ? '3px 12px' : '5px 16px',
+        fontSize: size === 'sm' ? '12px' : '13px',
         fontWeight: 500,
         lineHeight: 1.4,
         whiteSpace: 'nowrap',

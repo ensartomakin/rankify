@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { CRITERION_COLORS, type WeightCriterion } from '../types';
+import { CRITERION_COLORS, CRITERION_TEXT_ON, type WeightCriterion } from '../types';
 
 interface Props {
   criteria: WeightCriterion[];
@@ -84,20 +84,23 @@ export function WeightBar({ criteria, onChange }: Props) {
       <div ref={containerRef}
         className="relative h-11 rounded-lg overflow-hidden flex select-none"
         style={{ cursor: 'col-resize', border: '1px solid var(--border)' }}>
-        {criteria.map((c, i) => (
+        {criteria.map((c, i) => {
+          const onColor = CRITERION_TEXT_ON[i] ?? CRITERION_TEXT_ON[0];
+          return (
           <div key={i}
-            className="relative flex items-center justify-center text-white text-xs font-bold transition-none"
-            style={{ width: `${c.weight}%`, background: (CRITERION_COLORS[i] ?? CRITERION_COLORS[0]) + 'cc' }}>
+            className="relative flex items-center justify-center text-xs font-bold transition-none"
+            style={{ width: `${c.weight}%`, background: CRITERION_COLORS[i] ?? CRITERION_COLORS[0], color: onColor }}>
             K{i + 1} · {c.weight}%
             {i < criteria.length - 1 && (
               <div className="absolute right-0 top-0 bottom-0 w-4 z-10 flex items-center justify-center"
                 style={{ cursor: 'col-resize' }}
                 onMouseDown={e => startDrag(i, e)}>
-                <div className="w-px h-5 rounded-full" style={{ background: 'rgba(255,255,255,0.4)' }} />
+                <div className="w-px h-5 rounded-full" style={{ background: onColor === '#FAFAFA' ? 'rgba(255,255,255,0.4)' : 'rgba(21,16,53,0.3)' }} />
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Numeric inputs */}
@@ -120,7 +123,7 @@ export function WeightBar({ criteria, onChange }: Props) {
                 onBlur={() => commitDraft(i)}
                 onKeyDown={e => { if (e.key === 'Enter') commitDraft(i); }}
                 className="w-14 text-center text-sm font-bold rounded-lg py-1.5 focus:outline-none transition-all"
-                style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: CRITERION_COLORS[i] ?? CRITERION_COLORS[0] }}
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--tx1)' }}
               />
               <span className="text-xs" style={{ color: 'var(--tx3)' }}>%</span>
             </div>

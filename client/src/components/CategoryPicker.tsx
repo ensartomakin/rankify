@@ -122,8 +122,8 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
         {error && <p className="text-xs mt-1.5 px-4" style={{ color: 'var(--err-tx)' }}>{error}</p>}
 
         {open && (
-          <div className="absolute z-50 mt-1 w-full rounded-lg max-h-80 flex flex-col overflow-hidden animate-fade-up"
-            style={{ background: 'var(--surface)', border: '1.5px solid var(--tx1)', boxShadow: '0 12px 32px rgba(0,0,0,0.12)' }}>
+          <div className="absolute z-50 mt-1 w-full max-h-80 flex flex-col overflow-hidden animate-fade-up"
+            style={{ background: 'var(--surface)', border: '1.5px solid var(--acc)', borderRadius: '20px' }}>
             <div className="p-3 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border)' }}>
               <input autoFocus type="text" placeholder="Kategori adı veya ID ara…"
                 value={search} onChange={e => setSearch(e.target.value)}
@@ -131,7 +131,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                 style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' }} />
               {multiSelect && selectedIds.length > 0 && (
                 <span className="shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full"
-                  style={{ background: 'rgba(255,104,44,0.1)', color: 'var(--acc)' }}>
+                  style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)' }}>
                   {selectedIds.length} seçildi
                 </span>
               )}
@@ -148,8 +148,8 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                     style={{
                       paddingLeft: `${16 + depth * 16}px`,
                       paddingRight: '16px',
-                      background: isSelected ? 'rgba(255,104,44,0.07)' : 'transparent',
-                      color: isSelected ? 'var(--acc)' : 'var(--tx2)',
+                      background: isSelected ? 'rgba(28,202,199,0.07)' : 'transparent',
+                      color: isSelected ? 'var(--acc-tx)' : 'var(--tx2)',
                       fontWeight: isSelected ? 600 : 400,
                     }}
                     onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}
@@ -201,7 +201,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
               <span className="truncate">{label || selectedIds[0]}</span>
               {selectedIds.length > 1 && (
                 <span className="text-xs font-semibold shrink-0 px-1.5 py-0.5 rounded-full"
-                  style={{ background: 'rgba(255,104,44,0.1)', color: 'var(--acc)' }}>
+                  style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)' }}>
                   +{selectedIds.length - 1}
                 </span>
               )}
@@ -224,8 +224,8 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
       {error && <p className="text-xs mt-1.5 px-1" style={{ color: 'var(--err-tx)' }}>{error}</p>}
 
       {open && (
-        <div className="absolute z-50 mt-2 w-full rounded-lg max-h-72 flex flex-col overflow-hidden animate-fade-up"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
+        <div className="absolute z-50 mt-2 w-full max-h-72 flex flex-col overflow-hidden animate-fade-up"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: '20px' }}>
           <div className="p-2 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border)' }}>
             <input autoFocus type="text" placeholder="Kategori ara…"
               value={search} onChange={e => setSearch(e.target.value)}
@@ -233,7 +233,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
               style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' }} />
             {multiSelect && selectedIds.length > 0 && (
               <span className="shrink-0 text-xs font-semibold px-2 py-1 rounded-full"
-                style={{ background: 'rgba(255,104,44,0.1)', color: 'var(--acc)' }}>
+                style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)' }}>
                 {selectedIds.length}
               </span>
             )}
@@ -250,8 +250,8 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                   style={{
                     paddingLeft: `${16 + depth * 16}px`,
                     paddingRight: '16px',
-                    background: isSelected ? 'rgba(255,104,44,0.07)' : 'transparent',
-                    color: isSelected ? 'var(--acc)' : 'var(--tx2)',
+                    background: isSelected ? 'rgba(28,202,199,0.07)' : 'transparent',
+                    color: isSelected ? 'var(--acc-tx)' : 'var(--tx2)',
                   }}
                   onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}
                   onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchCredentials, saveCredentials, testCredentials, fetchSchedule, saveSchedule, type CredentialsPayload, type ScheduleSettings } from '../api/settings';
 import { fetchGa4Status, fetchGa4AuthUrl, openGa4OAuthPopup, saveGa4PropertyId, deleteGa4Credentials, testGa4Connection, syncGa4Metrics, type Ga4Status } from '../api/ga4';
-import { PageHeader, Pill, Button, Toggle, Spinner, KpiStrip } from '../components/ui';
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail';
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -180,37 +179,41 @@ export function Settings({ onSaved }: Props) {
     }
   }
 
-  const inputCls = 'w-full px-4 py-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all';
+  const inputCls = 'w-full px-4 py-3 rounded-lg text-sm focus:outline-none transition-all';
   const inputSt  = { background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' };
 
   if (loading) return (
     <div className="flex items-center justify-center h-64 gap-3 text-sm" style={{ color: 'var(--tx2)' }}>
-      <Spinner size={20} />
+      <span className="w-5 h-5 border-2 rounded-full animate-spin"
+        style={{ borderColor: 'var(--border)', borderTopColor: 'var(--acc)' }} />
       Yükleniyor…
     </div>
   );
 
   return (
-    <div className="h-full flex flex-col">
-      <div style={{ paddingLeft: '28px', paddingRight: '28px' }}>
-        <PageHeader
-          eyebrow="Yapılandırma"
-          title="Bağlantı Ayarları"
-          description="T-Soft mağaza API bilgilerinizi yapılandırın"
-        />
-      </div>
-
-      <KpiStrip items={[
-        { label: 'T-Soft API', value: configured ? 'Bağlı' : 'Bağlı değil', tone: configured ? 'var(--acc2-tx)' : 'var(--acc-tx)' },
-        { label: 'Otomatik Zamanlama', value: schedule.isEnabled ? 'Açık' : 'Kapalı', tone: schedule.isEnabled ? 'var(--acc2-tx)' : undefined },
-        { label: 'Google Analytics 4', value: ga4Status?.configured ? 'Bağlı' : 'Bağlı değil', tone: ga4Status?.configured ? 'var(--acc2-tx)' : undefined },
-      ]} />
-
-      <div className="flex-1 overflow-y-auto">
-      <div className="max-w-2xl mx-auto py-6 space-y-6 animate-fade-up" style={{ paddingLeft: '28px', paddingRight: '28px' }}>
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-2xl mx-auto py-8 space-y-8 animate-fade-up" style={{ paddingLeft: '28px', paddingRight: '28px' }}>
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--tx1)' }}>
+              Bağlantı Ayarları
+            </h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--tx2)' }}>
+              T-Soft mağaza API bilgilerinizi yapılandırın
+            </p>
+          </div>
+          {configured && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold shrink-0"
+              style={{ background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ok-tx)' }} />
+              Bağlı
+            </div>
+          )}
+        </div>
 
         {/* Form card */}
-        <div className="rounded-lg p-5 space-y-4"
+        <div className="rounded-[20px] p-6 space-y-5"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
 
           <div className="flex items-center justify-between gap-2 mb-2">
@@ -225,12 +228,13 @@ export function Settings({ onSaved }: Props) {
               </span>
             </div>
             {!isSuperAdmin && (
-              <Pill variant="neutral">
+              <span className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full"
+                style={{ background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                 </svg>
                 Yalnızca Süper Admin düzenleyebilir
-              </Pill>
+              </span>
             )}
           </div>
 
@@ -336,18 +340,25 @@ export function Settings({ onSaved }: Props) {
           {/* Buttons — sadece super_admin görebilir */}
           {isSuperAdmin && (
             <div className="flex gap-3 pt-1">
-              <Button variant="secondary" fullWidth onClick={handleTest} disabled={!canSubmit || testStatus === 'testing'} loading={testStatus === 'testing'}>
+              <button onClick={handleTest} disabled={!canSubmit || testStatus === 'testing'}
+                className="flex-1 py-3 rounded-lg text-sm font-semibold transition-all"
+                style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
                 {testStatus === 'testing' ? 'Test ediliyor…' : 'Bağlantıyı Test Et'}
-              </Button>
-              <Button variant="primary" fullWidth onClick={handleSave} disabled={!canSubmit || saveStatus === 'saving'} loading={saveStatus === 'saving'}>
+              </button>
+              <button onClick={handleSave} disabled={!canSubmit || saveStatus === 'saving'}
+                className="flex-1 py-3 rounded-lg text-sm font-semibold transition-all"
+                style={!canSubmit || saveStatus === 'saving'
+                  ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
+                  : { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }
+                }>
                 {saveStatus === 'saving' ? 'Kaydediliyor…' : 'Kaydet'}
-              </Button>
+              </button>
             </div>
           )}
         </div>
 
         {/* Otomatik Zamanlama */}
-        <div className="rounded-lg p-5 space-y-4"
+        <div className="rounded-[20px] p-6 space-y-5"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
 
           {/* Başlık + aktif/pasif toggle */}
@@ -371,7 +382,13 @@ export function Settings({ onSaved }: Props) {
               <span className="text-xs font-medium" style={{ color: schedule.isEnabled ? 'var(--ok-tx)' : 'var(--tx3)' }}>
                 {schedule.isEnabled ? 'Açık' : 'Kapalı'}
               </span>
-              <Toggle checked={schedule.isEnabled} onChange={v => { setSchedule(prev => ({ ...prev, isEnabled: v })); setSchedSave('idle'); }} />
+              <button
+                onClick={() => { setSchedule(prev => ({ ...prev, isEnabled: !prev.isEnabled })); setSchedSave('idle'); }}
+                className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0"
+                style={{ background: schedule.isEnabled ? 'var(--ok-tx)' : 'var(--border)' }}>
+                <span className="inline-block h-4 w-4 rounded-full bg-white transition-transform"
+                  style={{ transform: schedule.isEnabled ? 'translateX(22px)' : 'translateX(4px)' }} />
+              </button>
             </div>
           </div>
 
@@ -397,7 +414,13 @@ export function Settings({ onSaved }: Props) {
                           {hours.map(h => `${String(h).padStart(2,'0')}:00`).join(', ')}
                         </span>
                       )}
-                      <Toggle size="sm" checked={enabled} onChange={v => setDayEnabled(day, v)} />
+                      <button
+                        onClick={() => setDayEnabled(day, !enabled)}
+                        className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+                        style={{ background: enabled ? 'var(--acc)' : 'var(--border)' }}>
+                        <span className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
+                          style={{ transform: enabled ? 'translateX(18px)' : 'translateX(3px)' }} />
+                      </button>
                     </div>
                   </div>
                   {/* Saat seçici — sadece gün aktifse */}
@@ -410,7 +433,7 @@ export function Settings({ onSaved }: Props) {
                             <button key={h} onClick={() => toggleHourForDay(day, h)}
                               className="h-8 rounded-lg text-[11px] font-semibold tabular-nums transition-all"
                               style={sel
-                                ? { background: 'var(--acc)', color: '#fff', border: '1px solid var(--acc)' }
+                                ? { background: 'var(--acc)', color: 'var(--cta-tx)', border: '1px solid var(--acc)' }
                                 : { background: 'var(--surface)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
                               {String(h).padStart(2,'0')}
                             </button>
@@ -437,13 +460,17 @@ export function Settings({ onSaved }: Props) {
             </div>
           )}
 
-          <Button variant="primary" fullWidth onClick={handleSaveSchedule} disabled={schedSaveStatus === 'saving'} loading={schedSaveStatus === 'saving'}>
+          <button onClick={handleSaveSchedule} disabled={schedSaveStatus === 'saving'}
+            className="w-full py-3 rounded-lg text-sm font-semibold transition-all"
+            style={schedSaveStatus === 'saving'
+              ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
+              : { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }}>
             {schedSaveStatus === 'saving' ? 'Kaydediliyor…' : 'Zamanlamayı Kaydet'}
-          </Button>
+          </button>
         </div>
 
         {/* GA4 Entegrasyonu */}
-        <div className="rounded-lg p-5 space-y-4"
+        <div className="rounded-[20px] p-6 space-y-5"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
 
           {/* Başlık */}
@@ -465,18 +492,20 @@ export function Settings({ onSaved }: Props) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {!isSuperAdmin && (
-                <Pill variant="neutral">
+                <span className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full"
+                  style={{ background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                   </svg>
                   Yalnızca Süper Admin düzenleyebilir
-                </Pill>
+                </span>
               )}
               {ga4Status?.configured && (
-                <Pill variant="ok" size="md">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)' }}>
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ok-tx)' }} />
                   {ga4Status.googleEmail ?? 'Bağlı'}
-                </Pill>
+                </div>
               )}
             </div>
           </div>
@@ -500,13 +529,13 @@ export function Settings({ onSaved }: Props) {
             {isSuperAdmin ? (
               <div className="flex gap-3">
                 <button onClick={handleGa4Connect} disabled={ga4Connecting}
-                  className="flex-1 py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                  className="flex-1 py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all"
                   style={ga4Connecting
                     ? { background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)', cursor: 'not-allowed' }
                     : { background: '#fff', color: '#3c4043', border: '1px solid #dadce0' }
                   }>
                   {ga4Connecting
-                    ? <><Spinner size={16} color="currentColor" /> Bağlanıyor…</>
+                    ? <><span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Bağlanıyor…</>
                     : <>
                         {/* Google "G" logo */}
                         <svg viewBox="0 0 24 24" className="w-4 h-4" xmlns="http://www.w3.org/2000/svg">
@@ -520,7 +549,11 @@ export function Settings({ onSaved }: Props) {
                   }
                 </button>
                 {ga4Status?.configured && (
-                  <Button variant="danger" onClick={handleGa4Delete}>Kaldır</Button>
+                  <button onClick={handleGa4Delete}
+                    className="px-4 py-3 rounded-lg text-sm font-semibold transition-all"
+                    style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
+                    Kaldır
+                  </button>
                 )}
               </div>
             ) : (
@@ -545,10 +578,15 @@ export function Settings({ onSaved }: Props) {
                   disabled={!isSuperAdmin}
                   className={inputCls} style={{ ...inputSt, flex: 1, opacity: isSuperAdmin ? 1 : 0.6 }} />
                 {isSuperAdmin && (
-                  <Button variant="primary" onClick={handleGa4SaveProperty}
-                    disabled={!ga4PropertyId.trim() || ga4PropStatus === 'saving'} loading={ga4PropStatus === 'saving'}>
-                    Kaydet
-                  </Button>
+                  <button onClick={handleGa4SaveProperty}
+                    disabled={!ga4PropertyId.trim() || ga4PropStatus === 'saving'}
+                    className="px-5 py-3 rounded-lg text-sm font-semibold shrink-0 transition-all"
+                    style={!ga4PropertyId.trim()
+                      ? { background: 'var(--surface)', color: 'var(--tx3)', border: '1px solid var(--border)', cursor: 'not-allowed' }
+                      : { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }
+                    }>
+                    {ga4PropStatus === 'saving' ? '…' : 'Kaydet'}
+                  </button>
                 )}
               </div>
               <p className="text-[11px]" style={{ color: 'var(--tx3)' }}>
@@ -578,9 +616,11 @@ export function Settings({ onSaved }: Props) {
                 </div>
               )}
 
-              <Button variant="secondary" fullWidth onClick={handleGa4Test} disabled={ga4TestStatus === 'testing'} loading={ga4TestStatus === 'testing'}>
+              <button onClick={handleGa4Test} disabled={ga4TestStatus === 'testing'}
+                className="w-full py-3 rounded-lg text-sm font-semibold transition-all"
+                style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
                 Bağlantıyı Test Et
-              </Button>
+              </button>
 
               {/* Sync */}
               <div className="flex items-center justify-between gap-3 pt-1">
@@ -616,13 +656,21 @@ export function Settings({ onSaved }: Props) {
                 </div>
               )}
 
-              <Button variant="primary" fullWidth onClick={handleGa4Sync} disabled={ga4SyncStatus === 'syncing'} loading={ga4SyncStatus === 'syncing'}>
+              <button onClick={handleGa4Sync} disabled={ga4SyncStatus === 'syncing'}
+                className="w-full py-3 rounded-lg text-sm font-semibold transition-all"
+                style={ga4SyncStatus === 'syncing'
+                  ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
+                  : { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }
+                }>
                 {ga4SyncStatus === 'syncing' ? 'Senkronize ediliyor…' : 'Şimdi Senkronize Et'}
-              </Button>
+              </button>
 
               <div className="flex flex-wrap gap-2">
                 {['GA4 · Görüntülenme', 'GA4 · Oturum', 'GA4 · CTR', 'GA4 · Dönüşüm Oranı'].map(label => (
-                  <Pill key={label} variant="accent">{label}</Pill>
+                  <span key={label} className="px-2.5 py-1 rounded-full text-[11px] font-medium"
+                    style={{ background: 'var(--acc-bg)', border: '1px solid var(--acc-bd)', color: 'var(--acc-tx)' }}>
+                    {label}
+                  </span>
                 ))}
               </div>
               <p className="text-[11px]" style={{ color: 'var(--tx3)' }}>
@@ -644,7 +692,6 @@ export function Settings({ onSaved }: Props) {
           <div style={{ color: 'var(--tx3)' }}>API şifreniz AES-256-GCM ile şifrelenerek veritabanında saklanır.</div>
           <div style={{ color: 'var(--tx3)' }}>Hiçbir zaman düz metin olarak kaydedilmez veya loglara yazılmaz.</div>
         </div>
-      </div>
       </div>
     </div>
   );

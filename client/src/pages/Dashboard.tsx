@@ -1059,8 +1059,11 @@ export function Dashboard({ prefill }: Props) {
           )}
         </div>
 
+        {/* Ağırlık Dağılımı + Sıralama Kriterleri yan yana */}
+        <div className="flex flex-col md:flex-row md:items-start gap-6">
+
         {/* Ağırlık dağılımı */}
-        <div style={{ ...cardSt, borderRadius: '20px' }}>
+        <div className="w-full md:w-1/2" style={{ ...cardSt, borderRadius: '20px' }}>
           {/* Kart başlık şeridi */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
             <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
@@ -1080,6 +1083,49 @@ export function Dashboard({ prefill }: Props) {
               <WeightBar criteria={criteria} onChange={setCriteria} />
             </div>
           </div>
+        </div>
+
+        {/* Sıralama Kriterleri */}
+        <div className="w-full md:w-1/2" style={{ ...cardSt, borderRadius: '20px' }}>
+          {/* Kart başlık şeridi */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
+                <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+              </svg>
+            </div>
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
+              Sıralama Kriterleri
+            </span>
+          </div>
+          {/* Kart içeriği */}
+          <div style={{ padding: '24px 24.3px' }}>
+            <div className="grid grid-cols-1 gap-3">
+              {criteria.map((c, i) => (
+                <CriterionCard key={i} index={i} criterion={c}
+                  usedKeys={criteria.map(x => x.key)}
+                  onChange={u => handleCriterionChange(i, u)}
+                  onRemove={criteria.length > 3 ? () => removeCriterion(i) : undefined}
+                  ga4Connected={ga4Connected} />
+              ))}
+              {criteria.length < 5 && (
+                <button onClick={addCriterion}
+                  className="flex flex-row items-center justify-center gap-2 rounded-lg transition-all"
+                  style={{
+                    minHeight: '64px', border: '2px dashed var(--border)',
+                    background: 'transparent', cursor: 'pointer', color: 'var(--tx3)',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.color = 'var(--acc-tx)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
+                  <span style={{ fontSize: '20px', lineHeight: 1 }}>+</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600 }}>Kriter Ekle</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         </div>
 
         {/* Strateji Şablonları — ayrı kart */}
@@ -1145,47 +1191,6 @@ export function Dashboard({ prefill }: Props) {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Sıralama Kriterleri */}
-        <div style={{ ...cardSt, borderRadius: '20px' }}>
-          {/* Kart başlık şeridi */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-              </svg>
-            </div>
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
-              Sıralama Kriterleri
-            </span>
-          </div>
-          {/* Kart içeriği */}
-          <div style={{ padding: '24px 24.3px' }}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {criteria.map((c, i) => (
-                <CriterionCard key={i} index={i} criterion={c}
-                  usedKeys={criteria.map(x => x.key)}
-                  onChange={u => handleCriterionChange(i, u)}
-                  onRemove={criteria.length > 3 ? () => removeCriterion(i) : undefined}
-                  ga4Connected={ga4Connected} />
-              ))}
-              {criteria.length < 5 && (
-                <button onClick={addCriterion}
-                  className="flex flex-col items-center justify-center gap-2 rounded-lg transition-all"
-                  style={{
-                    minHeight: '160px', border: '2px dashed var(--border)',
-                    background: 'transparent', cursor: 'pointer', color: 'var(--tx3)',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.color = 'var(--acc-tx)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
-                  <span style={{ fontSize: '28px', lineHeight: 1 }}>+</span>
-                  <span style={{ fontSize: '12px', fontWeight: 600 }}>Kriter Ekle</span>
-                </button>
-              )}
-            </div>
-          </div>
         </div>
 
         {/* Beden Bulunurluk Eşiği */}

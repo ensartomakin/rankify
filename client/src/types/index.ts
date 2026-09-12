@@ -41,11 +41,11 @@ export const SALES_PERIOD_LABELS: Record<SalesPeriod, string> = {
 };
 
 export const CRITERION_COLORS: string[] = [
-  '#E23260', // K1 — Cerise
-  '#849A28', // K2 — Citron
-  '#F2678E', // K3 — Deep Blush
-  '#6366F1', // K4 — Indigo
-  '#F59E0B', // K5 — Amber
+  '#FF682C', // K1 — Ember Orange
+  '#816729', // K2 — Brass
+  '#202020', // K3 — Graphite
+  '#4D4D4D', // K4 — Steel
+  '#828282', // K5 — Slate
 ];
 
 export interface WeightCriterion {

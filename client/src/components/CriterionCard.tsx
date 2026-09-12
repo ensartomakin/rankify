@@ -37,19 +37,19 @@ export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, 
     <div style={{
       background: 'var(--surface)',
       border: '1px solid var(--border)',
-      borderRadius: '14px',
+      borderRadius: '8px',
       /* Sol aksan — overflow:hidden gerekmez, metin kırpılmaz */
-      boxShadow: `inset 4px 0 0 ${color}, 0 1px 6px rgba(0,0,0,0.05)`,
+      boxShadow: `inset 4px 0 0 ${color}`,
     }}>
       {/* Başlık */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '12px 14.3px 12px 18.3px',
+        padding: '9px 12px',
         background: color + '12',
         borderBottom: '1px solid var(--border)',
-        borderRadius: '14px 14px 0 0',
+        borderRadius: '8px 8px 0 0',
       }}>
         <div>
           <div style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color }}>
@@ -84,7 +84,7 @@ export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, 
       </div>
 
       {/* İçerik */}
-      <div style={{ padding: '16px 16.3px' }}>
+      <div style={{ padding: '12px 12px' }}>
         {/* Progress bar */}
         <div style={{ height: '5px', borderRadius: '9999px', overflow: 'hidden', background: 'var(--border)', marginBottom: '14px' }}>
           <div style={{ height: '100%', borderRadius: '9999px', width: `${criterion.weight}%`, background: color, transition: 'width 0.3s' }} />

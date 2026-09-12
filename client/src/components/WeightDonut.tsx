@@ -37,7 +37,7 @@ export function WeightDonut({ criteria }: Props) {
       {/* Legend */}
       <div className="flex-1 space-y-2">
         {data.map((d, i) => (
-          <div key={i} className="flex items-center justify-between rounded-xl px-4 py-2.5"
+          <div key={i} className="flex items-center justify-between rounded-lg px-4 py-2.5"
             style={{ background: d.color + '10', border: `1px solid ${d.color}20` }}>
             <div className="flex items-center gap-3">
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />

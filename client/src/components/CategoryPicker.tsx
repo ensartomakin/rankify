@@ -105,7 +105,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
           {loading ? (
             <span className="flex items-center gap-3">
               <span className="w-4 h-4 border-2 rounded-full animate-spin"
-                style={{ borderColor: 'var(--border)', borderTopColor: 'var(--acc)' }} />
+                style={{ borderColor: 'var(--border)', borderTopColor: '#E23260' }} />
               <span className="text-base" style={{ color: 'var(--tx3)' }}>Yükleniyor…</span>
             </span>
           ) : displayText ? (
@@ -122,16 +122,16 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
         {error && <p className="text-xs mt-1.5 px-4" style={{ color: 'var(--err-tx)' }}>{error}</p>}
 
         {open && (
-          <div className="absolute z-50 mt-1 w-full rounded-lg max-h-80 flex flex-col overflow-hidden animate-fade-up"
-            style={{ background: 'var(--surface)', border: '1.5px solid var(--tx1)', boxShadow: '0 12px 32px rgba(0,0,0,0.12)' }}>
+          <div className="absolute z-50 mt-1 w-full rounded-2xl max-h-80 flex flex-col overflow-hidden animate-fade-up"
+            style={{ background: 'var(--surface)', border: '2px solid #E23260', boxShadow: '0 20px 60px rgba(226,50,96,0.18)' }}>
             <div className="p-3 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border)' }}>
               <input autoFocus type="text" placeholder="Kategori adı veya ID ara…"
                 value={search} onChange={e => setSearch(e.target.value)}
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm focus:outline-none transition-all"
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
                 style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' }} />
               {multiSelect && selectedIds.length > 0 && (
                 <span className="shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full"
-                  style={{ background: 'rgba(255,104,44,0.1)', color: 'var(--acc)' }}>
+                  style={{ background: 'rgba(226,50,96,0.1)', color: '#E23260' }}>
                   {selectedIds.length} seçildi
                 </span>
               )}
@@ -148,8 +148,8 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                     style={{
                       paddingLeft: `${16 + depth * 16}px`,
                       paddingRight: '16px',
-                      background: isSelected ? 'rgba(255,104,44,0.07)' : 'transparent',
-                      color: isSelected ? 'var(--acc)' : 'var(--tx2)',
+                      background: isSelected ? 'rgba(226,50,96,0.07)' : 'transparent',
+                      color: isSelected ? '#E23260' : 'var(--tx2)',
                       fontWeight: isSelected ? 600 : 400,
                     }}
                     onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}
@@ -161,7 +161,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                     {multiSelect && (
                       <div className="w-4 h-4 rounded flex items-center justify-center shrink-0 transition-colors"
                         style={isSelected
-                          ? { background: 'var(--acc)', border: '1px solid var(--acc)' }
+                          ? { background: '#E23260', border: '1px solid #E23260' }
                           : { background: 'transparent', border: '1.5px solid var(--border)' }}>
                         {isSelected && (
                           <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-2.5 h-2.5">
@@ -183,17 +183,17 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={load}
-        className="w-full px-4 py-3 rounded-lg text-sm text-left flex items-center justify-between focus:outline-none transition-all"
+        className="w-full px-4 py-3 rounded-xl text-sm text-left flex items-center justify-between focus:outline-none transition-all"
         style={{
           background: 'var(--input-bg)',
-          border: `1px solid ${open ? 'var(--acc)' : 'var(--border)'}`,
+          border: `1px solid ${open ? '#E23260' : 'var(--border)'}`,
           color: value ? 'var(--tx1)' : 'var(--tx-ph)',
         }}>
         <span className="flex items-center gap-2 flex-1 min-w-0">
           {loading ? (
             <>
               <span className="w-3.5 h-3.5 border-2 rounded-full animate-spin shrink-0"
-                style={{ borderColor: 'var(--border)', borderTopColor: 'var(--acc)' }} />
+                style={{ borderColor: 'var(--border)', borderTopColor: '#E23260' }} />
               <span style={{ color: 'var(--tx3)' }}>Yükleniyor…</span>
             </>
           ) : multiSelect && selectedIds.length > 0 ? (
@@ -201,7 +201,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
               <span className="truncate">{label || selectedIds[0]}</span>
               {selectedIds.length > 1 && (
                 <span className="text-xs font-semibold shrink-0 px-1.5 py-0.5 rounded-full"
-                  style={{ background: 'rgba(255,104,44,0.1)', color: 'var(--acc)' }}>
+                  style={{ background: 'rgba(226,50,96,0.1)', color: '#E23260' }}>
                   +{selectedIds.length - 1}
                 </span>
               )}
@@ -224,7 +224,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
       {error && <p className="text-xs mt-1.5 px-1" style={{ color: 'var(--err-tx)' }}>{error}</p>}
 
       {open && (
-        <div className="absolute z-50 mt-2 w-full rounded-lg max-h-72 flex flex-col overflow-hidden animate-fade-up"
+        <div className="absolute z-50 mt-2 w-full rounded-xl max-h-72 flex flex-col overflow-hidden animate-fade-up"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
           <div className="p-2 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border)' }}>
             <input autoFocus type="text" placeholder="Kategori ara…"
@@ -233,7 +233,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
               style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' }} />
             {multiSelect && selectedIds.length > 0 && (
               <span className="shrink-0 text-xs font-semibold px-2 py-1 rounded-full"
-                style={{ background: 'rgba(255,104,44,0.1)', color: 'var(--acc)' }}>
+                style={{ background: 'rgba(226,50,96,0.1)', color: '#E23260' }}>
                 {selectedIds.length}
               </span>
             )}
@@ -250,8 +250,8 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                   style={{
                     paddingLeft: `${16 + depth * 16}px`,
                     paddingRight: '16px',
-                    background: isSelected ? 'rgba(255,104,44,0.07)' : 'transparent',
-                    color: isSelected ? 'var(--acc)' : 'var(--tx2)',
+                    background: isSelected ? 'rgba(226,50,96,0.07)' : 'transparent',
+                    color: isSelected ? '#E23260' : 'var(--tx2)',
                   }}
                   onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}
                   onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
@@ -262,7 +262,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                   {multiSelect && (
                     <div className="w-4 h-4 rounded flex items-center justify-center shrink-0"
                       style={isSelected
-                        ? { background: 'var(--acc)', border: '1px solid var(--acc)' }
+                        ? { background: '#E23260', border: '1px solid #E23260' }
                         : { background: 'transparent', border: '1.5px solid var(--border)' }}>
                       {isSelected && (
                         <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-2.5 h-2.5">

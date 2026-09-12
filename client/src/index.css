@@ -1,116 +1,101 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600&display=swap');
 
 /* ─────────────────────────────────────────────────
-   Design Tokens — Editorial Data Observatory
-   Canvas White #fff · Ash #efefef · Graphite #202020 · Ember Orange #ff682c · Brass #816729
-   95% achromatic — color is rationed to Ember + Brass, never a button fill.
+   Design Tokens — Guava Palette
+   Charleston #1E3309 · Citron #849A28 · Cerise #E23260 · Deep Blush #F2678E · Light Pink #FCA9AA
 ───────────────────────────────────────────────── */
 :root {
   /* Surfaces */
-  --bg:        #FFFFFF;  /* Canvas White */
-  --surface:   #EFEFEF;  /* Ash — card/section surface */
-  --surface2:  #F5F5F5;  /* Fog — nested containers, header strips */
-  --surface3:  #EBE6DD;  /* Ivory — accent wash */
-  --input-bg:  #FFFFFF;
+  --bg:        #FAF9F7;
+  --surface:   #FFFFFF;
+  --surface2:  #F4F3F1;
+  --surface3:  #ECEAE7;
+  --input-bg:  #F4F3F1;
 
   /* Borders */
-  --border:        #E8E8E8;  /* Mist */
-  --border-strong: #828282;  /* Slate */
-  --border-2:      #828282;
+  --border:    #E0DDD9;
+  --border-2:  #F2678E;  /* Deep Blush */
 
   /* Text */
-  --tx1:    #202020;  /* Graphite */
-  --tx2:    #4D4D4D;  /* Steel */
-  --tx3:    #828282;  /* Slate */
-  --tx-ph:  #A8A8A8;
+  --tx1:       #1E3309;  /* Charleston */
+  --tx2:       #3D5A12;
+  --tx3:       #849A28;  /* Citron */
+  --tx-ph:     #C0D080;
 
-  /* Sidebar — Graphite rail, the one dark achromatic surface */
-  --sb-bg:     #202020;
-  --sb-border: rgba(255,255,255,0.08);
-  --sb-tx:     rgba(255,255,255,0.55);
-  --sb-tx-act: #FFFFFF;
-  --sb-act-bg: rgba(255,255,255,0.08);
-  --sb-hover:  rgba(255,255,255,0.05);
+  /* Sidebar — Light Pink surface, harmonious with content */
+  --sb-bg:     #F0EEE9;
+  --sb-border: #E0DDD9;
+  --sb-tx:     #A04060;
+  --sb-tx-act: #1E3309;
+  --sb-act-bg: #FFFFFF;
+  --sb-hover:  rgba(226, 50, 96, 0.07);
 
-  /* Accent — Ember Orange. Links, tags, highlights, chart lines. Never a button fill. */
-  --acc:     #FF682C;
-  --acc-hov: #E85723;
-  --acc-bg:  rgba(255,104,44,0.08);
-  --acc-bd:  rgba(255,104,44,0.28);
-  --acc-tx:  #FF682C;
+  /* Accent — Cerise */
+  --acc:       #E23260;
+  --acc-hov:   #C82050;
+  --acc-bg:    rgba(226, 50, 96, 0.08);
+  --acc-bd:    rgba(226, 50, 96, 0.28);
+  --acc-tx:    #C82050;
 
-  /* Secondary accent — Brass. Chart strokes, captions, muted tags. */
-  --acc2:    #816729;
-  --acc2-bg: rgba(129,103,41,0.08);
-  --acc2-bd: rgba(129,103,41,0.28);
-  --acc2-tx: #816729;
+  /* Status */
+  --ok-bg:     rgba(132, 154, 40, 0.1);   /* Citron */
+  --ok-bd:     rgba(132, 154, 40, 0.35);
+  --ok-tx:     #5A7010;
+  --err-bg:    rgba(226, 50, 96, 0.07);   /* Cerise */
+  --err-bd:    rgba(226, 50, 96, 0.25);
+  --err-tx:    #C82050;
+  --warn-bg:   rgba(242, 103, 142, 0.1);  /* Deep Blush */
+  --warn-bd:   rgba(242, 103, 142, 0.35);
+  --warn-tx:   #C04070;
 
-  /* Status — kept inside the achromatic + two-accent system: no green/blue introduced */
-  --ok-bg:   var(--surface2);
-  --ok-bd:   var(--border);
-  --ok-tx:   var(--tx1);
-  --err-bg:  rgba(255,104,44,0.08);
-  --err-bd:  rgba(255,104,44,0.28);
-  --err-tx:  #FF682C;
-  --warn-bg: rgba(129,103,41,0.08);
-  --warn-bd: rgba(129,103,41,0.3);
-  --warn-tx: #816729;
-
-  /* CTA — Graphite fill is the only button fill; orange is never a background */
-  --cta-bg:  #202020;
-  --cta-tx:  #FFFFFF;
-  --cta-hov: #383838;
+  /* CTA — Cerise */
+  --cta-bg:    #E23260;
+  --cta-tx:    #FFFFFF;
+  --cta-hov:   #C82050;
 }
 
 [data-theme="dark"] {
-  --bg:        #141414;
-  --surface:   #1C1C1C;
-  --surface2:  #202020;
-  --surface3:  #26221B;
-  --input-bg:  #1C1C1C;
+  --bg:        #0E1C04;
+  --surface:   #141E07;
+  --surface2:  #1C280A;
+  --surface3:  #24320E;
+  --input-bg:  #1C280A;
 
-  --border:        #2C2C2C;
-  --border-strong: #5C5C5C;
-  --border-2:      #5C5C5C;
+  --border:    #2E4414;
+  --border-2:  #4A6820;
 
-  --tx1:    #F2F2F0;
-  --tx2:    #C2C2C2;
-  --tx3:    #8A8A8A;
-  --tx-ph:  #5C5C5C;
+  --tx1:       #FCA9AA;  /* Light Pink */
+  --tx2:       #F2678E;  /* Deep Blush */
+  --tx3:       #849A28;  /* Citron */
+  --tx-ph:     #3D5A12;
 
-  --sb-bg:     #0D0D0D;
-  --sb-border: rgba(255,255,255,0.06);
-  --sb-tx:     rgba(255,255,255,0.5);
-  --sb-tx-act: #FFFFFF;
-  --sb-act-bg: rgba(255,255,255,0.07);
-  --sb-hover:  rgba(255,255,255,0.04);
+  --sb-bg:     #1C280A;
+  --sb-border: #2E4414;
+  --sb-tx:     #849A28;
+  --sb-tx-act: #FCA9AA;
+  --sb-act-bg: rgba(252, 169, 170, 0.12);
+  --sb-hover:  rgba(252, 169, 170, 0.07);
 
-  --acc:     #FF8552;
-  --acc-hov: #FF9B70;
-  --acc-bg:  rgba(255,133,82,0.14);
-  --acc-bd:  rgba(255,133,82,0.32);
-  --acc-tx:  #FF8552;
+  --acc:       #E23260;
+  --acc-hov:   #F2678E;
+  --acc-bg:    rgba(226, 50, 96, 0.12);
+  --acc-bd:    rgba(226, 50, 96, 0.3);
+  --acc-tx:    #F2678E;
 
-  --acc2:    #A68A4A;
-  --acc2-bg: rgba(166,138,74,0.14);
-  --acc2-bd: rgba(166,138,74,0.32);
-  --acc2-tx: #A68A4A;
+  --ok-bg:     rgba(132, 154, 40, 0.1);
+  --ok-bd:     rgba(132, 154, 40, 0.28);
+  --ok-tx:     #849A28;
+  --err-bg:    rgba(226, 50, 96, 0.1);
+  --err-bd:    rgba(226, 50, 96, 0.28);
+  --err-tx:    #F2678E;
+  --warn-bg:   rgba(242, 103, 142, 0.08);
+  --warn-bd:   rgba(242, 103, 142, 0.22);
+  --warn-tx:   #F2678E;
 
-  --ok-bg:   var(--surface2);
-  --ok-bd:   var(--border);
-  --ok-tx:   var(--tx1);
-  --err-bg:  rgba(255,133,82,0.14);
-  --err-bd:  rgba(255,133,82,0.32);
-  --err-tx:  #FF8552;
-  --warn-bg: rgba(166,138,74,0.14);
-  --warn-bd: rgba(166,138,74,0.32);
-  --warn-tx: #A68A4A;
-
-  /* Dark mode inverts the fill so it stays the strongest achromatic contrast on the page */
-  --cta-bg:  #F2F2F0;
-  --cta-tx:  #141414;
-  --cta-hov: #FFFFFF;
+  --cta-bg:    #E23260;
+  --cta-tx:    #FFFFFF;
+  --cta-hov:   #F2678E;
 }
 
 /* ── Base ──────────────────────────────────── */
@@ -129,26 +114,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Display face — PolySans substitute (Inter Tight). Weight is ALWAYS 400 — never bolded;
-   the whisper-weight at large size is the signature. Used for headings, nav, button labels. */
-.font-display {
-  font-family: 'Inter Tight', 'Inter', system-ui, sans-serif !important;
-  font-weight: 400 !important;
-  letter-spacing: -0.02em;
-}
-/* Kept as an alias for existing call sites from the previous pass */
-.font-serif, .font-sans-tight {
-  font-family: 'Inter Tight', 'Inter', system-ui, sans-serif !important;
-  font-weight: 400 !important;
-  letter-spacing: -0.02em;
-  font-style: normal !important;
-}
-.font-serif em, .font-serif i { font-style: normal; }
+/* Serif utility */
+.font-serif { font-family: 'Playfair Display', Georgia, serif !important; }
 
 /* ── Scrollbar ──────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
 
 /* ── Animations ─────────────────────────── */
 @keyframes fadeUp  { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:none } }
@@ -177,8 +149,12 @@ input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 14px; height: 14px;
   border-radius: 50%;
-  background: var(--acc);
+  background: var(--tx1);
   border: 2px solid var(--surface);
+  box-shadow: 0 0 0 2px var(--border-2);
   cursor: pointer;
   transition: box-shadow .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 3px var(--border-2);
 }

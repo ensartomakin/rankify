@@ -119,7 +119,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
           )}
         </button>
 
-        {error && <p className="text-xs mt-1.5 px-4" style={{ color: 'var(--err-tx)' }}>{error}</p>}
+        {error && <p className="text-caption mt-1.5 px-4" style={{ color: 'var(--err-tx)' }}>{error}</p>}
 
         {open && (
           <div className="absolute z-50 mt-1 w-full max-h-80 flex flex-col overflow-hidden animate-fade-up"
@@ -130,7 +130,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                 className="flex-1 px-4 py-2.5 rounded-lg text-sm focus:outline-none transition-all"
                 style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' }} />
               {multiSelect && selectedIds.length > 0 && (
-                <span className="shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full"
+                <span className="shrink-0 text-label font-semibold px-2.5 py-1 rounded-full"
                   style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)' }}>
                   {selectedIds.length} seçildi
                 </span>
@@ -155,9 +155,9 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                     onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}
                     onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                   >
-                    {depth > 0 && <span className="text-xs shrink-0" style={{ color: 'var(--tx3)' }}>└</span>}
+                    {depth > 0 && <span className="text-label shrink-0" style={{ color: 'var(--tx3)' }}>└</span>}
                     <span className="flex-1 truncate">{cat.name}</span>
-                    <span className="text-xs font-mono shrink-0" style={{ color: 'var(--tx3)' }}>#{cat.categoryId}</span>
+                    <span className="text-label font-mono shrink-0" style={{ color: 'var(--tx3)' }}>#{cat.categoryId}</span>
                     {multiSelect && (
                       <div className="w-4 h-4 rounded flex items-center justify-center shrink-0 transition-colors"
                         style={isSelected
@@ -200,7 +200,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
             <>
               <span className="truncate">{label || selectedIds[0]}</span>
               {selectedIds.length > 1 && (
-                <span className="text-xs font-semibold shrink-0 px-1.5 py-0.5 rounded-full"
+                <span className="text-label font-semibold shrink-0 px-1.5 py-0.5 rounded-full"
                   style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)' }}>
                   +{selectedIds.length - 1}
                 </span>
@@ -209,7 +209,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
           ) : value ? (
             <>
               <span className="truncate">{label}</span>
-              <span className="text-xs font-mono shrink-0" style={{ color: 'var(--tx3)' }}>#{value}</span>
+              <span className="text-label font-mono shrink-0" style={{ color: 'var(--tx3)' }}>#{value}</span>
             </>
           ) : (
             <span>Kategori seçin…</span>
@@ -221,7 +221,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
         </svg>
       </button>
 
-      {error && <p className="text-xs mt-1.5 px-1" style={{ color: 'var(--err-tx)' }}>{error}</p>}
+      {error && <p className="text-caption mt-1.5 px-1" style={{ color: 'var(--err-tx)' }}>{error}</p>}
 
       {open && (
         <div className="absolute z-50 mt-2 w-full max-h-72 flex flex-col overflow-hidden animate-fade-up"
@@ -232,7 +232,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
               className="flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none transition-all"
               style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' }} />
             {multiSelect && selectedIds.length > 0 && (
-              <span className="shrink-0 text-xs font-semibold px-2 py-1 rounded-full"
+              <span className="shrink-0 text-label font-semibold px-2 py-1 rounded-full"
                 style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)' }}>
                 {selectedIds.length}
               </span>
@@ -256,9 +256,9 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                   onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}
                   onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                 >
-                  {depth > 0 && <span className="text-xs shrink-0" style={{ color: 'var(--tx3)' }}>└</span>}
+                  {depth > 0 && <span className="text-label shrink-0" style={{ color: 'var(--tx3)' }}>└</span>}
                   <span className="flex-1 truncate">{cat.name}</span>
-                  <span className="text-xs font-mono shrink-0" style={{ color: 'var(--tx3)' }}>#{cat.categoryId}</span>
+                  <span className="text-label font-mono shrink-0" style={{ color: 'var(--tx3)' }}>#{cat.categoryId}</span>
                   {multiSelect && (
                     <div className="w-4 h-4 rounded flex items-center justify-center shrink-0"
                       style={isSelected

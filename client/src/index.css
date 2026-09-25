@@ -2,6 +2,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;700&display=swap');
 
 /* ─────────────────────────────────────────────────
+   Type scale — nothing below 12px.
+   Registered with Tailwind so each size is a utility (text-label, text-caption…)
+   and also readable inline as var(--text-label) etc.
+───────────────────────────────────────────────── */
+@theme {
+  --text-label:   12px;  /* uppercase labels, badges, chips, ids/codes */
+  --text-label--line-height: 1.4;
+  --text-caption: 13px;  /* descriptions, helper text, secondary lines */
+  --text-caption--line-height: 1.5;
+  --text-body:    14px;  /* default UI text */
+  --text-body--line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────────────
    Design Tokens — Penpot: midnight violet + one teal spark
    Deep Space Violet #151035 · Bright Teal #1ccac7 · Rich Violet #2f226c · Off-White #fafafa
 ───────────────────────────────────────────────── */
@@ -20,8 +34,8 @@
   /* Text — Deep Space Violet handles most "dark" roles on light surfaces */
   --tx1:    #151035;
   --tx2:    #57536B;
-  --tx3:    #8A86A0;
-  --tx-ph:  #B4B0C4;
+  --tx3:    #66627E;  /* ≥4.98:1 on every light surface (WCAG AA) */
+  --tx-ph:  #6A6682;  /* placeholder — ≥4.7:1 on inputs */
 
   /* Sidebar — Deep Space Violet panel, Rich Violet for active/selected state */
   --sb-bg:     #151035;
@@ -67,8 +81,8 @@
 
   --tx1:    #FAFAFA;
   --tx2:    #C4C1D6;
-  --tx3:    #8A86A8;
-  --tx-ph:  #4E4970;
+  --tx3:    #9C98BA;  /* ≥4.86:1 on every dark surface (WCAG AA) */
+  --tx-ph:  #8A86A8;
 
   --sb-bg:     #0A0820;
   --sb-border: #2F226C;

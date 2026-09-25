@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react';
 import { fetchAuditLogs, type AuditLog } from '../api/audit';
+import { formatDate, formatNumber } from '../utils/format';
 
-function fmt(iso: string) {
-  return new Date(iso).toLocaleString('tr-TR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
+const fmt = (iso: string) => formatDate(iso, 'datetime');
 function dur(ms: number) {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
@@ -30,21 +26,21 @@ export function Audit() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="shrink-0 pt-8 pb-6" style={{ paddingLeft: '28px', paddingRight: '28px' }}>
+      <div className="shrink-0 pt-8 pb-6" style={{ paddingLeft: 'var(--spacing-page)', paddingRight: 'var(--spacing-page)' }}>
         <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--tx1)' }}>
           Çalışma Geçmişi
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--tx2)' }}>Son 50 pipeline çalışmasının kayıtları</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-8 space-y-5 animate-fade-up" style={{ paddingLeft: '28px', paddingRight: '28px' }}>
+      <div className="flex-1 overflow-y-auto pb-8 space-y-5 animate-fade-up" style={{ paddingLeft: 'var(--spacing-page)', paddingRight: 'var(--spacing-page)' }}>
         {/* Stats row */}
         {!loading && logs.length > 0 && (
           <div className="grid grid-cols-3 gap-4">
             {[
               { label: 'Toplam Çalışma',  value: logs.length,                           color: 'var(--acc-tx)', bg: 'var(--acc-bg)',  bd: 'var(--acc-bd)'  },
               { label: 'Başarılı',         value: successCount,                          color: 'var(--ok-tx)', bg: 'var(--ok-bg)',   bd: 'var(--ok-bd)'   },
-              { label: 'İşlenen Ürün',     value: totalProducts.toLocaleString('tr-TR'), color: 'var(--acc-tx)',bg: 'var(--acc-bg)',  bd: 'var(--acc-bd)'  },
+              { label: 'İşlenen Ürün',     value: formatNumber(totalProducts), color: 'var(--acc-tx)',bg: 'var(--acc-bg)',  bd: 'var(--acc-bd)'  },
             ].map(s => (
               <div key={s.label} className="rounded-[20px] p-5"
                 style={{ background: s.bg, border: `1px solid ${s.bd}` }}>

@@ -7,8 +7,8 @@ const MAX_REGULAR_USERS = 3;
 function RoleBadge({ role }: { role: UserItem['role'] }) {
   if (role === 'super_admin') {
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold"
-        style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)', border: '1px solid rgba(28,202,199,0.25)' }}>
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-mini font-semibold"
+        style={{ background: 'var(--teal-a10)', color: 'var(--acc-tx)', border: '1px solid var(--teal-a25)' }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
         </svg>
@@ -17,7 +17,7 @@ function RoleBadge({ role }: { role: UserItem['role'] }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-mini font-semibold"
       style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
       Kullanıcı
     </span>
@@ -103,7 +103,7 @@ function AddUserForm({ onAdd, onCancel }: AddUserFormProps) {
       </div>
 
       {error && (
-        <div className="px-4 py-3 rounded-lg text-[13px]"
+        <div className="px-4 py-3 rounded-lg text-[length:var(--text-caption)]"
           style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
           {error}
         </div>
@@ -173,7 +173,7 @@ export function Users() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-2xl mx-auto py-8 space-y-6 animate-fade-up" style={{ paddingLeft: '28px', paddingRight: '28px' }}>
+      <div className="max-w-2xl mx-auto py-8 space-y-6 animate-fade-up" style={{ paddingLeft: 'var(--spacing-page)', paddingRight: 'var(--spacing-page)' }}>
 
         {/* Başlık */}
         <div className="flex items-start justify-between gap-4">
@@ -213,7 +213,7 @@ export function Users() {
         )}
 
         {deleteErr && (
-          <div className="px-4 py-3 rounded-lg text-[13px]"
+          <div className="px-4 py-3 rounded-lg text-[length:var(--text-caption)]"
             style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
             {deleteErr}
           </div>
@@ -235,7 +235,7 @@ export function Users() {
                   borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
                 }}>
                 {/* Avatar */}
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0"
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[length:var(--text-label)] font-bold shrink-0"
                   style={{
                     background: u.role === 'super_admin' ? 'var(--acc)' : 'var(--surface2)',
                     color: u.role === 'super_admin' ? 'var(--cta-tx)' : 'var(--tx2)',
@@ -251,13 +251,13 @@ export function Users() {
                       {u.name ?? u.email.split('@')[0]}
                     </span>
                     {isCurrentUser && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                      <span className="text-tiny px-2 py-0.5 rounded-full font-semibold"
                         style={{ background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)' }}>
                         Siz
                       </span>
                     )}
                   </div>
-                  <div className="text-[12px] truncate mt-0.5" style={{ color: 'var(--tx3)' }}>{u.email}</div>
+                  <div className="text-[length:var(--text-label)] truncate mt-0.5" style={{ color: 'var(--tx3)' }}>{u.email}</div>
                 </div>
 
                 {/* Rol */}

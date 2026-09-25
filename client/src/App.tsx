@@ -47,7 +47,7 @@ function AppShell() {
   }
 
   return (
-    <div className="flex h-full w-full" style={{ background: 'var(--bg)', gap: '20px', padding: 'clamp(6px,2vw,12px) clamp(6px,2vw,16px) clamp(6px,2vw,12px) clamp(6px,2vw,12px)' }}>
+    <div className="flex h-full w-full" style={{ background: 'var(--bg)', gap: 'var(--spacing-shell-gap)', padding: 'var(--spacing-shell) var(--spacing-shell-wide) var(--spacing-shell) var(--spacing-shell)' }}>
       <Sidebar
         current={page}
         onChange={handlePageChange}

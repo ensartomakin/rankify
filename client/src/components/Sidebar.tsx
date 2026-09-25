@@ -86,14 +86,14 @@ function LogoutButton({ onClick }: { onClick: () => void }) {
       </button>
       {tip && (
         <div role="tooltip"
-          className="fixed z-50 px-2 py-1 rounded-md text-[11px] font-medium whitespace-nowrap pointer-events-none animate-fade-in"
+          className="fixed z-50 px-2 py-1 rounded-md text-mini font-medium whitespace-nowrap pointer-events-none animate-fade-in"
           style={{
             left: tip.left + tip.width / 2,
             top: tip.top - 8,
             transform: 'translate(-50%, -100%)',
             background: 'var(--tx1)',
             color: 'var(--bg)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            boxShadow: 'var(--shadow-pop)',
           }}>
           Çıkış Yap
         </div>
@@ -130,7 +130,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
             className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors"
             style={{ color: active ? 'var(--acc)' : 'var(--sb-tx)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
             {item.icon}
-            <span className="text-[9px] font-semibold">{item.label}</span>
+            <span className="text-micro font-semibold">{item.label}</span>
           </button>
         );
       })}
@@ -146,7 +146,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
             <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
           </svg>
         )}
-        <span className="text-[9px] font-semibold">{theme === 'dark' ? 'Açık' : 'Koyu'}</span>
+        <span className="text-micro font-semibold">{theme === 'dark' ? 'Açık' : 'Koyu'}</span>
       </button>
     </nav>
 
@@ -180,7 +180,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
               <div className="text-lg font-bold tracking-tight leading-none font-serif" style={{ color: 'var(--sb-tx-act)' }}>
                 Rankify
               </div>
-              <div className="text-[9px] font-semibold mt-0.5 tracking-widest uppercase" style={{ color: 'var(--sb-tx)' }}>
+              <div className="text-micro font-semibold mt-0.5 tracking-widest uppercase" style={{ color: 'var(--sb-tx)' }}>
                 T-Soft
               </div>
             </div>
@@ -192,7 +192,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
           <button
             onClick={() => setCollapsed(c => !c)}
             className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0 transition-all"
-            style={{ color: 'var(--sb-tx)', background: 'rgba(28,202,199,0.08)' }}
+            style={{ color: 'var(--sb-tx)', background: 'var(--teal-a08)' }}
             title="Daralt"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
@@ -208,7 +208,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
           <button
             onClick={() => setCollapsed(false)}
             className="w-7 h-7 flex items-center justify-center rounded-lg transition-all"
-            style={{ color: 'var(--sb-tx)', background: 'rgba(28,202,199,0.08)' }}
+            style={{ color: 'var(--sb-tx)', background: 'var(--teal-a08)' }}
             title="Genişlet"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
@@ -224,7 +224,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
       {/* Nav */}
       <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
         {!collapsed && (
-          <div className="text-[9px] font-semibold uppercase tracking-[0.12em] px-2 pb-2 pt-0.5"
+          <div className="text-micro font-semibold uppercase tracking-[0.12em] px-2 pb-2 pt-0.5"
             style={{ color: 'var(--sb-tx)' }}>
             Menü
           </div>
@@ -262,7 +262,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
               }}
             >
               {item.icon}
-              {!collapsed && <span className="flex-1 text-left text-[13px]">{item.label}</span>}
+              {!collapsed && <span className="flex-1 text-left text-[length:var(--text-caption)]">{item.label}</span>}
               {!collapsed && warn && (
                 <span className="w-1.5 h-1.5 rounded-full shrink-0"
                   style={{ background: 'var(--tx3)' }} />
@@ -277,7 +277,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
         <button
           onClick={toggle}
           title={collapsed ? (theme === 'dark' ? 'Açık Tema' : 'Koyu Tema') : undefined}
-          className="w-full flex items-center rounded-lg text-[13px] font-medium transition-all"
+          className="w-full flex items-center rounded-lg text-[length:var(--text-caption)] font-medium transition-all"
           style={{
             gap: collapsed ? '0' : '9px',
             padding: collapsed ? '9px 0' : '8px 10px',
@@ -324,7 +324,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
         >
           {/* Avatar */}
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-tiny font-bold shrink-0"
             style={{
               background: 'var(--acc)',
               color: 'var(--cta-tx)',
@@ -338,10 +338,10 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
           {!collapsed && (
             <>
               <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-semibold truncate leading-none" style={{ color: 'var(--sb-tx-act)' }}>
+                <div className="text-[length:var(--text-label)] font-semibold truncate leading-none" style={{ color: 'var(--sb-tx-act)' }}>
                   {displayName}
                 </div>
-                <div className="text-[10px] truncate mt-0.5 leading-none" style={{ color: 'var(--sb-tx)' }}>
+                <div className="text-tiny truncate mt-0.5 leading-none" style={{ color: 'var(--sb-tx)' }}>
                   {user?.role === 'super_admin' ? 'Süper Admin' : user?.email}
                 </div>
               </div>

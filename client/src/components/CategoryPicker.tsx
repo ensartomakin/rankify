@@ -131,7 +131,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                 style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' }} />
               {multiSelect && selectedIds.length > 0 && (
                 <span className="shrink-0 text-label font-semibold px-2.5 py-1 rounded-full"
-                  style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)' }}>
+                  style={{ background: 'var(--teal-a10)', color: 'var(--acc-tx)' }}>
                   {selectedIds.length} seçildi
                 </span>
               )}
@@ -147,8 +147,8 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                     className="w-full text-left py-2.5 text-sm flex items-center gap-2 transition-colors"
                     style={{
                       paddingLeft: `${16 + depth * 16}px`,
-                      paddingRight: '16px',
-                      background: isSelected ? 'rgba(28,202,199,0.07)' : 'transparent',
+                      paddingRight: 'var(--spacing-card)',
+                      background: isSelected ? 'var(--teal-a07)' : 'transparent',
                       color: isSelected ? 'var(--acc-tx)' : 'var(--tx2)',
                       fontWeight: isSelected ? 600 : 400,
                     }}
@@ -164,7 +164,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                           ? { background: 'var(--acc)', border: '1px solid var(--acc)' }
                           : { background: 'transparent', border: '1.5px solid var(--border)' }}>
                         {isSelected && (
-                          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-2.5 h-2.5">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--on-fill)' }} strokeWidth="3" className="w-2.5 h-2.5">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
                         )}
@@ -201,7 +201,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
               <span className="truncate">{label || selectedIds[0]}</span>
               {selectedIds.length > 1 && (
                 <span className="text-label font-semibold shrink-0 px-1.5 py-0.5 rounded-full"
-                  style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)' }}>
+                  style={{ background: 'var(--teal-a10)', color: 'var(--acc-tx)' }}>
                   +{selectedIds.length - 1}
                 </span>
               )}
@@ -233,7 +233,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
               style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)' }} />
             {multiSelect && selectedIds.length > 0 && (
               <span className="shrink-0 text-label font-semibold px-2 py-1 rounded-full"
-                style={{ background: 'rgba(28,202,199,0.1)', color: 'var(--acc-tx)' }}>
+                style={{ background: 'var(--teal-a10)', color: 'var(--acc-tx)' }}>
                 {selectedIds.length}
               </span>
             )}
@@ -249,8 +249,8 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                   className="w-full text-left py-2.5 text-sm flex items-center gap-2 transition-colors"
                   style={{
                     paddingLeft: `${16 + depth * 16}px`,
-                    paddingRight: '16px',
-                    background: isSelected ? 'rgba(28,202,199,0.07)' : 'transparent',
+                    paddingRight: 'var(--spacing-card)',
+                    background: isSelected ? 'var(--teal-a07)' : 'transparent',
                     color: isSelected ? 'var(--acc-tx)' : 'var(--tx2)',
                   }}
                   onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}
@@ -265,7 +265,7 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
                         ? { background: 'var(--acc)', border: '1px solid var(--acc)' }
                         : { background: 'transparent', border: '1.5px solid var(--border)' }}>
                       {isSelected && (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-2.5 h-2.5">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--on-fill)' }} strokeWidth="3" className="w-2.5 h-2.5">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       )}

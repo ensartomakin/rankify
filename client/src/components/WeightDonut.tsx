@@ -57,7 +57,7 @@ export function WeightDonut({ criteria }: Props) {
               return (
                 <g aria-hidden="true" style={{ pointerEvents: 'none', fontFamily: 'inherit' }}>
                   <text x={cx} y={cy - 9} textAnchor="middle" dominantBaseline="central"
-                    style={{ fontSize: 20, fontWeight: 700, fill: 'var(--tx1)', letterSpacing: 0 }}>
+                    style={{ fontSize: 'var(--text-stat)', fontWeight: 700, fill: 'var(--tx1)', letterSpacing: 0 }}>
                     {centreMain}
                   </text>
                   <text x={cx} y={cy + 13} textAnchor="middle" dominantBaseline="central"

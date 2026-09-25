@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchCredentials, saveCredentials, testCredentials, fetchSchedule, saveSchedule, type CredentialsPayload, type ScheduleSettings } from '../api/settings';
 import { fetchGa4Status, fetchGa4AuthUrl, openGa4OAuthPopup, saveGa4PropertyId, deleteGa4Credentials, testGa4Connection, syncGa4Metrics, type Ga4Status } from '../api/ga4';
+import { formatDate } from '../utils/format';
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail';
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -192,7 +193,7 @@ export function Settings({ onSaved }: Props) {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-2xl mx-auto py-8 space-y-8 animate-fade-up" style={{ paddingLeft: '28px', paddingRight: '28px' }}>
+      <div className="max-w-2xl mx-auto py-8 space-y-8 animate-fade-up" style={{ paddingLeft: 'var(--spacing-page)', paddingRight: 'var(--spacing-page)' }}>
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -228,7 +229,7 @@ export function Settings({ onSaved }: Props) {
               </span>
             </div>
             {!isSuperAdmin && (
-              <span className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full"
+              <span className="flex items-center gap-1.5 text-mini font-medium px-2.5 py-1 rounded-full"
                 style={{ background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
@@ -373,7 +374,7 @@ export function Settings({ onSaved }: Props) {
                 <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--tx3)' }}>
                   Otomatik Zamanlama
                 </span>
-                <p className="text-[11px] mt-0.5" style={{ color: 'var(--tx3)' }}>
+                <p className="text-mini mt-0.5" style={{ color: 'var(--tx3)' }}>
                   Seçili gün ve saatlerde tüm aktif kategori sıralamalarını otomatik çalıştırır
                 </p>
               </div>
@@ -386,7 +387,7 @@ export function Settings({ onSaved }: Props) {
                 onClick={() => { setSchedule(prev => ({ ...prev, isEnabled: !prev.isEnabled })); setSchedSave('idle'); }}
                 className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0"
                 style={{ background: schedule.isEnabled ? 'var(--ok-tx)' : 'var(--border)' }}>
-                <span className="inline-block h-4 w-4 rounded-full bg-white transition-transform"
+                <span className="inline-block h-4 w-4 rounded-full bg-[var(--knob)] transition-transform"
                   style={{ transform: schedule.isEnabled ? 'translateX(22px)' : 'translateX(4px)' }} />
               </button>
             </div>
@@ -410,7 +411,7 @@ export function Settings({ onSaved }: Props) {
                     </span>
                     <div className="flex items-center gap-3">
                       {enabled && (
-                        <span className="text-[11px]" style={{ color: 'var(--acc-tx)' }}>
+                        <span className="text-mini" style={{ color: 'var(--acc-tx)' }}>
                           {hours.map(h => `${String(h).padStart(2,'0')}:00`).join(', ')}
                         </span>
                       )}
@@ -418,7 +419,7 @@ export function Settings({ onSaved }: Props) {
                         onClick={() => setDayEnabled(day, !enabled)}
                         className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
                         style={{ background: enabled ? 'var(--acc)' : 'var(--border)' }}>
-                        <span className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
+                        <span className="inline-block h-3.5 w-3.5 rounded-full bg-[var(--knob)] transition-transform"
                           style={{ transform: enabled ? 'translateX(18px)' : 'translateX(3px)' }} />
                       </button>
                     </div>
@@ -431,7 +432,7 @@ export function Settings({ onSaved }: Props) {
                           const sel = hours.includes(h);
                           return (
                             <button key={h} onClick={() => toggleHourForDay(day, h)}
-                              className="h-8 rounded-lg text-[11px] font-semibold tabular-nums transition-all"
+                              className="h-8 rounded-lg text-mini font-semibold tabular-nums transition-all"
                               style={sel
                                 ? { background: 'var(--acc)', color: 'var(--cta-tx)', border: '1px solid var(--acc)' }
                                 : { background: 'var(--surface)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
@@ -440,7 +441,7 @@ export function Settings({ onSaved }: Props) {
                           );
                         })}
                       </div>
-                      <p className="text-[10px] mt-2" style={{ color: 'var(--acc-tx)' }}>
+                      <p className="text-tiny mt-2" style={{ color: 'var(--acc-tx)' }}>
                         {hours.length} saat seçili — {label} günü {hours.length} kez çalışır
                       </p>
                     </div>
@@ -485,14 +486,14 @@ export function Settings({ onSaved }: Props) {
                 <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--tx3)' }}>
                   Google Analytics 4
                 </span>
-                <p className="text-[11px] mt-0.5" style={{ color: 'var(--tx3)' }}>
+                <p className="text-mini mt-0.5" style={{ color: 'var(--tx3)' }}>
                   Ürün bazlı CTR, oturum, görüntülenme ve dönüşüm verilerini sıralamaya dahil edin
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {!isSuperAdmin && (
-                <span className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full"
+                <span className="flex items-center gap-1.5 text-mini font-medium px-2.5 py-1 rounded-full"
                   style={{ background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
@@ -532,7 +533,7 @@ export function Settings({ onSaved }: Props) {
                   className="flex-1 py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all"
                   style={ga4Connecting
                     ? { background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)', cursor: 'not-allowed' }
-                    : { background: '#fff', color: '#3c4043', border: '1px solid #dadce0' }
+                    : { background: 'var(--google-btn-bg)', color: 'var(--google-btn-tx)', border: '1px solid var(--google-btn-bd)' }
                   }>
                   {ga4Connecting
                     ? <><span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Bağlanıyor…</>
@@ -589,7 +590,7 @@ export function Settings({ onSaved }: Props) {
                   </button>
                 )}
               </div>
-              <p className="text-[11px]" style={{ color: 'var(--tx3)' }}>
+              <p className="text-mini" style={{ color: 'var(--tx3)' }}>
                 analytics.google.com → Admin → Mülk Ayarları → Mülk ID (sadece rakam)
               </p>
               {ga4PropStatus === 'saved' && (
@@ -627,8 +628,8 @@ export function Settings({ onSaved }: Props) {
                 <div>
                   <p className="text-xs font-semibold" style={{ color: 'var(--tx2)' }}>Metrik Senkronizasyonu</p>
                   {ga4Status.lastSync && (
-                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--tx3)' }}>
-                      Son sync: {new Date(ga4Status.lastSync).toLocaleString('tr-TR')}
+                    <p className="text-mini mt-0.5" style={{ color: 'var(--tx3)' }}>
+                      Son sync: {formatDate(ga4Status.lastSync, 'full')}
                     </p>
                   )}
                 </div>
@@ -667,13 +668,13 @@ export function Settings({ onSaved }: Props) {
 
               <div className="flex flex-wrap gap-2">
                 {['GA4 · Görüntülenme', 'GA4 · Oturum', 'GA4 · CTR', 'GA4 · Dönüşüm Oranı'].map(label => (
-                  <span key={label} className="px-2.5 py-1 rounded-full text-[11px] font-medium"
+                  <span key={label} className="px-2.5 py-1 rounded-full text-mini font-medium"
                     style={{ background: 'var(--acc-bg)', border: '1px solid var(--acc-bd)', color: 'var(--acc-tx)' }}>
                     {label}
                   </span>
                 ))}
               </div>
-              <p className="text-[11px]" style={{ color: 'var(--tx3)' }}>
+              <p className="text-mini" style={{ color: 'var(--tx3)' }}>
                 Senkronizasyondan sonra bu metrikler sıralama kriterlerinde kullanılabilir hale gelir.
               </p>
             </div>

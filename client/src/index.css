@@ -14,11 +14,31 @@
   --text-body:    14px;  /* default UI text */
   --text-body--line-height: 1.5;
 
+  /* Smaller sizes used by the sidebar, settings, users and producer screens,
+     plus display/title/stat/emoji sizes. No line-height of their own. */
+  --text-micro:    9px;
+  --text-tiny:     10px;
+  --text-mini:     11px;
+  --text-emoji:    18px;
+  --text-stat:     20px;
+  --text-emoji-lg: 22px;
+  --text-title:    28px;
+  --text-display:  40px;
+  --text-page-title: clamp(18px, 3vw, 22px);
+
   /* Spacing scale — p-card, gap-section, mb-stack, gap-tight… or var(--spacing-*) */
   --spacing-card:    16px;  /* card inner padding */
   --spacing-section: 16px;  /* gap between page sections / panels */
   --spacing-stack:   12px;  /* gap between blocks inside a card */
   --spacing-tight:    8px;  /* gap between a label and its control, chips */
+  --spacing-inline:   6px;  /* small inline offsets */
+  --spacing-pill:     5px;  /* icon ↔ text inside a pill */
+  --spacing-hair:     4px;  /* hairline gaps */
+  --spacing-tile-y:  10px;  /* template tile vertical padding */
+  --spacing-page:    28px;  /* page side gutter */
+  --spacing-shell-gap: 20px;                  /* sidebar ↔ main */
+  --spacing-shell:      clamp(6px, 2vw, 12px); /* app frame padding */
+  --spacing-shell-wide: clamp(6px, 2vw, 16px); /* app frame right padding */
 }
 
 /* ─────────────────────────────────────────────────
@@ -79,6 +99,51 @@
   --cta-bg:    #1CCAC7;
   --cta-tx:    #151035;
   --cta-hov:   #17B0AD;
+}
+
+/* ── Fixed tokens — identical in both themes ─────────────── */
+:root {
+  --on-fill:       #FFFFFF;               /* text / icons on dark or coloured fills */
+  --media-bg:      #FFFFFF;               /* frame behind product photos */
+  --knob:          #FFFFFF;               /* toggle knobs, slider handles */
+  --scrim:         rgba(0,0,0,0.5);       /* chips over photos */
+  --scrim-strong:  rgba(0,0,0,0.6);
+  --scrim-soft:    rgba(0,0,0,0.08);      /* tiny close buttons */
+
+  /* Bright-teal tints (#1CCAC7 at fixed alphas) */
+  --teal-a07: rgba(28,202,199,0.07);
+  --teal-a08: rgba(28,202,199,0.08);
+  --teal-a10: rgba(28,202,199,0.10);
+  --teal-a12: rgba(28,202,199,0.12);
+  --teal-a18: rgba(28,202,199,0.18);
+  --teal-a20: rgba(28,202,199,0.20);
+  --teal-a22: rgba(28,202,199,0.22);
+  --teal-a25: rgba(28,202,199,0.25);
+  --teal-a30: rgba(28,202,199,0.30);
+
+  /* Shadows */
+  --shadow-pop:      0 4px 12px rgba(0,0,0,0.2);
+  --shadow-tooltip:  0 6px 20px rgba(0,0,0,0.18);
+  --shadow-segment:  0 1px 2px rgba(21,16,53,0.08);
+  --shadow-fab:      0 4px 14px rgba(21,16,53,0.25);
+  --shadow-handle:   0 0 0 1px rgba(21,16,53,0.25), 0 1px 3px rgba(21,16,53,0.35);
+  --text-shadow-on-fill: 0 1px 2px rgba(21,16,53,0.45);
+  --spinner-track-on-fill: rgba(255,255,255,0.3);
+
+  /* Login hero (on --sb-bg) */
+  --hero-glow-teal:   rgba(28,202,199,0.18);
+  --hero-glow-violet: rgba(47,34,108,0.6);
+  --hero-tx-muted:    rgba(250,250,250,0.65);
+  --hero-tx-soft:     rgba(250,250,250,0.75);
+  --hero-tx-faint:    rgba(250,250,250,0.4);
+  --hero-rule:        rgba(250,250,250,0.15);
+  --hero-dot-2:       #8A86A8;
+  --hero-dot-3:       #5C5680;
+
+  /* Google sign-in button (Google's own spec colours) */
+  --google-btn-bg: #FFFFFF;
+  --google-btn-tx: #3C4043;
+  --google-btn-bd: #DADCE0;
 }
 
 [data-theme="dark"] {

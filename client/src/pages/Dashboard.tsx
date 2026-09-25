@@ -13,6 +13,7 @@ import { WeightBar } from '../components/WeightBar';
 import { CriterionCard } from '../components/CriterionCard';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { SearchIcon } from '../components/SearchIcon';
+import { EmptyState } from '../components/EmptyState';
 import {
   getCurrentRanking, previewRanking, applyManualRanking, aiAdjustRanking,
 } from '../api/ranking';
@@ -23,7 +24,7 @@ import type {
 import { saveConfig } from '../api/config';
 import { fetchGa4Status } from '../api/ga4';
 import { getStoredThreshold } from '../utils/threshold';
-import { formatPercent } from '../utils/format';
+import { formatPercent, formatNumber, formatDate } from '../utils/format';
 import type { WeightCriterion, CriterionKey, SeasonPreFilter } from '../types';
 import { criteriaColor } from '../types';
 import type { SavedConfig } from '../api/config';
@@ -66,14 +67,23 @@ function getImageUrls(apiUrl: string, imageUrl: string, productId: string, produ
 }
 
 const fmtPct = (n: number) => formatPercent(n, 1);
-function fmtDate(iso: string) {
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
+
+
+/* ─── Boş durum ikonları ─── */
+function GridIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round"
+        d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+    </svg>
+  );
 }
-/* 10.08.23 — fits the narrow card rows; the long form goes in the tooltip. */
-function fmtDateShort(iso: string) {
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+function BoxIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+    </svg>
+  );
 }
 
 /* ─── Placeholder ikonu ─── */
@@ -114,7 +124,7 @@ function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void
       /* Same chip on every card; pinned = teal fill with a filled icon. */
       style={pinned
         ? { background: 'var(--acc)', color: 'var(--cta-tx)' }
-        : { background: 'rgba(0,0,0,0.5)', color: '#FFFFFF', backdropFilter: 'blur(4px)' }}>
+        : { background: 'var(--scrim)', color: 'var(--on-fill)', backdropFilter: 'blur(4px)' }}>
       <PinIcon pinned={pinned} />
     </button>
   );
@@ -148,7 +158,7 @@ function RankBadge({ rank, onRankEdit }: { rank: number; onRankEdit?: (n: number
     <button onClick={e => { e.stopPropagation(); startEdit(); }}
       onPointerDown={e => e.stopPropagation()}
       className="text-label font-bold px-2 py-0.5 rounded-full tabular-nums"
-      style={{ background: 'rgba(0,0,0,0.6)', color: '#FFFFFF', backdropFilter: 'blur(4px)', cursor: 'pointer', border: 'none' }}
+      style={{ background: 'var(--scrim-strong)', color: 'var(--on-fill)', backdropFilter: 'blur(4px)', cursor: 'pointer', border: 'none' }}
       title="Sıra numarasını düzenle">
       #{rank}
     </button>
@@ -165,9 +175,9 @@ function CardImage({ apiUrl, p, faded, children }: {
   const [idx, setIdx] = useState(0);
   return (
     <div className="relative overflow-hidden rounded-t-xl"
-      style={{ aspectRatio: '3 / 4', maxHeight: 240, background: idx < urls.length ? '#FFFFFF' : 'var(--surface2)' }}>
+      style={{ aspectRatio: '3 / 4', maxHeight: 240, background: idx < urls.length ? 'var(--media-bg)' : 'var(--surface2)' }}>
       {idx < urls.length
-        ? <img key={urls[idx]} src={urls[idx]} alt={p.productName} draggable={false}
+        ? <img key={urls[idx]} src={urls[idx]} alt={p.productName} draggable={false} loading="lazy" decoding="async"
             onError={() => setIdx(i => i + 1)}
             /* contain: the whole photo fits the frame (no cropping when the
                240px cap makes wide cards' frames landscape). */
@@ -178,7 +188,7 @@ function CardImage({ apiUrl, p, faded, children }: {
       {/* Sürükleme ipucu — sadece hover'da; kartın tamamı sürüklenebilir */}
       <span aria-hidden="true"
         className="absolute top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-        style={{ background: 'rgba(0,0,0,0.5)', color: '#FFFFFF' }}>
+        style={{ background: 'var(--scrim)', color: 'var(--on-fill)' }}>
         <svg viewBox="0 0 20 10" fill="currentColor" className="w-4 h-2.5">
           <circle cx="4" cy="2" r="1.5"/><circle cx="10" cy="2" r="1.5"/><circle cx="16" cy="2" r="1.5"/>
           <circle cx="4" cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/>
@@ -225,7 +235,7 @@ function CurrentCard({ p, apiUrl, onRankEdit, isPinned, onTogglePin }: {
         </a>
         <div className="mt-auto flex items-center justify-between gap-2 text-label" style={{ color: 'var(--tx3)' }}>
           <span className="font-mono truncate min-w-0">#{p.productCode}</span>
-          <span className="shrink-0">Stok {p.totalStock.toLocaleString('tr-TR')}</span>
+          <span className="shrink-0">Stok {formatNumber(p.totalStock)}</span>
         </div>
       </div>
     </div>
@@ -258,14 +268,14 @@ const SCORE_NAMES: Partial<Record<CriterionKey, string>> = {
 
 function rawValue(p: ProductPreviewItem, key: CriterionKey, compact = false): string {
   switch (key) {
-    case 'stockScore':        return p.totalStock.toLocaleString('tr-TR');
-    case 'bestSeller':        return p.salesQty.toLocaleString('tr-TR');
-    case 'newness':           return compact ? fmtDateShort(p.registrationDate) : fmtDate(p.registrationDate);
-    case 'reviewScore':       return p.reviewCount.toLocaleString('tr-TR');
+    case 'stockScore':        return formatNumber(p.totalStock);
+    case 'bestSeller':        return formatNumber(p.salesQty);
+    case 'newness':           return formatDate(p.registrationDate, compact ? 'short' : 'long');
+    case 'reviewScore':       return formatNumber(p.reviewCount);
     case 'availabilityScore': return fmtPct(p.availabilityRate * 100);
     case 'discountRate':      return formatPercent(p.discountRate ?? 0);
-    case 'ga4Views':          return (p.ga4?.views ?? 0).toLocaleString('tr-TR');
-    case 'ga4CartAdds':       return (p.ga4?.cartAdds ?? 0).toLocaleString('tr-TR');
+    case 'ga4Views':          return formatNumber((p.ga4?.views ?? 0));
+    case 'ga4CartAdds':       return formatNumber((p.ga4?.cartAdds ?? 0));
     case 'ga4ConversionRate': return fmtPct(p.ga4?.conversionRate ?? 0);
     default:                  return '';
   }
@@ -378,9 +388,9 @@ function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, on
           ? <RankBadge rank={displayRank} onRankEdit={onRankEdit} />
           : <span className="text-label font-semibold" style={{ color: 'var(--err-tx)' }}>—</span>}
       </span>
-      <div className="w-9 h-12 rounded overflow-hidden shrink-0" style={{ background: '#FFFFFF', border: '1px solid var(--border)' }}>
+      <div className="w-9 h-12 rounded overflow-hidden shrink-0" style={{ background: 'var(--media-bg)', border: '1px solid var(--border)' }}>
         {idx < urls.length
-          ? <img src={urls[idx]} alt="" draggable={false} onError={() => setIdx(i => i + 1)} className="w-full h-full object-contain"
+          ? <img src={urls[idx]} alt="" draggable={false} loading="lazy" decoding="async" onError={() => setIdx(i => i + 1)} className="w-full h-full object-contain"
               style={isStockOut(p) ? { filter: 'grayscale(1)', opacity: 0.55 } : undefined} />
           : null}
       </div>
@@ -549,6 +559,13 @@ export function Dashboard({ prefill }: Props) {
   const [aiRules,      setAiRules]      = useState<AdjustRule[]>([]);
   const [messages,     setMessages]     = useState<ChatMessage[]>([]);
   const [chatOpen,     setChatOpen]     = useState(false);
+  // Empty-state action: bring the category search into view and open it.
+  const heroSearchRef = useRef<HTMLDivElement>(null);
+  function openCategorySearch() {
+    const el = heroSearchRef.current;
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el?.querySelector<HTMLButtonElement>('button')?.click();
+  }
   // Footer height drives the chat button's offset so it always sits above the
   // footer (which can wrap to two rows on narrow screens).
   const footerRef = useRef<HTMLDivElement>(null);
@@ -1003,7 +1020,7 @@ export function Dashboard({ prefill }: Props) {
       {/* Başlık */}
       <div className="shrink-0 py-3 flex items-center justify-between gap-4 px-4 md:px-6"
         style={{ borderBottom: '1px solid var(--border)' }}>
-        <h1 className="font-serif" style={{ fontSize: 'clamp(18px,3vw,22px)', fontWeight: 700, color: 'var(--tx1)', lineHeight: 1.2 }}>
+        <h1 className="font-serif" style={{ fontSize: 'var(--text-page-title)', fontWeight: 700, color: 'var(--tx1)', lineHeight: 1.2 }}>
           Sıralama Yöneticisi
         </h1>
       </div>
@@ -1014,7 +1031,7 @@ export function Dashboard({ prefill }: Props) {
         style={{ paddingBottom: previewResult ? 88 : 'var(--spacing-section)' }}>
 
         {/* Hero kategori arama alanı */}
-        <div>
+        <div ref={heroSearchRef}>
           {/* wrapper: border+shadow ama overflow:visible — dropdown taşabilsin */}
           <div className="relative" style={{
             borderRadius: '12px',
@@ -1040,7 +1057,7 @@ export function Dashboard({ prefill }: Props) {
             {selectedCategories.length > 0 && (
               <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none
                               flex items-center gap-1.5 px-2.5 py-0.5 rounded-full"
-                style={{ background: 'rgba(28,202,199,0.08)', border: '1px solid rgba(28,202,199,0.22)' }}>
+                style={{ background: 'var(--teal-a08)', border: '1px solid var(--teal-a22)' }}>
                 <span className="text-label font-mono font-semibold" style={{ color: 'var(--acc-tx)' }}>
                   {selectedCategories.length > 1 ? `${selectedCategories.length} kategori` : `#${categoryId}`}
                 </span>
@@ -1057,7 +1074,7 @@ export function Dashboard({ prefill }: Props) {
                   onClick={() => handleToggleCategory(id, name)}
                   className="flex items-center gap-1.5 px-3 py-1 rounded-full text-label font-semibold transition-all"
                   style={idx === 0
-                    ? { background: 'rgba(28,202,199,0.12)', border: '1px solid rgba(28,202,199,0.3)', color: 'var(--acc-tx)' }
+                    ? { background: 'var(--teal-a12)', border: '1px solid var(--teal-a30)', color: 'var(--acc-tx)' }
                     : { background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx2)' }}>
                   {idx === 0 && <span style={{ fontSize: 'var(--text-label)' }}>★</span>}
                   <span>{name || id}</span>
@@ -1091,8 +1108,8 @@ export function Dashboard({ prefill }: Props) {
                   onClick={() => { setCriteria(s.criteria); setSelectedScenario(isSelected ? null : s); }}
                   aria-pressed={isSelected}
                   style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px',
-                    padding: '10px 12px', borderRadius: '12px', cursor: 'pointer', textAlign: 'left',
+                    display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--spacing-hair)',
+                    padding: 'var(--spacing-tile-y) var(--spacing-stack)', borderRadius: '12px', cursor: 'pointer', textAlign: 'left',
                     border: 'none',
                     background: isSelected ? 'var(--acc-bg)' : 'var(--surface2)',
                     boxShadow: isSelected ? 'inset 0 0 0 1.5px var(--acc)' : 'none',
@@ -1100,7 +1117,7 @@ export function Dashboard({ prefill }: Props) {
                   }}
                   onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface3)'; }}
                   onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}>
-                  <span style={{ fontSize: '18px', lineHeight: 1 }}>{s.emoji}</span>
+                  <span style={{ fontSize: 'var(--text-emoji)', lineHeight: 1 }}>{s.emoji}</span>
                   <div className="text-label font-bold leading-tight mt-0.5 break-words max-w-full" style={{ color: isSelected ? 'var(--acc-tx)' : 'var(--tx1)' }}>{s.name}</div>
                   <div className="text-caption leading-tight" style={{ color: 'var(--tx3)' }}>{s.tagline}</div>
                 </button>
@@ -1111,13 +1128,13 @@ export function Dashboard({ prefill }: Props) {
           {/* Seçili senaryo açıklaması */}
           {selectedScenario && (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-stack)', padding: 'var(--spacing-stack)', borderRadius: '12px', background: 'var(--acc-bg)' }}>
-              <span style={{ fontSize: '22px', lineHeight: 1, flexShrink: 0 }}>{selectedScenario.emoji}</span>
+              <span style={{ fontSize: 'var(--text-emoji-lg)', lineHeight: 1, flexShrink: 0 }}>{selectedScenario.emoji}</span>
               <div>
                 <div style={{ fontSize: 'var(--text-caption)', fontWeight: 700, color: 'var(--acc-tx)' }}>
                   {selectedScenario.name}
-                  <span style={{ fontWeight: 400, marginLeft: '6px', color: 'var(--tx3)' }}>· {selectedScenario.tagline}</span>
+                  <span style={{ fontWeight: 400, marginLeft: 'var(--spacing-inline)', color: 'var(--tx3)' }}>· {selectedScenario.tagline}</span>
                 </div>
-                <div style={{ fontSize: 'var(--text-caption)', color: 'var(--tx2)', marginTop: '4px', lineHeight: 1.6 }}>
+                <div style={{ fontSize: 'var(--text-caption)', color: 'var(--tx2)', marginTop: 'var(--spacing-hair)', lineHeight: 1.6 }}>
                   {selectedScenario.description}
                 </div>
               </div>
@@ -1193,7 +1210,7 @@ export function Dashboard({ prefill }: Props) {
                     }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.color = 'var(--acc-tx)'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
-                    <span style={{ fontSize: '20px', lineHeight: 1 }}>+</span>
+                    <span style={{ fontSize: 'var(--text-stat)', lineHeight: 1 }}>+</span>
                     <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600 }}>Kriter Ekle</span>
                   </button>
                 )}
@@ -1216,7 +1233,7 @@ export function Dashboard({ prefill }: Props) {
                 style={{ width: 48, height: 26, borderRadius: 13, background: smartMix ? 'var(--acc)' : 'var(--border)', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}>
                 <span style={{
                   position: 'absolute', top: 4, left: smartMix ? 26 : 4,
-                  width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                  width: 18, height: 18, borderRadius: '50%', background: 'var(--knob)',
                   transition: 'left 0.2s',
                 }} />
               </button>
@@ -1239,7 +1256,7 @@ export function Dashboard({ prefill }: Props) {
                 </button>
                 <span id="season-info" role="tooltip"
                   className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-1/2 -translate-x-1/2 top-6 z-20 w-64 p-3 rounded-lg text-caption"
-                  style={{ background: 'var(--tx1)', color: 'var(--bg)', boxShadow: '0 6px 20px rgba(0,0,0,0.18)' }}>
+                  style={{ background: 'var(--tx1)', color: 'var(--bg)', boxShadow: 'var(--shadow-tooltip)' }}>
                   Ürünler sıralama öncesinde sezon etiketine (Ek Bilgi 7) göre gruplanır. Seçilen sezonun ürünleri kendi sıralarını (puan, stok, bulunurluk) koruyarak öne alınır, ardından diğer sezon gelir. Dışlanan ürünler bundan etkilenmez.
                 </span>
               </span>
@@ -1271,7 +1288,7 @@ export function Dashboard({ prefill }: Props) {
                       background: isActive ? 'var(--surface)' : 'transparent',
                       color: isActive ? 'var(--acc-tx)' : 'var(--tx2)',
                       border: isActive ? '1px solid var(--acc-bd)' : '1px solid transparent',
-                      boxShadow: isActive ? '0 1px 2px rgba(21,16,53,0.08)' : 'none',
+                      boxShadow: isActive ? 'var(--shadow-segment)' : 'none',
                       cursor: 'pointer',
                     }}>
                     {opt.label}
@@ -1437,13 +1454,9 @@ export function Dashboard({ prefill }: Props) {
             <div className="@container" style={{ padding: 'var(--spacing-card)', background: 'var(--panel)', borderRadius: '0 0 16px 16px' }}>
               {/* Yükleniyor */}
               {(currentStatus === 'loading' || previewStatus === 'loading') && (
-                <div className="flex items-center justify-center gap-3 py-16">
-                  <span className="w-6 h-6 border-2 rounded-full animate-spin"
-                    style={{ borderColor: 'var(--border)', borderTopColor: 'var(--acc)' }} />
-                  <span className="text-sm" style={{ color: 'var(--tx2)' }}>
-                    {currentStatus === 'loading' ? 'Mevcut sıralama yükleniyor…' : 'Önizleme hesaplanıyor…'}
-                  </span>
-                </div>
+                <EmptyState loading
+                  title={currentStatus === 'loading' ? 'Mevcut sıralama yükleniyor…' : 'Önizleme hesaplanıyor…'}
+                  description="Ürünler T-Soft'tan alınıyor; bu birkaç saniye sürebilir." />
               )}
 
               {/* Mevcut sıralama kartları — drag-drop */}
@@ -1480,16 +1493,24 @@ export function Dashboard({ prefill }: Props) {
 
               {/* Boş durum */}
               {!isBusy && hasProducts && filteredCurrent.length === 0 && view === 'current' && (
-                <div className="flex items-center justify-center py-12 rounded-lg"
-                  style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                  <p style={{ color: 'var(--tx3)' }}>Ürün bulunamadı</p>
-                </div>
+                filter.trim()
+                  ? <EmptyState icon={<SearchIcon className="w-6 h-6" />} title="Aramayla eşleşen ürün yok"
+                      description={`"${filter.trim()}" için sonuç bulunamadı.`}
+                      action={{ label: 'Aramayı temizle', onClick: () => setFilter('') }} />
+                  : <EmptyState icon={<BoxIcon />} title="Bu kategoride ürün yok"
+                      description="T-Soft'ta bu kategoriye bağlı ürün bulunamadı." />
               )}
               {!isBusy && previewResult && filteredPreview.length === 0 && view === 'preview' && (
-                <div className="flex items-center justify-center py-12 rounded-lg"
-                  style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                  <p style={{ color: 'var(--tx3)' }}>Ürün bulunamadı</p>
-                </div>
+                filter.trim()
+                  ? <EmptyState icon={<SearchIcon className="w-6 h-6" />} title="Aramayla eşleşen ürün yok"
+                      description={`"${filter.trim()}" için sonuç bulunamadı.`}
+                      action={{ label: 'Aramayı temizle', onClick: () => setFilter('') }} />
+                  : !showDq && previewResult.disqualifiedCount > 0
+                    ? <EmptyState icon={<BoxIcon />} title="Gösterilecek aktif ürün yok"
+                        description="Bu kategorideki ürünlerin tamamı dışlandı."
+                        action={{ label: 'Dışlananları göster', onClick: () => setShowDq(true) }} />
+                    : <EmptyState icon={<BoxIcon />} title="Önizlemede ürün yok"
+                        description="Bu kategori için sıralanacak ürün bulunamadı." />
               )}
             </div>
           </div>
@@ -1497,17 +1518,10 @@ export function Dashboard({ prefill }: Props) {
 
         {/* Kategori seçilmemiş boş durum */}
         {!categoryId && (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 rounded-[20px]"
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <div className="w-14 h-14 rounded-lg flex items-center justify-center" style={{ background: 'var(--acc-bg)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="1.5" className="w-7 h-7">
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium" style={{ color: 'var(--tx2)' }}>
-              Mevcut sıralamayı görmek için yukarıdan bir kategori seçin
-            </p>
+          <div className="rounded-2xl" style={cardSt}>
+            <EmptyState icon={<GridIcon />} title="Kategori seçin"
+              description="Mevcut sıralamayı görmek ve düzenlemek için yukarıdaki aramadan bir kategori seçin."
+              action={{ label: 'Kategori seç', onClick: openCategorySearch }} />
           </div>
         )}
       </div>
@@ -1579,7 +1593,7 @@ export function Dashboard({ prefill }: Props) {
             {isApplying ? (
               <span className="flex items-center gap-2">
                 <span className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
-                  style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'var(--cta-tx)' }} />
+                  style={{ borderColor: 'var(--spinner-track-on-fill)', borderTopColor: 'var(--cta-tx)' }} />
                 Uygulanıyor…
               </span>
             ) : applyLabel}
@@ -1595,7 +1609,7 @@ export function Dashboard({ prefill }: Props) {
             aria-label={chatOpen ? 'Asistanı kapat' : 'AI sıralama asistanı'}
             className="absolute right-4 z-40 w-12 h-12 rounded-full flex items-center justify-center transition-all"
             /* Sits above the footer (measured), so it never covers "Sıralamayı Uygula". */
-            style={{ bottom: 'calc(var(--footer-h) + 16px)', background: 'var(--cta-bg)', color: 'var(--cta-tx)', boxShadow: '0 4px 14px rgba(21,16,53,0.25)' }}
+            style={{ bottom: 'calc(var(--footer-h) + 16px)', background: 'var(--cta-bg)', color: 'var(--cta-tx)', boxShadow: 'var(--shadow-fab)' }}
           >
             {chatOpen ? (
               <span className="text-xl leading-none">✕</span>
@@ -1672,7 +1686,7 @@ export function Dashboard({ prefill }: Props) {
                       {r.description}
                       <button onClick={() => handleRemoveAiRule(i)} disabled={aiLoading}
                         className="w-4 h-4 rounded-full flex items-center justify-center hover:opacity-70 shrink-0 text-label"
-                        style={{ background: 'rgba(0,0,0,0.08)' }}>
+                        style={{ background: 'var(--scrim-soft)' }}>
                         ✕
                       </button>
                     </span>
@@ -1695,7 +1709,7 @@ export function Dashboard({ prefill }: Props) {
                 <button
                   onClick={handleAiInstruction}
                   disabled={aiLoading || !aiInstruction.trim()}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-white transition-all shrink-0"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-[color:var(--on-fill)] transition-all shrink-0"
                   style={aiLoading || !aiInstruction.trim()
                     ? { background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx3)', cursor: 'not-allowed' }
                     : { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }

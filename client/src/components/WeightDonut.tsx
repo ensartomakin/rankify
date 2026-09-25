@@ -1,12 +1,22 @@
 import { useState } from 'react';
 import { PieChart, Pie, Cell } from 'recharts';
-import { criteriaColor, CRITERION_LABELS, SALES_PERIOD_LABELS, type WeightCriterion, type SalesPeriod } from '../types';
+import { criteriaColor, CRITERION_LABELS, SALES_PERIOD_LABELS, GA4_CRITERION_KEYS, type WeightCriterion, type SalesPeriod } from '../types';
+import { formatPercent } from '../utils/format';
 
 interface Props {
   criteria: WeightCriterion[];
 }
 
 const SIZE = 176;
+
+/* "Azalan" or "Azalan · Son 14 Gün" — direction plus the period, when the
+   criterion has one (best seller, GA4 metrics). */
+function detailLine(c: WeightCriterion): string {
+  const dir = c.direction === 'desc' ? 'Azalan' : 'Artan';
+  const hasPeriod = c.key === 'bestSeller' || GA4_CRITERION_KEYS.has(c.key);
+  if (!hasPeriod || !c.salesPeriod) return dir;
+  return `${dir} · ${SALES_PERIOD_LABELS[c.salesPeriod as SalesPeriod] ?? c.salesPeriod}`;
+}
 
 export function WeightDonut({ criteria }: Props) {
   const [active, setActive] = useState<number | null>(null);
@@ -39,12 +49,12 @@ export function WeightDonut({ criteria }: Props) {
             ))}
           </Pie>
         </PieChart>
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none"
-          aria-live="polite">
+        <div aria-live="polite" className="pointer-events-none text-center"
+          style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           {hovered ? (
             <>
               <span className="text-xl font-bold leading-tight tabular-nums" style={{ color: 'var(--tx1)' }}>
-                %{hovered.value}
+                {formatPercent(hovered.value)}
               </span>
               <span className="text-caption leading-tight max-w-[96px]" style={{ color: 'var(--tx2)' }}>
                 {hovered.label}
@@ -75,17 +85,14 @@ export function WeightDonut({ criteria }: Props) {
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
               <div className="min-w-0">
-                <div className="text-body font-semibold" style={{ color: 'var(--tx1)' }}>Kriter {i + 1}</div>
+                <div className="text-body font-semibold truncate" style={{ color: 'var(--tx1)' }}>{d.label}</div>
                 <div className="text-caption" style={{ color: 'var(--tx2)' }}>
-                  {d.label} · {criteria[i].direction === 'desc' ? 'Azalan' : 'Artan'}
-                  {criteria[i].key === 'bestSeller' && criteria[i].salesPeriod
-                    ? ` · ${SALES_PERIOD_LABELS[criteria[i].salesPeriod as SalesPeriod] ?? criteria[i].salesPeriod}`
-                    : ''}
+                  {detailLine(criteria[i])}
                 </div>
               </div>
             </div>
             <span className="text-base font-bold tabular-nums shrink-0" style={{ color: 'var(--tx1)' }}>
-              {d.value}%
+              {formatPercent(d.value)}
             </span>
           </div>
         ))}

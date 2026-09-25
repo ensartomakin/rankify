@@ -51,18 +51,8 @@ export const CRITERIA_COLORS = [
   '#F5A524', // K5 — Turuncu
 ] as const;
 
-/* Legible text on each CRITERIA_COLORS fill (same order) — only the violet
-   takes white; the rest take Deep Space Violet (all ≥4.3:1). */
-export const CRITERIA_TEXT_ON = [
-  '#151035', // on Turkuaz
-  '#FFFFFF', // on Mor
-  '#151035', // on Pembe
-  '#151035', // on Mavi
-  '#151035', // on Turuncu
-] as const;
 
 export const criteriaColor  = (i: number): string => CRITERIA_COLORS[i % CRITERIA_COLORS.length];
-export const criteriaTextOn = (i: number): string => CRITERIA_TEXT_ON[i % CRITERIA_TEXT_ON.length];
 
 
 export interface WeightCriterion {

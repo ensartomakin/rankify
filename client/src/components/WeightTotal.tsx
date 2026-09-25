@@ -1,3 +1,4 @@
+import { formatPercent } from '../utils/format';
 interface Props {
   total: number;
 }
@@ -14,7 +15,7 @@ export function WeightTotal({ total }: Props) {
     }`}>
       <div className="flex items-center gap-2">
         <span className={`text-xl font-bold tabular-nums ${isValid ? 'text-emerald-600' : 'text-amber-600'}`}>
-          %{total}
+          {formatPercent(total)}
         </span>
         <span className="text-sm text-slate-500">toplam ağırlık</span>
       </div>

@@ -1,5 +1,6 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { criteriaColor, criteriaTextOn, type WeightCriterion } from '../types';
+import { formatPercent } from '../utils/format';
+import { criteriaColor, CRITERION_LABELS, type WeightCriterion } from '../types';
 
 interface Props {
   criteria: WeightCriterion[];
@@ -7,9 +8,19 @@ interface Props {
 }
 
 const MIN_WEIGHT = 5;
+/* A segment at least this wide shows the criterion name instead of K1/K2… */
+const NAME_LABEL_MIN_PX = 120;
 
 export function WeightBar({ criteria, onChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [barWidth, setBarWidth] = useState(0);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setBarWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const weights = criteria.map(c => c.weight);
   const total   = weights.reduce((s, w) => s + w, 0);
 
@@ -77,7 +88,7 @@ export function WeightBar({ criteria, onChange }: Props) {
         <div className="text-body font-semibold" style={{ color: 'var(--tx1)' }}>Puan Dağılım Çubuğu</div>
         {off ? (
           <div role="alert" className="text-caption mt-0.5 font-semibold" style={{ color: 'var(--err-tx)' }}>
-            Toplam %{total}, %{Math.abs(100 - total)} {total > 100 ? 'fazla' : 'eksik'}
+            Toplam {formatPercent(total)}, {formatPercent(Math.abs(100 - total))} {total > 100 ? 'fazla' : 'eksik'}
           </div>
         ) : (
           <div className="text-caption mt-0.5" style={{ color: 'var(--tx3)' }}>Sürükleyerek ağırlıkları ayarlayın</div>
@@ -88,17 +99,22 @@ export function WeightBar({ criteria, onChange }: Props) {
       <div ref={containerRef}
         className="relative h-11 rounded-lg overflow-hidden flex select-none"
         style={{ border: '1px solid var(--border)' }}>
-        {criteria.map((c, i) => (
-          <div key={i}
-            className="flex items-center justify-center text-label font-bold overflow-hidden whitespace-nowrap"
-            style={{
-              width: `${c.weight}%`,
-              background: criteriaColor(i),
-              color: criteriaTextOn(i),
-            }}>
-            K{i + 1} · {c.weight}%
-          </div>
-        ))}
+        {criteria.map((c, i) => {
+          const name  = CRITERION_LABELS[c.key];
+          const wide  = barWidth * c.weight / 100 >= NAME_LABEL_MIN_PX;
+          return (
+            <div key={i} title={`${name} · ${formatPercent(c.weight)}`}
+              className="flex items-center justify-center px-1.5 text-label font-semibold overflow-hidden whitespace-nowrap"
+              style={{
+                width: `${c.weight}%`,
+                background: criteriaColor(i),
+                color: '#FFFFFF',
+                textShadow: '0 1px 2px rgba(21,16,53,0.45)',
+              }}>
+              <span className="truncate">{wide ? name : `K${i + 1}`} · {formatPercent(c.weight)}</span>
+            </div>
+          );
+        })}
 
         {/* Handles — centred exactly on each segment boundary */}
         {dividers.map((pos, i) => (
@@ -119,9 +135,9 @@ export function WeightBar({ criteria, onChange }: Props) {
         <div className="flex-1 grid gap-3"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))' }}>
           {criteria.map((c, i) => (
-            <label key={i} className="flex items-center justify-center gap-1.5 min-w-0">
+            <label key={i} title={CRITERION_LABELS[c.key]} className="flex items-center justify-center gap-1.5 min-w-0">
               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: criteriaColor(i) }} />
-              <span className="text-label font-semibold shrink-0" style={{ color: 'var(--tx2)' }}>K{i + 1}</span>
+              <span className="text-label font-semibold shrink-0 cursor-help" style={{ color: 'var(--tx2)' }}>K{i + 1}</span>
               <span className="relative min-w-0 w-full max-w-[72px]">
                 <input
                   type="text"
@@ -135,10 +151,10 @@ export function WeightBar({ criteria, onChange }: Props) {
                   }}
                   onBlur={() => commitDraft(i)}
                   onKeyDown={e => { if (e.key === 'Enter') commitDraft(i); }}
-                  className="w-full h-8 pl-2 pr-6 text-right text-body font-bold tabular-nums rounded-lg focus:outline-none transition-all"
+                  className="w-full h-8 pl-6 pr-2 text-left text-body font-bold tabular-nums rounded-lg focus:outline-none transition-all"
                   style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--tx1)' }}
                 />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-label pointer-events-none" style={{ color: 'var(--tx3)' }}>%</span>
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-label pointer-events-none" style={{ color: 'var(--tx3)' }}>%</span>
               </span>
             </label>
           ))}

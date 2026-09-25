@@ -67,15 +67,27 @@ export function WeightBar({ criteria, onChange }: Props) {
     onChange(criteria.map((c, j) => ({ ...c, weight: ws[j] })));
   }
 
+  const off = total !== 100;
+  // Divider i sits at the right edge of segment i, i.e. at the running total.
+  const dividers = weights.slice(0, -1).map((_, i) => weights.slice(0, i + 1).reduce((s, w) => s + w, 0));
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-sm font-semibold" style={{ color: 'var(--tx1)' }}>Puan Dağılım Çubuğu</div>
-          <div className="text-xs mt-0.5" style={{ color: 'var(--tx3)' }}>Sürükleyerek ağırlıkları ayarlayın</div>
+          {off ? (
+            <div role="alert" className="text-xs mt-0.5 font-medium" style={{ color: 'var(--err-tx)' }}>
+              Toplam %100 olmalı — {total > 100 ? `${total - 100} puan fazla` : `${100 - total} puan eksik`}
+            </div>
+          ) : (
+            <div className="text-xs mt-0.5" style={{ color: 'var(--tx3)' }}>Sürükleyerek ağırlıkları ayarlayın</div>
+          )}
         </div>
-        <span className="text-lg font-bold tabular-nums"
-          style={{ color: total === 100 ? 'var(--ok-tx)' : 'var(--warn-tx)' }}>
+        <span className="text-lg font-bold tabular-nums shrink-0 rounded-lg px-2 py-0.5"
+          style={off
+            ? { color: 'var(--err-tx)', background: 'var(--err-bg)', border: '1px solid var(--err-bd)' }
+            : { color: 'var(--ok-tx)', border: '1px solid transparent' }}>
           {total}%
         </span>
       </div>
@@ -83,50 +95,60 @@ export function WeightBar({ criteria, onChange }: Props) {
       {/* Draggable bar */}
       <div ref={containerRef}
         className="relative h-11 rounded-lg overflow-hidden flex select-none"
-        style={{ cursor: 'col-resize', border: '1px solid var(--border)' }}>
-        {criteria.map((c, i) => {
-          const onColor = CRITERION_TEXT_ON[i] ?? CRITERION_TEXT_ON[0];
-          return (
+        style={{ border: '1px solid var(--border)' }}>
+        {criteria.map((c, i) => (
           <div key={i}
-            className="relative flex items-center justify-center text-xs font-bold transition-none"
-            style={{ width: `${c.weight}%`, background: CRITERION_COLORS[i] ?? CRITERION_COLORS[0], color: onColor }}>
+            className="flex items-center justify-center text-xs font-bold overflow-hidden whitespace-nowrap"
+            style={{
+              width: `${c.weight}%`,
+              background: CRITERION_COLORS[i] ?? CRITERION_COLORS[0],
+              color: CRITERION_TEXT_ON[i] ?? CRITERION_TEXT_ON[0],
+            }}>
             K{i + 1} · {c.weight}%
-            {i < criteria.length - 1 && (
-              <div className="absolute right-0 top-0 bottom-0 w-4 z-10 flex items-center justify-center"
-                style={{ cursor: 'col-resize' }}
-                onMouseDown={e => startDrag(i, e)}>
-                <div className="w-px h-5 rounded-full" style={{ background: onColor === '#FAFAFA' ? 'rgba(255,255,255,0.4)' : 'rgba(21,16,53,0.3)' }} />
-              </div>
-            )}
           </div>
-          );
-        })}
+        ))}
+
+        {/* Handles — centred exactly on each segment boundary */}
+        {dividers.map((pos, i) => (
+          <div key={i}
+            className="group absolute top-0 bottom-0 w-5 z-10 flex items-center justify-center"
+            style={{ left: `${pos}%`, transform: 'translateX(-50%)', cursor: 'col-resize' }}
+            onMouseDown={e => startDrag(i, e)}>
+            <div className="w-1.5 h-6 rounded-full transition-transform group-hover:scale-y-125"
+              style={{ background: '#FFFFFF', boxShadow: '0 0 0 1px rgba(21,16,53,0.25), 0 1px 3px rgba(21,16,53,0.35)' }} />
+          </div>
+        ))}
       </div>
 
       {/* Numeric inputs */}
-      <div className="flex items-center gap-4 rounded-lg"
-        style={{ padding: '12px 20.3px', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
-        <span className="text-xs font-medium shrink-0" style={{ color: 'var(--tx3)' }}>Ağırlıklar</span>
-        <div className="flex items-center gap-4 ml-auto flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg px-4 py-3"
+        style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+        <span className="text-xs font-medium shrink-0" style={{ color: 'var(--tx2)' }}>Ağırlıklar</span>
+        <div className="flex-1 grid gap-3"
+          style={{ gridTemplateColumns: `repeat(${criteria.length}, minmax(0, 1fr))` }}>
           {criteria.map((c, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CRITERION_COLORS[i] ?? CRITERION_COLORS[0] }} />
-              <input
-                type="text"
-                inputMode="numeric"
-                value={drafts[i] ?? String(c.weight)}
-                onChange={e => {
-                  const next = [...drafts];
-                  next[i] = e.target.value;
-                  setDrafts(next);
-                }}
-                onBlur={() => commitDraft(i)}
-                onKeyDown={e => { if (e.key === 'Enter') commitDraft(i); }}
-                className="w-14 text-center text-sm font-bold rounded-lg py-1.5 focus:outline-none transition-all"
-                style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--tx1)' }}
-              />
-              <span className="text-xs" style={{ color: 'var(--tx3)' }}>%</span>
-            </div>
+            <label key={i} className="flex items-center justify-center gap-1.5 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CRITERION_COLORS[i] ?? CRITERION_COLORS[0] }} />
+              <span className="text-xs font-semibold shrink-0" style={{ color: 'var(--tx2)' }}>K{i + 1}</span>
+              <span className="relative min-w-0 w-full max-w-[72px]">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  aria-label={`Kriter ${i + 1} ağırlığı`}
+                  value={drafts[i] ?? String(c.weight)}
+                  onChange={e => {
+                    const next = [...drafts];
+                    next[i] = e.target.value;
+                    setDrafts(next);
+                  }}
+                  onBlur={() => commitDraft(i)}
+                  onKeyDown={e => { if (e.key === 'Enter') commitDraft(i); }}
+                  className="w-full h-8 pl-2 pr-6 text-right text-sm font-bold tabular-nums rounded-lg focus:outline-none transition-all"
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--tx1)' }}
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none" style={{ color: 'var(--tx3)' }}>%</span>
+              </span>
+            </label>
           ))}
         </div>
       </div>

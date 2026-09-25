@@ -77,7 +77,7 @@ export function Configs({ onEdit }: Props) {
           </div>
         ) : configs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 rounded-[20px] text-center"
-            style={{ background: 'var(--surface)', border: '1px dashed var(--border-2)' }}>
+            style={{ background: 'var(--surface)', border: '1px dashed var(--border-strong)' }}>
             <div className="w-14 h-14 rounded-lg flex items-center justify-center mb-4"
               style={{ background: 'var(--acc-bg)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="1.5" className="w-7 h-7">

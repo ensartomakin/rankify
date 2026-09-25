@@ -10,8 +10,10 @@ export function WeightDonut({ criteria }: Props) {
     name: `K${i + 1}`,
     label: CRITERION_LABELS[c.key],
     value: c.weight,
-    color: CRITERION_COLORS[i],
+    color: CRITERION_COLORS[i] ?? CRITERION_COLORS[0],
   }));
+  const total = criteria.reduce((s, c) => s + c.weight, 0);
+  const off   = total !== 100;
 
   return (
     <div className="flex items-center gap-8">
@@ -29,8 +31,12 @@ export function WeightDonut({ criteria }: Props) {
           <span className="text-[9px] font-semibold tracking-widest uppercase" style={{ color: 'var(--tx3)' }}>
             TOPLAM
           </span>
-          <span className="text-xl font-bold leading-tight" style={{ color: 'var(--tx1)' }}>100%</span>
-          <span className="text-[9px]" style={{ color: 'var(--tx3)' }}>dağılım</span>
+          <span className="text-xl font-bold leading-tight tabular-nums" style={{ color: off ? 'var(--err-tx)' : 'var(--tx1)' }}>
+            {total}%
+          </span>
+          <span className="text-[9px]" style={{ color: off ? 'var(--err-tx)' : 'var(--tx2)' }}>
+            {off ? '100 olmalı' : 'dağılım'}
+          </span>
         </div>
       </div>
 
@@ -38,7 +44,7 @@ export function WeightDonut({ criteria }: Props) {
       <div className="flex-1 space-y-2">
         {data.map((d, i) => (
           <div key={i} className="flex items-center justify-between rounded-lg px-4 py-2.5"
-            style={{ background: d.color + '10', border: `1px solid ${d.color}20` }}>
+            style={{ background: d.color + '1A', border: `1px solid ${d.color}59`, boxShadow: `inset 3px 0 0 ${d.color}` }}>
             <div className="flex items-center gap-3">
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
               <div>

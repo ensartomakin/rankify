@@ -8,10 +8,27 @@ export function validateWeights(config: WeightConfig): void {
   }
 }
 
-function newnessScore(date: Date): number {
-  const ageDays = (Date.now() - date.getTime()) / 86_400_000;
-  // 0 gün → 100, 365 gün → 0, linear decay
-  return Math.max(0, Math.round(100 - (ageDays / 365) * 100));
+/**
+ * Yenilik puanı — listedeki ürünlere GÖRE (0-100, en yeni 100).
+ *
+ * Eski sürüm mutlak bir ölçek kullanıyordu: 0 gün → 100, 365 gün ve üstü → 0.
+ * Bir yıldan eski ürünlerin hepsi 0 alıyor, min-max normalizasyonu da
+ * "hepsi eşit ve 0" durumunda herkese 0 verdiği için yenilik kriteri kategori
+ * tamamen 1 yıldan eskiyse hiçbir ürüne puan katmıyordu.
+ *
+ * Artık ürün yaşları (gün) log ölçekte normalize edilip ters çevriliyor:
+ * sıralama her zaman tarihlere göre ayrışıyor, çok eski tek bir ürün de
+ * diğerlerini 100'e sıkıştırmıyor. Geçersiz tarih en eski kabul edilir.
+ */
+function newnessScores(dates: Date[]): number[] {
+  const now = Date.now();
+  const ages = dates.map(d => {
+    const t = d.getTime();
+    return Number.isFinite(t) ? Math.max(0, (now - t) / 86_400_000) : NaN;
+  });
+  const oldest = Math.max(0, ...ages.filter(Number.isFinite));
+  const filled = ages.map(a => (Number.isFinite(a) ? a : oldest));
+  return logMinMaxNormalize(filled).map(v => 100 - v);
 }
 
 export function applyDisqualification(
@@ -53,8 +70,8 @@ export function computeRankingScores(
   const sales    = logMinMaxNormalize(products.map(p => p.salesQty));
   const reviews  = logMinMaxNormalize(products.map(p => p.reviewCount));
   const stock    = logMinMaxNormalize(products.map(p => p.sizeAvailability.totalStock));
-  // Yenilik skoru zaten 0-100 aralığında — min-max yeterli
-  const newness  = minMaxNormalize(products.map(p => newnessScore(p.registrationDate)));
+  // Yenilik: ürün yaşı (gün) → log normalizasyon, ters çevrilmiş (en yeni = 100)
+  const newness  = newnessScores(products.map(p => p.registrationDate));
   // İndirim oranı yüzdesel — min-max yeterli
   const discount = usedKeys.has('discountRate')
     ? minMaxNormalize(products.map(p => p.discountRate))

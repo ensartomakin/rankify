@@ -12,6 +12,7 @@ import { WeightDonut } from '../components/WeightDonut';
 import { WeightBar } from '../components/WeightBar';
 import { CriterionCard } from '../components/CriterionCard';
 import { CategoryPicker } from '../components/CategoryPicker';
+import { SearchIcon } from '../components/SearchIcon';
 import {
   getCurrentRanking, previewRanking, applyManualRanking, aiAdjustRanking,
 } from '../api/ranking';
@@ -63,7 +64,7 @@ function getImageUrls(apiUrl: string, imageUrl: string, productId: string, produ
   return [...new Set(urls)];
 }
 
-const fmtPct = (n: number) => formatPercent(n, 2);
+const fmtPct = (n: number) => formatPercent(n, 1);
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
@@ -92,6 +93,22 @@ function PinIcon({ pinned }: { pinned: boolean }) {
       <line x1="12" y1="13" x2="12" y2="21" />
       <line x1="9" y1="6" x2="15" y2="6" />
     </svg>
+  );
+}
+
+function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void }) {
+  const label = pinned ? 'Sabitlemeyi kaldır' : 'Bu sıraya sabitle';
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); onToggle(); }}
+      aria-pressed={pinned} aria-label={label} title={label}
+      className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full transition-all"
+      style={pinned
+        ? { background: 'var(--panel)', color: 'var(--acc)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }
+        : { background: 'rgba(0,0,0,0.45)', color: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(4px)' }
+      }>
+      <PinIcon pinned={pinned} />
+    </button>
   );
 }
 
@@ -150,11 +167,11 @@ function CurrentCard({
       </div>
 
       {/* Fotoğraf */}
-      <div className="relative overflow-hidden" style={{ height: 180, background: 'var(--surface2)' }}>
+      <div className="relative overflow-hidden" style={{ aspectRatio: '3 / 4', background: 'var(--surface2)' }}>
         {imgIdx < urls.length
           ? <img key={urls[imgIdx]} src={urls[imgIdx]} alt={p.productName}
               onError={() => setImgIdx(i => i + 1)}
-              className="w-full h-full object-contain" />
+              className="w-full h-full object-cover" />
           : <ImgPlaceholder />
         }
         {/* Sıra rozeti */}
@@ -170,23 +187,14 @@ function CurrentCard({
           ) : (
             <button onClick={startEdit}
               className="text-label font-bold px-2.5 py-1 rounded-full"
-              style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', backdropFilter: 'blur(4px)', border: '1px solid var(--acc-bd)', cursor: 'pointer' }}
+              style={{ background: 'var(--panel)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', cursor: 'pointer' }}
               title="Sıra numarasını düzenle">
               #{p.currentRank}
             </button>
           )}
         </div>
         {/* Raptiye butonu */}
-        <button
-          onClick={e => { e.stopPropagation(); onTogglePin(); }}
-          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full transition-all"
-          style={isPinned
-            ? { background: 'var(--acc)', color: 'var(--cta-tx)' }
-            : { background: 'rgba(0,0,0,0.45)', color: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(4px)' }
-          }
-          title={isPinned ? 'Sabitlemeyi kaldır' : 'Bu konuma sabitle'}>
-          <PinIcon pinned={isPinned} />
-        </button>
+        <PinButton pinned={isPinned} onToggle={onTogglePin} />
       </div>
 
       {/* Ad */}
@@ -290,11 +298,11 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
       </div>
 
       {/* Fotoğraf */}
-      <div className="relative overflow-hidden" style={{ height: 180, background: 'var(--surface2)' }}>
+      <div className="relative overflow-hidden" style={{ aspectRatio: '3 / 4', background: 'var(--surface2)' }}>
         {idx < urls.length
           ? <img key={urls[idx]} src={urls[idx]} alt={p.productName}
               onError={() => setIdx(i => i + 1)}
-              className="w-full h-full object-contain" />
+              className="w-full h-full object-cover" />
           : <ImgPlaceholder />
         }
         {/* Sıra rozeti — dışlanan ürünlerde de düzenlenebilir */}
@@ -311,9 +319,10 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             <button onClick={startEdit}
               className="text-label font-bold px-2.5 py-1 rounded-full"
               style={{
-                background: p.isDisqualified ? 'rgba(0,0,0,0.45)' : 'var(--acc-bg)',
-                color: p.isDisqualified ? 'rgba(255,255,255,0.9)' : 'var(--acc-tx)',
+                background: p.isDisqualified ? 'rgba(0,0,0,0.55)' : 'var(--panel)',
+                color: p.isDisqualified ? 'rgba(255,255,255,0.95)' : 'var(--acc-tx)',
                 border: p.isDisqualified ? 'none' : '1px solid var(--acc-bd)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                 backdropFilter: 'blur(4px)', cursor: 'pointer',
               }}
               title="Sıra numarasını düzenle">
@@ -328,16 +337,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
           )}
         </div>
         {/* Raptiye butonu */}
-        <button
-          onClick={e => { e.stopPropagation(); onTogglePin(); }}
-          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full transition-all"
-          style={isPinned
-            ? { background: 'var(--acc)', color: 'var(--cta-tx)' }
-            : { background: 'rgba(0,0,0,0.45)', color: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(4px)' }
-          }
-          title={isPinned ? 'Sabitlemeyi kaldır' : 'Bu konuma sabitle'}>
-          <PinIcon pinned={isPinned} />
-        </button>
+        <PinButton pinned={isPinned} onToggle={onTogglePin} />
       </div>
 
       {/* Ad */}
@@ -362,50 +362,50 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
 
       {/* Puan dağılımı */}
       <div className="px-3 pb-1">
-        <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-          {criteria.map(c => {
+        <div>
+          {criteria.map((c, ci) => {
             const key = c.key as CriterionKey;
             const contrib = p.criteriaContributions[key] ?? 0;
-            const GA4_LABELS: Partial<Record<CriterionKey, string>> = {
-              ga4Views:          'GA4 Görüntülenme',
-              ga4CartAdds:       'GA4 Sepete Ekleme',
-              ga4ConversionRate: 'GA4 Dönüşüm',
+            const NAMES: Partial<Record<CriterionKey, string>> = {
+              bestSeller: 'Satış', stockScore: 'Stok', newness: 'Yenilik', reviewScore: 'Yorum',
+              availabilityScore: 'Bulunurluk', discountRate: 'İndirim',
+              ga4Views: 'GA4 Görüntülenme', ga4CartAdds: 'GA4 Sepete Ekleme', ga4ConversionRate: 'GA4 Dönüşüm',
             };
-            const label =
-              key === 'bestSeller'       ? `Satış (${formatPercent(c.weight)})` :
-              key === 'stockScore'       ? `Stok (${formatPercent(c.weight)})` :
-              key === 'newness'          ? `Yenilik (${formatPercent(c.weight)})` :
-              key === 'reviewScore'      ? `Yorum (${formatPercent(c.weight)})` :
-              key === 'availabilityScore'? `Bulunurluk (${formatPercent(c.weight)})` :
-              key === 'discountRate'     ? `İndirim (${formatPercent(c.weight)})` :
-              `${GA4_LABELS[key] ?? key} (${formatPercent(c.weight)})`;
+            const name = NAMES[key] ?? key;
             let raw: string | number = '';
             if (key === 'stockScore')             raw = p.totalStock.toLocaleString('tr-TR');
             else if (key === 'bestSeller')        raw = p.salesQty.toLocaleString('tr-TR');
             else if (key === 'newness')           raw = fmtDate(p.registrationDate);
             else if (key === 'reviewScore')       raw = p.reviewCount.toLocaleString('tr-TR');
             else if (key === 'availabilityScore') raw = fmtPct(p.availabilityRate * 100);
-            else if (key === 'discountRate')      raw = `%${(p.discountRate ?? 0).toLocaleString('tr-TR')}`;
+            else if (key === 'discountRate')      raw = formatPercent(p.discountRate ?? 0);
             else if (key === 'ga4Views')          raw = (p.ga4?.views ?? 0).toLocaleString('tr-TR');
             else if (key === 'ga4CartAdds')       raw = (p.ga4?.cartAdds ?? 0).toLocaleString('tr-TR');
-            else if (key === 'ga4ConversionRate') raw = formatPercent(p.ga4?.conversionRate ?? 0, 2);
+            else if (key === 'ga4ConversionRate') raw = fmtPct(p.ga4?.conversionRate ?? 0);
+            // Zero (as displayed, one decimal) reads muted; only real contributions stand out.
+            const isZero = Math.round(contrib * 10) === 0;
             return (
-              <div key={key} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-caption"
-                style={{ borderBottom: '1px solid var(--border)' }}>
-                <div className="min-w-0 flex items-baseline gap-1 overflow-hidden">
-                  <span className="shrink-0" style={{ color: 'var(--tx2)' }}>{label}:</span>
-                  <span className="truncate font-medium" style={{ color: 'var(--tx1)' }}>{raw}</span>
-                </div>
-                <span className="font-bold tabular-nums shrink-0" style={{ color: 'var(--acc-tx)' }}>
+              <div key={key} title={`${name} — ağırlık ${formatPercent(c.weight)}`}
+                className="flex items-center justify-between gap-2 py-1.5 text-caption"
+                style={ci > 0 ? { borderTop: '1px solid var(--border)' } : undefined}>
+                <span className="min-w-0 truncate">
+                  <span style={{ color: 'var(--tx2)' }}>{name}</span>
+                  <span style={{ color: 'var(--tx3)' }}> · </span>
+                  <span className="font-medium" style={{ color: 'var(--tx1)' }}>{raw}</span>
+                </span>
+                <span className="tabular-nums shrink-0"
+                  style={isZero
+                    ? { color: 'var(--tx3)', fontWeight: 400 }
+                    : { color: 'var(--acc-tx)', fontWeight: 700 }}>
                   {fmtPct(contrib)}
                 </span>
               </div>
             );
           })}
-          <div className="flex items-center justify-between px-2.5 py-2"
-            style={{ background: 'var(--acc-bg)' }}>
+          <div className="flex items-center justify-between py-1.5"
+            style={{ borderTop: '1px solid var(--border-strong)' }}>
             <span className="text-caption font-bold" style={{ color: 'var(--tx1)' }}>Toplam</span>
-            <span className="text-caption font-bold" style={{ color: 'var(--acc-tx)' }}>
+            <span className="text-caption font-bold tabular-nums" style={{ color: 'var(--acc-tx)' }}>
               {fmtPct(p.rankingScore)}
             </span>
           </div>
@@ -423,10 +423,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             🗓 {p.season}
           </span>
         )}
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-label font-mono truncate min-w-0" style={{ color: 'var(--tx3)' }}>#{p.productCode}</span>
-          <span className="text-label shrink-0" style={{ color: 'var(--tx3)' }}>Stok: {p.totalStock.toLocaleString('tr-TR')}</span>
-        </div>
+        <span className="text-label font-mono truncate min-w-0" style={{ color: 'var(--tx3)' }}>#{p.productCode}</span>
       </div>
     </div>
   );
@@ -554,6 +551,17 @@ export function Dashboard({ prefill }: Props) {
   const [aiRules,      setAiRules]      = useState<AdjustRule[]>([]);
   const [messages,     setMessages]     = useState<ChatMessage[]>([]);
   const [chatOpen,     setChatOpen]     = useState(false);
+  // Footer height drives the chat button's offset so it always sits above the
+  // footer (which can wrap to two rows on narrow screens).
+  const footerRef = useRef<HTMLDivElement>(null);
+  const [footerH, setFooterH] = useState(0);
+  useEffect(() => {
+    const el = footerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setFooterH(entry.borderBoxSize?.[0]?.blockSize ?? el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [aiInstruction, setAiInstruction] = useState('');
   const [aiLoading,    setAiLoading]    = useState(false);
 
@@ -985,7 +993,8 @@ export function Dashboard({ prefill }: Props) {
   const hasProducts = currentResult !== null || previewResult !== null;
 
   return (
-    <div className="h-full flex flex-col" style={{ background: 'var(--page-bg)' }}>
+    <div className="relative h-full flex flex-col"
+      style={{ background: 'var(--page-bg)', '--footer-h': `${footerH}px` } as React.CSSProperties}>
       {/* Başlık */}
       <div className="shrink-0 py-3 flex items-center justify-between gap-4 px-4 md:px-6"
         style={{ borderBottom: '1px solid var(--border)' }}>
@@ -1008,12 +1017,7 @@ export function Dashboard({ prefill }: Props) {
           }}>
             {/* Search icon */}
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                className="w-4 h-4" aria-hidden="true"
-                style={{ color: categoryId ? 'var(--acc)' : 'var(--tx3)' }}>
-                <circle cx="11" cy="11" r="7" />
-                <path strokeLinecap="round" d="M20 20l-4.35-4.35" />
-              </svg>
+              <SearchIcon className="w-4 h-4" style={{ color: categoryId ? 'var(--acc)' : 'var(--tx3)' }} />
             </div>
 
             <CategoryPicker
@@ -1327,11 +1331,11 @@ export function Dashboard({ prefill }: Props) {
                 <div className="flex flex-wrap items-center gap-2">
                   {(manualOrder.length > 0 || previewOrder.length > 0) && (
                     <button onClick={handleExportCsv}
-                      className="flex items-center gap-1.5 text-caption px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors"
-                      style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx2)' }}
+                      className="flex items-center gap-1.5 text-caption h-8 px-3 rounded-lg font-semibold whitespace-nowrap transition-colors"
+                      style={btnOutline}
                       title="Sıralamayı CSV olarak indir"
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.color = 'var(--acc-tx)'; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx2)'; }}>
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx2)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 shrink-0">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                       </svg>
@@ -1349,25 +1353,23 @@ export function Dashboard({ prefill }: Props) {
                   )}
                   {view === 'preview' && previewResult && previewResult.disqualifiedCount > 0 && (
                     <button onClick={() => setShowDq(v => !v)}
-                      className="text-caption px-3 py-1.5 rounded-lg font-medium whitespace-nowrap"
-                      style={{
-                        background: showDq ? 'var(--err-bg)' : 'var(--surface2)',
-                        border: `1px solid ${showDq ? 'var(--err-bd)' : 'var(--border)'}`,
-                        color: showDq ? 'var(--err-tx)' : 'var(--tx2)',
-                      }}>
-                      {showDq ? 'Dışlananları Gizle' : 'Dışlananları Göster'}
+                      role="switch" aria-checked={showDq}
+                      className="flex items-center gap-2 h-8 px-2.5 rounded-lg text-caption font-medium whitespace-nowrap"
+                      style={{ background: 'transparent', border: '1px solid var(--border-strong)', color: 'var(--tx2)', cursor: 'pointer' }}>
+                      <span className="relative inline-block shrink-0 rounded-full transition-colors"
+                        style={{ width: 28, height: 16, background: showDq ? 'var(--tx2)' : 'var(--border-strong)' }}>
+                        <span className="absolute top-0.5 rounded-full transition-all"
+                          style={{ width: 12, height: 12, left: showDq ? 14 : 2, background: 'var(--panel)' }} />
+                      </span>
+                      Dışlananları göster
                     </button>
                   )}
                   <div className="relative">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                      className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
-                      style={{ color: 'var(--tx3)' }}>
-                      <path strokeLinecap="round" strokeLinejoin="round"
-                        d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z" />
-                    </svg>
-                    <input type="text" placeholder="Ara…" value={filter}
+                    <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                      style={{ color: 'var(--tx3)' }} />
+                    <input type="text" placeholder="Ara…" value={filter} aria-label="Ürünlerde ara"
                       onChange={e => setFilter(e.target.value)}
-                      className="pl-8 pr-3 py-1.5 rounded-lg text-sm focus:outline-none"
+                      className="h-8 pl-8 pr-3 rounded-lg text-sm focus:outline-none"
                       style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--tx1)', width: 'clamp(100px, 30vw, 160px)' }} />
                   </div>
                 </div>
@@ -1483,7 +1485,7 @@ export function Dashboard({ prefill }: Props) {
       </div>
 
       {/* Sabit footer */}
-      <div className="shrink-0 flex items-center justify-between gap-3 flex-wrap"
+      <div ref={footerRef} className="shrink-0 flex items-center justify-between gap-3 flex-wrap"
         style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: 'var(--spacing-tight) var(--spacing-card)' }}>
         {/* Weight indicator */}
         <div className="flex items-center gap-2">
@@ -1562,8 +1564,10 @@ export function Dashboard({ prefill }: Props) {
         <>
           <button
             onClick={() => setChatOpen(v => !v)}
-            className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center transition-all"
-            style={{ background: 'var(--cta-bg)', color: 'var(--cta-tx)' }}
+            aria-label={chatOpen ? 'Asistanı kapat' : 'AI sıralama asistanı'}
+            className="absolute right-4 z-40 w-12 h-12 rounded-full flex items-center justify-center transition-all"
+            /* Sits above the footer (measured), so it never covers "Sıralamayı Uygula". */
+            style={{ bottom: 'calc(var(--footer-h) + 16px)', background: 'var(--cta-bg)', color: 'var(--cta-tx)', boxShadow: '0 4px 14px rgba(21,16,53,0.25)' }}
           >
             {chatOpen ? (
               <span className="text-xl leading-none">✕</span>
@@ -1581,9 +1585,10 @@ export function Dashboard({ prefill }: Props) {
           </button>
 
           {chatOpen && (
-            <div className="fixed bottom-24 right-6 z-40 w-[380px] max-w-[calc(100vw-3rem)] flex flex-col overflow-hidden"
+            <div className="absolute right-4 z-40 w-[380px] max-w-[calc(100%-2rem)] flex flex-col overflow-hidden"
               style={{
-                height: '540px', maxHeight: 'calc(100vh - 140px)',
+                bottom: 'calc(var(--footer-h) + 76px)',
+                height: '540px', maxHeight: 'calc(100% - var(--footer-h) - 96px)',
                 background: 'var(--surface)', border: '1.5px solid var(--border-strong)',
                 borderRadius: '20px',
               }}>

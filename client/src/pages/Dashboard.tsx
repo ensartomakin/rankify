@@ -25,6 +25,7 @@ import { fetchGa4Status } from '../api/ga4';
 import { getStoredThreshold } from '../utils/threshold';
 import { formatPercent } from '../utils/format';
 import type { WeightCriterion, CriterionKey, SeasonPreFilter } from '../types';
+import { criteriaColor } from '../types';
 import type { SavedConfig } from '../api/config';
 import { SCENARIOS } from '../data/scenarios';
 import type { Scenario } from '../data/scenarios';
@@ -101,348 +102,352 @@ function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void
   return (
     <button
       onClick={e => { e.stopPropagation(); onToggle(); }}
+      onPointerDown={e => e.stopPropagation()}
       aria-pressed={pinned} aria-label={label} title={label}
-      className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full transition-all"
-      style={pinned
-        ? { background: 'var(--panel)', color: 'var(--acc)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }
-        : { background: 'rgba(0,0,0,0.45)', color: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(4px)' }
-      }>
+      className="w-7 h-7 flex items-center justify-center rounded-full transition-all shrink-0"
+      /* Same chip on every card; pinned state = filled icon. */
+      style={{ background: 'rgba(0,0,0,0.5)', color: '#FFFFFF', backdropFilter: 'blur(4px)' }}>
       <PinIcon pinned={pinned} />
     </button>
   );
 }
 
-/* ─── Kart: Mevcut sıralama (sürüklenebilir) ─── */
-function CurrentCard({
-  p, apiUrl, dragHandleProps, onRankEdit, isPinned, onTogglePin,
-}: {
-  p: CurrentRankItem;
-  apiUrl: string;
-  dragHandleProps?: Record<string, unknown> & { ref?: React.Ref<HTMLDivElement> };
-  onRankEdit?: (newRank: number) => void;
-  isPinned: boolean;
-  onTogglePin: () => void;
-}) {
-  const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode);
-  const [imgIdx,    setImgIdx]    = useState(0);
-  const [editing,   setEditing]   = useState(false);
+/* ─── Sıra rozeti (düzenlenebilir) ─── */
+function RankBadge({ rank, dq, onRankEdit }: { rank: number; dq?: boolean; onRankEdit?: (n: number) => void }) {
+  const [editing, setEditing] = useState(false);
   const [rankInput, setRankInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-
   function startEdit() {
-    setRankInput(String(p.currentRank));
+    setRankInput(String(rank));
     setEditing(true);
     setTimeout(() => inputRef.current?.select(), 0);
   }
-
   function commitEdit() {
     const n = parseInt(rankInput, 10);
     if (!isNaN(n) && n >= 1) onRankEdit?.(n);
     setEditing(false);
   }
-
-  return (
-    <div className="rounded-[20px] overflow-hidden flex flex-col"
+  return editing ? (
+    <input ref={inputRef} type="number" min={1} value={rankInput}
+      onChange={e => setRankInput(e.target.value)}
+      onBlur={commitEdit}
+      onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(false); }}
+      onPointerDown={e => e.stopPropagation()}
+      className="w-14 text-center text-label font-bold rounded-full px-2 py-0.5 outline-none"
+      style={{ background: 'var(--acc)', color: 'var(--cta-tx)', border: '2px solid var(--acc)' }}
+      onClick={e => e.stopPropagation()} />
+  ) : (
+    <button onClick={e => { e.stopPropagation(); startEdit(); }}
+      onPointerDown={e => e.stopPropagation()}
+      className="text-label font-bold px-2 py-0.5 rounded-full tabular-nums"
       style={{
-        background: 'var(--surface)',
-        border: isPinned ? '1.5px solid var(--acc-bd)' : '1px solid var(--border)',
-        
-      }}>
+        background: dq ? 'rgba(0,0,0,0.55)' : 'var(--panel)',
+        color: dq ? 'rgba(255,255,255,0.95)' : 'var(--acc-tx)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.2)', cursor: 'pointer', border: 'none',
+      }}
+      title="Sıra numarasını düzenle">
+      #{rank}
+    </button>
+  );
+}
 
-      {/* Drag handle */}
-      <div className="flex items-center justify-center py-1.5 select-none"
-        ref={dragHandleProps?.ref}
-        style={{
-          background: 'var(--surface2)',
-          borderBottom: '1px solid var(--border)',
-          cursor: isPinned ? 'not-allowed' : 'grab',
-          touchAction: 'none',
-          opacity: isPinned ? 0.4 : 1,
-        }}
-        {...(!isPinned ? (dragHandleProps as React.HTMLAttributes<HTMLDivElement>) : {})}>
-        <svg viewBox="0 0 20 10" fill="currentColor" className="w-5 h-3" style={{ color: 'var(--tx3)' }}>
-          <circle cx="4"  cy="2" r="1.5"/><circle cx="10" cy="2" r="1.5"/><circle cx="16" cy="2" r="1.5"/>
-          <circle cx="4"  cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/>
+/* ─── Ortak kart görseli: 3:4, en fazla 240px, cover ─── */
+function CardImage({ apiUrl, p, children }: {
+  apiUrl: string; p: { imageUrl: string; productId: string; productCode: string; productName: string };
+  children?: React.ReactNode;
+}) {
+  const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode);
+  const [idx, setIdx] = useState(0);
+  return (
+    <div className="relative overflow-hidden rounded-t-xl"
+      style={{ aspectRatio: '3 / 4', maxHeight: 240, background: 'var(--surface2)' }}>
+      {idx < urls.length
+        ? <img key={urls[idx]} src={urls[idx]} alt={p.productName} draggable={false}
+            onError={() => setIdx(i => i + 1)}
+            className="w-full h-full object-cover" />
+        : <ImgPlaceholder />
+      }
+      {/* Sürükleme ipucu — sadece hover'da; kartın tamamı sürüklenebilir */}
+      <span aria-hidden="true"
+        className="absolute top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+        style={{ background: 'rgba(0,0,0,0.5)', color: '#FFFFFF' }}>
+        <svg viewBox="0 0 20 10" fill="currentColor" className="w-4 h-2.5">
+          <circle cx="4" cy="2" r="1.5"/><circle cx="10" cy="2" r="1.5"/><circle cx="16" cy="2" r="1.5"/>
+          <circle cx="4" cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/>
         </svg>
-      </div>
+      </span>
+      {children}
+    </div>
+  );
+}
 
-      {/* Fotoğraf */}
-      <div className="relative overflow-hidden" style={{ aspectRatio: '3 / 4', background: 'var(--surface2)' }}>
-        {imgIdx < urls.length
-          ? <img key={urls[imgIdx]} src={urls[imgIdx]} alt={p.productName}
-              onError={() => setImgIdx(i => i + 1)}
-              className="w-full h-full object-cover" />
-          : <ImgPlaceholder />
-        }
-        {/* Sıra rozeti */}
-        <div className="absolute top-2 left-2">
-          {editing ? (
-            <input ref={inputRef} type="number" min={1} value={rankInput}
-              onChange={e => setRankInput(e.target.value)}
-              onBlur={commitEdit}
-              onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(false); }}
-              className="w-14 text-center text-label font-bold rounded-full px-2 py-1 outline-none"
-              style={{ background: 'var(--acc)', color: 'var(--cta-tx)', border: '2px solid var(--acc)' }}
-              onClick={e => e.stopPropagation()} />
-          ) : (
-            <button onClick={startEdit}
-              className="text-label font-bold px-2.5 py-1 rounded-full"
-              style={{ background: 'var(--panel)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', cursor: 'pointer' }}
-              title="Sıra numarasını düzenle">
-              #{p.currentRank}
-            </button>
-          )}
-        </div>
-        {/* Raptiye butonu */}
-        <PinButton pinned={isPinned} onToggle={onTogglePin} />
-      </div>
+function productHref(apiUrl: string, seoUrl: string, productCode: string) {
+  const base = apiUrl.replace(/\/$/, '');
+  if (!seoUrl) return `${base}/urun-detay/${productCode}`;
+  return seoUrl.startsWith('http') ? seoUrl : `${base}/${seoUrl.replace(/^\//, '')}`;
+}
 
-      {/* Ad */}
-      <div className="px-3 pt-2 pb-1 flex-1">
-        {isPinned && (
-          <div className="flex items-center gap-1 mb-1">
-            <span className="text-label font-bold px-2 py-0.5 rounded-full"
-              style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
-              📌 Sabitlendi
-            </span>
-          </div>
-        )}
-        <a href={p.seoUrl
-            ? (p.seoUrl.startsWith('http') ? p.seoUrl : `${apiUrl.replace(/\/$/, '')}/urun-detay/${p.seoUrl.replace(/^\//, '')}`)
-            : `${apiUrl.replace(/\/$/, '')}/urun-detay/${p.productCode}`}
-          target="_blank" rel="noopener noreferrer"
-          className="text-sm font-semibold leading-snug line-clamp-2 hover:underline"
-          style={{ color: 'var(--tx1)' }}>
+function cardShellStyle(isPinned: boolean, dq?: boolean): React.CSSProperties {
+  return {
+    background: 'var(--panel)',
+    border: isPinned ? '1.5px solid var(--acc)' : dq ? '1.5px solid var(--err-bd)' : '1px solid var(--border)',
+    cursor: isPinned ? 'default' : 'grab',
+  };
+}
+
+/* ─── Kart: Mevcut sıralama ─── */
+function CurrentCard({ p, apiUrl, onRankEdit, isPinned, onTogglePin }: {
+  p: CurrentRankItem;
+  apiUrl: string;
+  onRankEdit?: (newRank: number) => void;
+  isPinned: boolean;
+  onTogglePin: () => void;
+}) {
+  return (
+    <div className="group relative rounded-xl flex flex-col h-full" style={cardShellStyle(isPinned)}>
+      <CardImage apiUrl={apiUrl} p={p}>
+        <div className="absolute top-2 left-2"><RankBadge rank={p.currentRank} onRankEdit={onRankEdit} /></div>
+        <div className="absolute top-2 right-2"><PinButton pinned={isPinned} onToggle={onTogglePin} /></div>
+      </CardImage>
+      <div className="p-2.5 flex flex-col gap-1.5 flex-1">
+        <a href={productHref(apiUrl, p.seoUrl, p.productCode)} target="_blank" rel="noopener noreferrer"
+          title={p.productName || p.productCode}
+          className="text-caption font-semibold truncate hover:underline" style={{ color: 'var(--tx1)' }}>
           {p.productName || p.productCode}
         </a>
-      </div>
-
-      {/* Alt bilgi */}
-      <div className="px-3 py-2 flex items-center justify-between gap-2"
-        style={{ borderTop: '1px solid var(--border)' }}>
-        <span className="text-label font-mono truncate min-w-0" style={{ color: 'var(--tx3)' }}>#{p.productCode}</span>
-        <span className="text-label shrink-0" style={{ color: 'var(--tx3)' }}>Stok: {p.totalStock.toLocaleString('tr-TR')}</span>
+        <div className="mt-auto flex items-center justify-between gap-2 text-label" style={{ color: 'var(--tx3)' }}>
+          <span className="font-mono truncate min-w-0">#{p.productCode}</span>
+          <span className="shrink-0">Stok {p.totalStock.toLocaleString('tr-TR')}</span>
+        </div>
       </div>
     </div>
   );
 }
 
-/* ─── Sortable wrapper ─── */
+/* ─── Sortable wrapper — the whole card is the drag target ─── */
 function SortableCurrentCard({ p, apiUrl, onRankEdit, isPinned, onTogglePin }: {
   p: CurrentRankItem; apiUrl: string; onRankEdit: (code: string, newRank: number) => void;
   isPinned: boolean; onTogglePin: (code: string, rank: number) => void;
 }) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: p.productCode, disabled: isPinned });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.productCode, disabled: isPinned });
   return (
-    <div ref={setNodeRef} {...attributes} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.45 : 1, zIndex: isDragging ? 50 : undefined }}>
+    <div ref={setNodeRef} {...attributes} {...(!isPinned ? listeners : {})}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.45 : 1, zIndex: isDragging ? 50 : undefined, touchAction: 'manipulation' }}>
       <CurrentCard p={p} apiUrl={apiUrl}
         isPinned={isPinned}
         onTogglePin={() => onTogglePin(p.productCode, p.currentRank)}
-        dragHandleProps={{ ref: setActivatorNodeRef, ...listeners }}
         onRankEdit={newRank => onRankEdit(p.productCode, newRank)} />
     </div>
   );
 }
 
-/* ─── Kart: Önizleme sıralaması ─── */
-function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRankEdit, isPinned, onTogglePin }: {
+/* ─── Önizleme puan yardımcıları ─── */
+const SCORE_NAMES: Partial<Record<CriterionKey, string>> = {
+  bestSeller: 'Satış', stockScore: 'Stok', newness: 'Yenilik', reviewScore: 'Yorum',
+  availabilityScore: 'Bulunurluk', discountRate: 'İndirim',
+  ga4Views: 'GA4 Görüntülenme', ga4CartAdds: 'GA4 Sepete Ekleme', ga4ConversionRate: 'GA4 Dönüşüm',
+};
+
+function rawValue(p: ProductPreviewItem, key: CriterionKey): string {
+  switch (key) {
+    case 'stockScore':        return p.totalStock.toLocaleString('tr-TR');
+    case 'bestSeller':        return p.salesQty.toLocaleString('tr-TR');
+    case 'newness':           return fmtDate(p.registrationDate);
+    case 'reviewScore':       return p.reviewCount.toLocaleString('tr-TR');
+    case 'availabilityScore': return fmtPct(p.availabilityRate * 100);
+    case 'discountRate':      return formatPercent(p.discountRate ?? 0);
+    case 'ga4Views':          return (p.ga4?.views ?? 0).toLocaleString('tr-TR');
+    case 'ga4CartAdds':       return (p.ga4?.cartAdds ?? 0).toLocaleString('tr-TR');
+    case 'ga4ConversionRate': return fmtPct(p.ga4?.conversionRate ?? 0);
+    default:                  return '';
+  }
+}
+
+/* Contribution per criterion on a 0–100 track, in criterion colours. */
+function ScoreStackBar({ p, criteria }: { p: ProductPreviewItem; criteria: PreviewResponse['criteria'] }) {
+  return (
+    <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface3)' }} aria-hidden="true">
+      {criteria.map((c, i) => (
+        <div key={c.key} style={{ width: `${Math.max(0, p.criteriaContributions[c.key as CriterionKey] ?? 0)}%`, background: criteriaColor(i) }} />
+      ))}
+    </div>
+  );
+}
+
+function ScoreBreakdown({ p, criteria }: { p: ProductPreviewItem; criteria: PreviewResponse['criteria'] }) {
+  return (
+    <div>
+      {criteria.map((c, ci) => {
+        const key = c.key as CriterionKey;
+        const contrib = p.criteriaContributions[key] ?? 0;
+        const name = SCORE_NAMES[key] ?? key;
+        // Zero (as displayed, one decimal) reads muted; only real contributions stand out.
+        const isZero = Math.round(contrib * 10) === 0;
+        return (
+          <div key={key} title={`${name} — ağırlık ${formatPercent(c.weight)}`}
+            className="flex items-center justify-between gap-3 py-1.5 text-caption"
+            style={ci > 0 ? { borderTop: '1px solid var(--border)' } : undefined}>
+            <span className="min-w-0 truncate flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: criteriaColor(ci) }} />
+              <span style={{ color: 'var(--tx2)' }}>{name}</span>
+              <span style={{ color: 'var(--tx3)' }}>·</span>
+              <span className="font-medium truncate" style={{ color: 'var(--tx1)' }}>{rawValue(p, key)}</span>
+            </span>
+            <span className="tabular-nums shrink-0"
+              style={isZero ? { color: 'var(--tx3)', fontWeight: 400 } : { color: 'var(--acc-tx)', fontWeight: 700 }}>
+              {fmtPct(contrib)}
+            </span>
+          </div>
+        );
+      })}
+      <div className="flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-strong)' }}>
+        <span className="text-caption font-bold" style={{ color: 'var(--tx1)' }}>Toplam</span>
+        <span className="text-caption font-bold tabular-nums" style={{ color: 'var(--acc-tx)' }}>{fmtPct(p.rankingScore)}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Kart: Önizleme (kompakt; detay tablosu hover/odakta açılır) ─── */
+function PreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, onTogglePin, dragging }: {
   p: ProductPreviewItem;
   displayRank: number;
   criteria: PreviewResponse['criteria'];
   apiUrl: string;
-  dragHandleProps?: Record<string, unknown> & { ref?: React.Ref<HTMLDivElement> };
+  onRankEdit?: (newRank: number) => void;
+  isPinned: boolean;
+  onTogglePin: () => void;
+  dragging?: boolean;
+}) {
+  return (
+    <div className="group relative rounded-xl flex flex-col h-full" style={cardShellStyle(isPinned, p.isDisqualified)}>
+      <CardImage apiUrl={apiUrl} p={p}>
+        <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
+          <RankBadge rank={displayRank} dq={p.isDisqualified} onRankEdit={onRankEdit} />
+          {p.isDisqualified && (
+            <span className="text-label font-bold px-2 py-0.5 rounded-full"
+              title={p.disqualifyReason}
+              style={{ background: 'var(--err-bg)', color: 'var(--err-tx)', border: '1px solid var(--err-bd)', backdropFilter: 'blur(4px)' }}>
+              Dışlandı
+            </span>
+          )}
+        </div>
+        <div className="absolute top-2 right-2"><PinButton pinned={isPinned} onToggle={onTogglePin} /></div>
+      </CardImage>
+
+      <div className="p-2.5 flex flex-col gap-1.5 flex-1">
+        <a href={productHref(apiUrl, p.seoUrl, p.productCode)} target="_blank" rel="noopener noreferrer"
+          title={p.productName || p.productCode}
+          className="text-caption font-semibold truncate hover:underline" style={{ color: 'var(--tx1)' }}>
+          {p.productName || p.productCode}
+        </a>
+
+        {/* Özet: katkı çubuğu + toplam — detay hover/odakta */}
+        <div tabIndex={0} aria-label={`Toplam puan ${fmtPct(p.rankingScore)}, detay için odaklanın`}
+          className="flex items-center gap-2 rounded outline-none focus-visible:ring-2">
+          <div className="flex-1 min-w-0"><ScoreStackBar p={p} criteria={criteria} /></div>
+          <span className="text-caption font-bold tabular-nums shrink-0" style={{ color: 'var(--acc-tx)' }}>
+            {fmtPct(p.rankingScore)}
+          </span>
+        </div>
+
+        <div className="mt-auto flex items-center gap-1.5 min-w-0 text-label" style={{ color: 'var(--tx3)' }}>
+          {p.season && (
+            <span className="shrink-0 px-1.5 rounded" style={{ background: 'var(--surface2)', color: 'var(--tx2)' }}>{p.season}</span>
+          )}
+          <span className="font-mono truncate min-w-0">#{p.productCode}</span>
+        </div>
+      </div>
+
+      {/* Detay popover — kart hover'ında veya puan satırına klavye odağında */}
+      {!dragging && (
+        <div role="tooltip"
+          className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-0 top-full mt-1 z-30 w-full min-w-[220px] p-2.5 rounded-lg pointer-events-none"
+          style={{ background: 'var(--panel)', boxShadow: '0 8px 24px rgba(21,16,53,0.18)', border: '1px solid var(--border)' }}>
+          <ScoreBreakdown p={p} criteria={criteria} />
+          {p.isDisqualified && p.disqualifyReason && (
+            <p className="text-caption mt-1" style={{ color: 'var(--err-tx)' }}>⚠ {p.disqualifyReason}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Liste satırı: Önizleme ─── */
+function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, onTogglePin }: {
+  p: ProductPreviewItem;
+  displayRank: number;
+  criteria: PreviewResponse['criteria'];
+  apiUrl: string;
   onRankEdit?: (newRank: number) => void;
   isPinned: boolean;
   onTogglePin: () => void;
 }) {
   const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode);
   const [idx, setIdx] = useState(0);
-  const [editing, setEditing] = useState(false);
-  const [rankInput, setRankInput] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  function startEdit() {
-    setRankInput(String(displayRank));
-    setEditing(true);
-    setTimeout(() => inputRef.current?.select(), 0);
-  }
-  function commitEdit() {
-    const n = parseInt(rankInput, 10);
-    if (!isNaN(n) && n >= 1) onRankEdit?.(n);
-    setEditing(false);
-  }
-
   return (
-    <div className="rounded-[20px] overflow-hidden flex flex-col"
-      style={{
-        background: 'var(--surface)',
-        border: isPinned ? '1.5px solid var(--acc-bd)' : p.isDisqualified ? '1.5px solid var(--err-bd)' : '1px solid var(--border)',
-        
-      }}>
-
-      {/* Drag handle */}
-      <div className="flex items-center justify-center py-1.5 select-none"
-        ref={dragHandleProps?.ref}
-        style={{
-          background: 'var(--surface2)',
-          borderBottom: '1px solid var(--border)',
-          cursor: isPinned ? 'not-allowed' : 'grab',
-          touchAction: 'none',
-          opacity: isPinned ? 0.4 : 1,
-        }}
-        {...(!isPinned ? (dragHandleProps as React.HTMLAttributes<HTMLDivElement>) : {})}>
-        <svg viewBox="0 0 20 10" fill="currentColor" className="w-5 h-3" style={{ color: 'var(--tx3)' }}>
-          <circle cx="4"  cy="2" r="1.5"/><circle cx="10" cy="2" r="1.5"/><circle cx="16" cy="2" r="1.5"/>
-          <circle cx="4"  cy="8" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="16" cy="8" r="1.5"/>
-        </svg>
-      </div>
-
-      {/* Fotoğraf */}
-      <div className="relative overflow-hidden" style={{ aspectRatio: '3 / 4', background: 'var(--surface2)' }}>
+    <div className="flex items-center gap-3 px-2.5 py-2 rounded-lg" style={cardShellStyle(isPinned, p.isDisqualified)}>
+      <RankBadge rank={displayRank} dq={p.isDisqualified} onRankEdit={onRankEdit} />
+      <div className="w-9 h-12 rounded overflow-hidden shrink-0" style={{ background: 'var(--surface2)' }}>
         {idx < urls.length
-          ? <img key={urls[idx]} src={urls[idx]} alt={p.productName}
-              onError={() => setIdx(i => i + 1)}
-              className="w-full h-full object-cover" />
-          : <ImgPlaceholder />
-        }
-        {/* Sıra rozeti — dışlanan ürünlerde de düzenlenebilir */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {editing ? (
-            <input ref={inputRef} type="number" min={1} value={rankInput}
-              onChange={e => setRankInput(e.target.value)}
-              onBlur={commitEdit}
-              onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(false); }}
-              className="w-14 text-center text-label font-bold rounded-full px-2 py-1 outline-none"
-              style={{ background: 'var(--acc)', color: 'var(--cta-tx)', border: '2px solid var(--acc)' }}
-              onClick={e => e.stopPropagation()} />
-          ) : (
-            <button onClick={startEdit}
-              className="text-label font-bold px-2.5 py-1 rounded-full"
-              style={{
-                background: p.isDisqualified ? 'rgba(0,0,0,0.55)' : 'var(--panel)',
-                color: p.isDisqualified ? 'rgba(255,255,255,0.95)' : 'var(--acc-tx)',
-                border: p.isDisqualified ? 'none' : '1px solid var(--acc-bd)',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                backdropFilter: 'blur(4px)', cursor: 'pointer',
-              }}
-              title="Sıra numarasını düzenle">
-              #{displayRank}
-            </button>
-          )}
-          {p.isDisqualified && (
-            <span className="text-label font-bold px-2 py-0.5 rounded-full self-start"
-              style={{ background: 'var(--err-bg)', color: 'var(--err-tx)', border: '1px solid var(--err-bd)' }}>
-              Dışlandı
-            </span>
-          )}
-        </div>
-        {/* Raptiye butonu */}
-        <PinButton pinned={isPinned} onToggle={onTogglePin} />
+          ? <img src={urls[idx]} alt="" draggable={false} onError={() => setIdx(i => i + 1)} className="w-full h-full object-cover" />
+          : null}
       </div>
-
-      {/* Ad */}
-      <div className="px-3 pt-2.5 pb-1.5 flex-1">
-        {isPinned && (
-          <div className="flex items-center gap-1 mb-1">
-            <span className="text-label font-bold px-2 py-0.5 rounded-full"
-              style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
-              📌 Sabitlendi
-            </span>
-          </div>
-        )}
-        <a href={p.seoUrl
-            ? (p.seoUrl.startsWith('http') ? p.seoUrl : `${apiUrl.replace(/\/$/, '')}/${p.seoUrl.replace(/^\//, '')}`)
-            : `${apiUrl.replace(/\/$/, '')}/urun-detay/${p.productCode}`}
-          target="_blank" rel="noopener noreferrer"
-          className="text-caption font-semibold leading-snug line-clamp-2 hover:underline"
-          style={{ color: 'var(--tx1)' }}>
+      <div className="min-w-0 flex-1">
+        <a href={productHref(apiUrl, p.seoUrl, p.productCode)} target="_blank" rel="noopener noreferrer"
+          onPointerDown={e => e.stopPropagation()}
+          title={p.productName || p.productCode}
+          className="block text-caption font-semibold truncate hover:underline" style={{ color: 'var(--tx1)' }}>
           {p.productName || p.productCode}
         </a>
+        <span className="text-label font-mono" style={{ color: 'var(--tx3)' }}>
+          #{p.productCode}{p.isDisqualified && p.disqualifyReason ? ` · ${p.disqualifyReason}` : ''}
+        </span>
       </div>
-
-      {/* Puan dağılımı */}
-      <div className="px-3 pb-1">
-        <div>
-          {criteria.map((c, ci) => {
-            const key = c.key as CriterionKey;
-            const contrib = p.criteriaContributions[key] ?? 0;
-            const NAMES: Partial<Record<CriterionKey, string>> = {
-              bestSeller: 'Satış', stockScore: 'Stok', newness: 'Yenilik', reviewScore: 'Yorum',
-              availabilityScore: 'Bulunurluk', discountRate: 'İndirim',
-              ga4Views: 'GA4 Görüntülenme', ga4CartAdds: 'GA4 Sepete Ekleme', ga4ConversionRate: 'GA4 Dönüşüm',
-            };
-            const name = NAMES[key] ?? key;
-            let raw: string | number = '';
-            if (key === 'stockScore')             raw = p.totalStock.toLocaleString('tr-TR');
-            else if (key === 'bestSeller')        raw = p.salesQty.toLocaleString('tr-TR');
-            else if (key === 'newness')           raw = fmtDate(p.registrationDate);
-            else if (key === 'reviewScore')       raw = p.reviewCount.toLocaleString('tr-TR');
-            else if (key === 'availabilityScore') raw = fmtPct(p.availabilityRate * 100);
-            else if (key === 'discountRate')      raw = formatPercent(p.discountRate ?? 0);
-            else if (key === 'ga4Views')          raw = (p.ga4?.views ?? 0).toLocaleString('tr-TR');
-            else if (key === 'ga4CartAdds')       raw = (p.ga4?.cartAdds ?? 0).toLocaleString('tr-TR');
-            else if (key === 'ga4ConversionRate') raw = fmtPct(p.ga4?.conversionRate ?? 0);
-            // Zero (as displayed, one decimal) reads muted; only real contributions stand out.
-            const isZero = Math.round(contrib * 10) === 0;
-            return (
-              <div key={key} title={`${name} — ağırlık ${formatPercent(c.weight)}`}
-                className="flex items-center justify-between gap-2 py-1.5 text-caption"
-                style={ci > 0 ? { borderTop: '1px solid var(--border)' } : undefined}>
-                <span className="min-w-0 truncate">
-                  <span style={{ color: 'var(--tx2)' }}>{name}</span>
-                  <span style={{ color: 'var(--tx3)' }}> · </span>
-                  <span className="font-medium" style={{ color: 'var(--tx1)' }}>{raw}</span>
-                </span>
-                <span className="tabular-nums shrink-0"
-                  style={isZero
-                    ? { color: 'var(--tx3)', fontWeight: 400 }
-                    : { color: 'var(--acc-tx)', fontWeight: 700 }}>
-                  {fmtPct(contrib)}
-                </span>
-              </div>
-            );
-          })}
-          <div className="flex items-center justify-between py-1.5"
-            style={{ borderTop: '1px solid var(--border-strong)' }}>
-            <span className="text-caption font-bold" style={{ color: 'var(--tx1)' }}>Toplam</span>
-            <span className="text-caption font-bold tabular-nums" style={{ color: 'var(--acc-tx)' }}>
-              {fmtPct(p.rankingScore)}
+      <div className="hidden md:flex items-center gap-3 shrink-0">
+        {criteria.map((c, ci) => {
+          const key = c.key as CriterionKey;
+          const contrib = p.criteriaContributions[key] ?? 0;
+          const isZero = Math.round(contrib * 10) === 0;
+          return (
+            <span key={key} title={`${SCORE_NAMES[key] ?? key} · ${rawValue(p, key)} — ağırlık ${formatPercent(c.weight)}`}
+              className="flex items-center gap-1 text-label tabular-nums"
+              style={{ color: isZero ? 'var(--tx3)' : 'var(--tx1)', fontWeight: isZero ? 400 : 600 }}>
+              <span className="w-2 h-2 rounded-full" style={{ background: criteriaColor(ci) }} />
+              {SCORE_NAMES[key] ?? key} {fmtPct(contrib)}
             </span>
-          </div>
-        </div>
-        {p.isDisqualified && p.disqualifyReason && (
-          <p className="text-caption mt-1 px-0.5" style={{ color: 'var(--err-tx)' }}>⚠ {p.disqualifyReason}</p>
-        )}
+          );
+        })}
       </div>
-
-      <div className="px-3 py-2 flex flex-col gap-1"
-        style={{ borderTop: '1px solid var(--border)' }}>
-        {p.season && (
-          <span className="text-label font-semibold px-2 py-0.5 rounded-full self-start"
-            style={{ background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)' }}>
-            🗓 {p.season}
-          </span>
-        )}
-        <span className="text-label font-mono truncate min-w-0" style={{ color: 'var(--tx3)' }}>#{p.productCode}</span>
-      </div>
+      <span className="text-caption font-bold tabular-nums shrink-0 w-14 text-right" style={{ color: 'var(--acc-tx)' }}>
+        {fmtPct(p.rankingScore)}
+      </span>
+      <PinButton pinned={isPinned} onToggle={onTogglePin} />
     </div>
   );
 }
 
-/* ─── Sortable wrapper: Önizleme ─── */
-function SortablePreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, onTogglePin }: {
+/* ─── Sortable wrapper: Önizleme (kart veya satır) ─── */
+function SortablePreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, onTogglePin, layout = 'grid' }: {
   p: ProductPreviewItem; displayRank: number; criteria: PreviewResponse['criteria'];
   apiUrl: string; onRankEdit: (code: string, newRank: number) => void;
   isPinned: boolean; onTogglePin: (code: string, rank: number) => void;
+  layout?: 'grid' | 'list';
 }) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: p.productCode, disabled: isPinned });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.productCode, disabled: isPinned });
+  const shared = {
+    p, displayRank, criteria, apiUrl, isPinned,
+    onTogglePin: () => onTogglePin(p.productCode, displayRank),
+    onRankEdit: (newRank: number) => onRankEdit(p.productCode, newRank),
+  };
   return (
-    <div ref={setNodeRef} {...attributes} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.45 : 1, zIndex: isDragging ? 50 : undefined }}>
-      <PreviewCard p={p} displayRank={displayRank} criteria={criteria} apiUrl={apiUrl}
-        isPinned={isPinned}
-        onTogglePin={() => onTogglePin(p.productCode, displayRank)}
-        dragHandleProps={{ ref: setActivatorNodeRef, ...listeners }}
-        onRankEdit={newRank => onRankEdit(p.productCode, newRank)} />
+    <div ref={setNodeRef} {...attributes} {...(!isPinned ? listeners : {})}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.45 : 1, zIndex: isDragging ? 50 : undefined, touchAction: 'manipulation' }}
+      className="hover:z-20 focus-within:z-20 relative">
+      {layout === 'list'
+        ? <PreviewRow {...shared} />
+        : <PreviewCard {...shared} dragging={isDragging} />}
     </div>
   );
 }
@@ -569,6 +574,7 @@ export function Dashboard({ prefill }: Props) {
   const [filter, setFilter] = useState('');
   const [showDq,  setShowDq]  = useState(true);
   const [view,    setView]    = useState<'current' | 'preview'>('current');
+  const [layout,  setLayout]  = useState<'grid' | 'list'>('grid');
 
   const total   = criteria.reduce((s, c) => s + c.weight, 0);
   const isValid = total === 100 && categoryId.trim().length > 0;
@@ -1364,6 +1370,26 @@ export function Dashboard({ prefill }: Props) {
                       Dışlananları göster
                     </button>
                   )}
+                  {view === 'preview' && previewResult && (
+                    <div role="radiogroup" aria-label="Görünüm" className="flex h-8 p-0.5 rounded-lg"
+                      style={{ border: '1px solid var(--border-strong)' }}>
+                      {([
+                        { v: 'grid' as const, label: 'Izgara görünümü', d: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' },
+                        { v: 'list' as const, label: 'Liste görünümü',  d: 'M4 6h16M4 12h16M4 18h16' },
+                      ]).map(o => (
+                        <button key={o.v} role="radio" aria-checked={layout === o.v} aria-label={o.label} title={o.label}
+                          onClick={() => setLayout(o.v)}
+                          className="w-8 flex items-center justify-center rounded-md transition-colors"
+                          style={layout === o.v
+                            ? { background: 'var(--surface3)', color: 'var(--tx1)' }
+                            : { background: 'transparent', color: 'var(--tx3)' }}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d={o.d} />
+                          </svg>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div className="relative">
                     <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
                       style={{ color: 'var(--tx3)' }} />
@@ -1422,7 +1448,7 @@ export function Dashboard({ prefill }: Props) {
               {view === 'current' && currentStatus !== 'loading' && filteredCurrent.length > 0 && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={filteredCurrent.map(p => p.productCode)} strategy={rectSortingStrategy}>
-                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))' }}>
                       {filteredCurrent.map(p => (
                         <SortableCurrentCard key={p.productCode} p={p} apiUrl={apiUrl} onRankEdit={handleRankEdit}
                           isPinned={pinnedPositions[p.productCode] !== undefined}
@@ -1437,13 +1463,14 @@ export function Dashboard({ prefill }: Props) {
               {view === 'preview' && previewStatus !== 'loading' && filteredPreview.length > 0 && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePreviewDragEnd}>
                   <SortableContext items={filteredPreview.map(p => p.productCode)} strategy={rectSortingStrategy}>
-                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className={layout === 'list' ? 'flex flex-col gap-1.5' : 'grid gap-3'}
+                      style={layout === 'list' ? undefined : { gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))' }}>
                       {filteredPreview.map(p => (
                         <SortablePreviewCard key={p.productCode} p={p} displayRank={p.finalRank}
                           criteria={previewResult!.criteria} apiUrl={apiUrl}
                           onRankEdit={handlePreviewRankEdit}
                           isPinned={pinnedPositions[p.productCode] !== undefined}
-                          onTogglePin={togglePin} />
+                          onTogglePin={togglePin} layout={layout} />
                       ))}
                     </div>
                   </SortableContext>

@@ -109,6 +109,7 @@
   --scrim:         rgba(0,0,0,0.5);       /* chips over photos */
   --scrim-strong:  rgba(0,0,0,0.6);
   --scrim-soft:    rgba(0,0,0,0.08);      /* tiny close buttons */
+  --scrim-pin:     rgba(0,0,0,0.55);      /* pin chip on every card */
 
   /* Bright-teal tints (#1CCAC7 at fixed alphas) */
   --teal-a07: rgba(28,202,199,0.07);

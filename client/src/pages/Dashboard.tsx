@@ -121,10 +121,8 @@ function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void
       onPointerDown={e => e.stopPropagation()}
       aria-pressed={pinned} aria-label={label} title={label}
       className="w-7 h-7 flex items-center justify-center rounded-full transition-all shrink-0"
-      /* Same chip on every card; pinned = teal fill with a filled icon. */
-      style={pinned
-        ? { background: 'var(--acc)', color: 'var(--cta-tx)' }
-        : { background: 'var(--scrim)', color: 'var(--on-fill)', backdropFilter: 'blur(4px)' }}>
+      /* Same chip on every card; pinned state = filled icon. */
+      style={{ background: 'var(--scrim-pin)', color: 'var(--on-fill)', backdropFilter: 'blur(4px)' }}>
       <PinIcon pinned={pinned} />
     </button>
   );
@@ -175,13 +173,11 @@ function CardImage({ apiUrl, p, faded, children }: {
   const [idx, setIdx] = useState(0);
   return (
     <div className="relative overflow-hidden rounded-t-xl"
-      style={{ aspectRatio: '3 / 4', maxHeight: 240, background: idx < urls.length ? 'var(--media-bg)' : 'var(--surface2)' }}>
+      style={{ width: '100%', aspectRatio: '2 / 3', background: 'var(--surface2)' }}>
       {idx < urls.length
         ? <img key={urls[idx]} src={urls[idx]} alt={p.productName} draggable={false} loading="lazy" decoding="async"
             onError={() => setIdx(i => i + 1)}
-            /* contain: the whole photo fits the frame (no cropping when the
-               240px cap makes wide cards' frames landscape). */
-            className="w-full h-full object-contain"
+            className="w-full h-full object-cover"
             style={faded ? { filter: 'grayscale(1)', opacity: 0.55 } : undefined} />
         : <ImgPlaceholder />
       }
@@ -266,11 +262,11 @@ const SCORE_NAMES: Partial<Record<CriterionKey, string>> = {
   ga4Views: 'GA4 Görüntülenme', ga4CartAdds: 'GA4 Sepete Ekleme', ga4ConversionRate: 'GA4 Dönüşüm',
 };
 
-function rawValue(p: ProductPreviewItem, key: CriterionKey, compact = false): string {
+function rawValue(p: ProductPreviewItem, key: CriterionKey): string {
   switch (key) {
     case 'stockScore':        return formatNumber(p.totalStock);
     case 'bestSeller':        return formatNumber(p.salesQty);
-    case 'newness':           return formatDate(p.registrationDate, compact ? 'short' : 'long');
+    case 'newness':           return formatDate(p.registrationDate, 'long');
     case 'reviewScore':       return formatNumber(p.reviewCount);
     case 'availabilityScore': return fmtPct(p.availabilityRate * 100);
     case 'discountRate':      return formatPercent(p.discountRate ?? 0);
@@ -294,10 +290,11 @@ function ScoreBreakdown({ p, criteria }: { p: ProductPreviewItem; criteria: Prev
           <div key={key} title={`${name} — ağırlık ${formatPercent(c.weight)}`}
             className="flex items-center justify-between gap-2 py-1 text-caption"
             style={ci > 0 ? { borderTop: '1px solid var(--border)' } : undefined}>
-            <span className="min-w-0 truncate" title={`${name} · ${rawValue(p, key)}`}>
+            {/* label and value may wrap onto two lines in narrow cards; the value itself never breaks */}
+            <span className="min-w-0" title={`${name} · ${rawValue(p, key)}`}>
               <span style={{ color: 'var(--tx2)' }}>{name}</span>
               <span style={{ color: 'var(--tx3)' }}> · </span>
-              <span className="font-medium" style={{ color: 'var(--tx1)' }}>{rawValue(p, key, true)}</span>
+              <span className="font-medium whitespace-nowrap" style={{ color: 'var(--tx1)' }}>{rawValue(p, key)}</span>
             </span>
             <span className="tabular-nums shrink-0"
               style={isZero ? { color: 'var(--tx3)', fontWeight: 400 } : { color: 'var(--acc-tx)', fontWeight: 700 }}>
@@ -1027,8 +1024,7 @@ export function Dashboard({ prefill }: Props) {
 
       {/* Kaydırılabilir içerik */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-section px-4 md:px-6 pt-section"
-        /* bottom room so the floating chat button never sits on the last row */
-        style={{ paddingBottom: previewResult ? 88 : 'var(--spacing-section)' }}>
+        style={{ paddingBottom: 'var(--spacing-section)' }}>
 
         {/* Hero kategori arama alanı */}
         <div ref={heroSearchRef}>
@@ -1527,8 +1523,8 @@ export function Dashboard({ prefill }: Props) {
       </div>
 
       {/* Sabit footer */}
-      <div ref={footerRef} className="shrink-0 flex items-center justify-between gap-3 flex-wrap"
-        style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: 'var(--spacing-tight) var(--spacing-card)' }}>
+      <div ref={footerRef} className="shrink-0 min-w-0 flex items-center justify-between gap-3 flex-wrap overflow-x-hidden"
+        style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: 'var(--spacing-tight) max(16px, var(--spacing-card))' }}>
         {/* Weight indicator */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-label font-medium"
@@ -1548,6 +1544,26 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {previewResult && (
+            <button onClick={() => setChatOpen(v => !v)}
+              aria-label={chatOpen ? 'Asistanı kapat' : 'AI sıralama asistanı'} aria-expanded={chatOpen}
+              title="AI sıralama asistanı"
+              className="relative w-9 h-9 flex items-center justify-center rounded-lg transition-all shrink-0"
+              style={chatOpen
+                ? { background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)', cursor: 'pointer' }
+                : btnOutline}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-5 h-5" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+              </svg>
+              {!chatOpen && aiRules.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-label font-bold flex items-center justify-center"
+                  style={{ background: 'var(--err-tx)', color: 'var(--on-fill)' }}>
+                  {aiRules.length}
+                </span>
+              )}
+            </button>
+          )}
+
           <button onClick={() => setCriteria(DEFAULT_CRITERIA)}
             className={`${btnCls} font-medium`}
             style={{ background: 'transparent', border: '1px solid transparent', color: 'var(--tx2)', cursor: 'pointer' }}
@@ -1601,36 +1617,14 @@ export function Dashboard({ prefill }: Props) {
         </div>
       </div>
 
-      {/* AI sohbet — yüzen buton + panel */}
+      {/* AI sohbet paneli — açma düğmesi alt barda */}
       {previewResult && (
         <>
-          <button
-            onClick={() => setChatOpen(v => !v)}
-            aria-label={chatOpen ? 'Asistanı kapat' : 'AI sıralama asistanı'}
-            className="absolute right-4 z-40 w-12 h-12 rounded-full flex items-center justify-center transition-all"
-            /* Sits above the footer (measured), so it never covers "Sıralamayı Uygula". */
-            style={{ bottom: 'calc(var(--footer-h) + 16px)', background: 'var(--cta-bg)', color: 'var(--cta-tx)', boxShadow: 'var(--shadow-fab)' }}
-          >
-            {chatOpen ? (
-              <span className="text-xl leading-none">✕</span>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-              </svg>
-            )}
-            {!chatOpen && aiRules.length > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-label font-bold flex items-center justify-center"
-                style={{ background: 'var(--err-tx)', color: 'white' }}>
-                {aiRules.length}
-              </span>
-            )}
-          </button>
-
           {chatOpen && (
             <div className="absolute right-4 z-40 w-[380px] max-w-[calc(100%-2rem)] flex flex-col overflow-hidden"
               style={{
-                bottom: 'calc(var(--footer-h) + 76px)',
-                height: '540px', maxHeight: 'calc(100% - var(--footer-h) - 96px)',
+                bottom: 'calc(var(--footer-h) + 8px)',
+                height: '540px', maxHeight: 'calc(100% - var(--footer-h) - 24px)',
                 background: 'var(--surface)', border: '1.5px solid var(--border-strong)',
                 borderRadius: '20px',
               }}>

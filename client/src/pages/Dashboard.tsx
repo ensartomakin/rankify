@@ -13,6 +13,7 @@ import { WeightBar } from '../components/WeightBar';
 import { CriterionCard } from '../components/CriterionCard';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { SearchIcon } from '../components/SearchIcon';
+import { EmptyState } from '../components/EmptyState';
 import {
   getCurrentRanking, previewRanking, applyManualRanking, aiAdjustRanking,
 } from '../api/ranking';
@@ -67,6 +68,23 @@ function getImageUrls(apiUrl: string, imageUrl: string, productId: string, produ
 
 const fmtPct = (n: number) => formatPercent(n, 1);
 
+
+/* ─── Boş durum ikonları ─── */
+function GridIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round"
+        d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+    </svg>
+  );
+}
+function BoxIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+    </svg>
+  );
+}
 
 /* ─── Placeholder ikonu ─── */
 function ImgPlaceholder() {
@@ -159,7 +177,7 @@ function CardImage({ apiUrl, p, faded, children }: {
     <div className="relative overflow-hidden rounded-t-xl"
       style={{ aspectRatio: '3 / 4', maxHeight: 240, background: idx < urls.length ? 'var(--media-bg)' : 'var(--surface2)' }}>
       {idx < urls.length
-        ? <img key={urls[idx]} src={urls[idx]} alt={p.productName} draggable={false}
+        ? <img key={urls[idx]} src={urls[idx]} alt={p.productName} draggable={false} loading="lazy" decoding="async"
             onError={() => setIdx(i => i + 1)}
             /* contain: the whole photo fits the frame (no cropping when the
                240px cap makes wide cards' frames landscape). */
@@ -372,7 +390,7 @@ function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, on
       </span>
       <div className="w-9 h-12 rounded overflow-hidden shrink-0" style={{ background: 'var(--media-bg)', border: '1px solid var(--border)' }}>
         {idx < urls.length
-          ? <img src={urls[idx]} alt="" draggable={false} onError={() => setIdx(i => i + 1)} className="w-full h-full object-contain"
+          ? <img src={urls[idx]} alt="" draggable={false} loading="lazy" decoding="async" onError={() => setIdx(i => i + 1)} className="w-full h-full object-contain"
               style={isStockOut(p) ? { filter: 'grayscale(1)', opacity: 0.55 } : undefined} />
           : null}
       </div>
@@ -541,6 +559,13 @@ export function Dashboard({ prefill }: Props) {
   const [aiRules,      setAiRules]      = useState<AdjustRule[]>([]);
   const [messages,     setMessages]     = useState<ChatMessage[]>([]);
   const [chatOpen,     setChatOpen]     = useState(false);
+  // Empty-state action: bring the category search into view and open it.
+  const heroSearchRef = useRef<HTMLDivElement>(null);
+  function openCategorySearch() {
+    const el = heroSearchRef.current;
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el?.querySelector<HTMLButtonElement>('button')?.click();
+  }
   // Footer height drives the chat button's offset so it always sits above the
   // footer (which can wrap to two rows on narrow screens).
   const footerRef = useRef<HTMLDivElement>(null);
@@ -1006,7 +1031,7 @@ export function Dashboard({ prefill }: Props) {
         style={{ paddingBottom: previewResult ? 88 : 'var(--spacing-section)' }}>
 
         {/* Hero kategori arama alanı */}
-        <div>
+        <div ref={heroSearchRef}>
           {/* wrapper: border+shadow ama overflow:visible — dropdown taşabilsin */}
           <div className="relative" style={{
             borderRadius: '12px',
@@ -1429,13 +1454,9 @@ export function Dashboard({ prefill }: Props) {
             <div className="@container" style={{ padding: 'var(--spacing-card)', background: 'var(--panel)', borderRadius: '0 0 16px 16px' }}>
               {/* Yükleniyor */}
               {(currentStatus === 'loading' || previewStatus === 'loading') && (
-                <div className="flex items-center justify-center gap-3 py-16">
-                  <span className="w-6 h-6 border-2 rounded-full animate-spin"
-                    style={{ borderColor: 'var(--border)', borderTopColor: 'var(--acc)' }} />
-                  <span className="text-sm" style={{ color: 'var(--tx2)' }}>
-                    {currentStatus === 'loading' ? 'Mevcut sıralama yükleniyor…' : 'Önizleme hesaplanıyor…'}
-                  </span>
-                </div>
+                <EmptyState loading
+                  title={currentStatus === 'loading' ? 'Mevcut sıralama yükleniyor…' : 'Önizleme hesaplanıyor…'}
+                  description="Ürünler T-Soft'tan alınıyor; bu birkaç saniye sürebilir." />
               )}
 
               {/* Mevcut sıralama kartları — drag-drop */}
@@ -1472,16 +1493,24 @@ export function Dashboard({ prefill }: Props) {
 
               {/* Boş durum */}
               {!isBusy && hasProducts && filteredCurrent.length === 0 && view === 'current' && (
-                <div className="flex items-center justify-center py-12 rounded-lg"
-                  style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                  <p style={{ color: 'var(--tx3)' }}>Ürün bulunamadı</p>
-                </div>
+                filter.trim()
+                  ? <EmptyState icon={<SearchIcon className="w-6 h-6" />} title="Aramayla eşleşen ürün yok"
+                      description={`"${filter.trim()}" için sonuç bulunamadı.`}
+                      action={{ label: 'Aramayı temizle', onClick: () => setFilter('') }} />
+                  : <EmptyState icon={<BoxIcon />} title="Bu kategoride ürün yok"
+                      description="T-Soft'ta bu kategoriye bağlı ürün bulunamadı." />
               )}
               {!isBusy && previewResult && filteredPreview.length === 0 && view === 'preview' && (
-                <div className="flex items-center justify-center py-12 rounded-lg"
-                  style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                  <p style={{ color: 'var(--tx3)' }}>Ürün bulunamadı</p>
-                </div>
+                filter.trim()
+                  ? <EmptyState icon={<SearchIcon className="w-6 h-6" />} title="Aramayla eşleşen ürün yok"
+                      description={`"${filter.trim()}" için sonuç bulunamadı.`}
+                      action={{ label: 'Aramayı temizle', onClick: () => setFilter('') }} />
+                  : !showDq && previewResult.disqualifiedCount > 0
+                    ? <EmptyState icon={<BoxIcon />} title="Gösterilecek aktif ürün yok"
+                        description="Bu kategorideki ürünlerin tamamı dışlandı."
+                        action={{ label: 'Dışlananları göster', onClick: () => setShowDq(true) }} />
+                    : <EmptyState icon={<BoxIcon />} title="Önizlemede ürün yok"
+                        description="Bu kategori için sıralanacak ürün bulunamadı." />
               )}
             </div>
           </div>
@@ -1489,17 +1518,10 @@ export function Dashboard({ prefill }: Props) {
 
         {/* Kategori seçilmemiş boş durum */}
         {!categoryId && (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 rounded-[20px]"
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <div className="w-14 h-14 rounded-lg flex items-center justify-center" style={{ background: 'var(--acc-bg)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="1.5" className="w-7 h-7">
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium" style={{ color: 'var(--tx2)' }}>
-              Mevcut sıralamayı görmek için yukarıdan bir kategori seçin
-            </p>
+          <div className="rounded-2xl" style={cardSt}>
+            <EmptyState icon={<GridIcon />} title="Kategori seçin"
+              description="Mevcut sıralamayı görmek ve düzenlemek için yukarıdaki aramadan bir kategori seçin."
+              action={{ label: 'Kategori seç', onClick: openCategorySearch }} />
           </div>
         )}
       </div>

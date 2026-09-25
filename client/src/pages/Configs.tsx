@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchConfigs, deleteConfig, triggerSaved, type SavedConfig } from '../api/config';
-import { CRITERION_LABELS, CRITERION_COLORS } from '../types';
+import { CRITERION_LABELS, criteriaColor } from '../types';
 
 interface Props { onEdit: (config: SavedConfig) => void; }
 
@@ -119,8 +119,8 @@ export function Configs({ onEdit }: Props) {
                   <div className="flex flex-wrap gap-2">
                     {cfg.criteria.map((c, i) => (
                       <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
-                        style={{ background: CRITERION_COLORS[i] + '18', color: 'var(--tx1)', border: `1px solid ${CRITERION_COLORS[i]}30` }}>
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: CRITERION_COLORS[i] }} />
+                        style={{ background: criteriaColor(i) + '18', color: 'var(--tx1)', border: `1px solid ${criteriaColor(i)}30` }}>
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: criteriaColor(i) }} />
                         K{i + 1} · {CRITERION_LABELS[c.key]} · %{c.weight}
                       </div>
                     ))}

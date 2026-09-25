@@ -1165,21 +1165,19 @@ export function Dashboard({ prefill }: Props) {
           <div className={panelCls} style={cardSt}>
             <PanelTitle>Sıralama Kriterleri</PanelTitle>
             <div>
-              <div className="flex flex-col">
+              <div className="flex flex-col gap-stack">
                 {criteria.map((c, i) => (
-                  <div key={i} className="py-stack first:pt-0"
-                    style={i > 0 ? { borderTop: '1px solid var(--border)' } : undefined}>
-                    <CriterionCard index={i} criterion={c}
-                      usedKeys={criteria.map(x => x.key)}
-                      onChange={u => handleCriterionChange(i, u)}
-                      onRemove={criteria.length > 3 ? () => removeCriterion(i) : undefined}
-                      ga4Connected={ga4Connected} />
-                  </div>
+                  <CriterionCard key={i} index={i} criterion={c}
+                    usedKeys={criteria.map(x => x.key)}
+                    onChange={u => handleCriterionChange(i, u)}
+                    onRemove={criteria.length > 3 ? () => removeCriterion(i) : undefined}
+                    ga4Connected={ga4Connected} />
                 ))}
                 {criteria.length < 5 && (
                   <button onClick={addCriterion}
-                    className="flex flex-row items-center justify-center gap-2 rounded-lg transition-all"
+                    className="flex flex-row items-center justify-center gap-2 transition-all"
                     style={{
+                      borderRadius: 'var(--radius-crit)',
                       minHeight: '64px', border: '2px dashed var(--border)',
                       background: 'transparent', cursor: 'pointer', color: 'var(--tx3)',
                     }}

@@ -1114,144 +1114,169 @@ export function Dashboard({ prefill }: Props) {
           )}
         </div>
 
-        {/* Ağırlık Dağılımı + Sıralama Kriterleri yan yana */}
-        {/* minmax(0,1fr) lets columns shrink below their content's min width
-            instead of pushing the page wider than the viewport. */}
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-section">
+        {/* Ağırlık + Beden (sol) | Sıralama Kriterleri (sağ) — from lg up the two
+            columns stretch to the same height; the left column is a flex column
+            and the Beden card absorbs the leftover space, so both columns end
+            level even as criteria are added. minmax(0,1fr) prevents overflow. */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-stretch gap-section">
 
-        {/* Ağırlık dağılımı */}
-        <div className="min-w-0 max-w-full" style={{ ...cardSt, borderRadius: '20px' }}>
-          {/* Kart başlık şeridi */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
-              </svg>
+          <div className="min-w-0 flex flex-col gap-section">
+            {/* Ağırlık dağılımı */}
+            <div className="min-w-0 max-w-full shrink-0" style={{ ...cardSt, borderRadius: '20px' }}>
+              {/* Kart başlık şeridi */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
+                <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
+                  </svg>
+                </div>
+                <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
+                  Ağırlık Dağılımı
+                </span>
+              </div>
+              {/* Kart içeriği */}
+              <div style={{ padding: '24px 24.3px' }}>
+                <WeightDonut criteria={criteria} />
+                <div className="mt-5 pt-5" style={{ borderTop: '1px solid var(--border)' }}>
+                  <WeightBar criteria={criteria} onChange={setCriteria} />
+                </div>
+              </div>
             </div>
-            <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
-              Ağırlık Dağılımı
-            </span>
+
+            {/* Beden Bulunurluk Eşiği */}
+            <div className={`${panelCls} flex-1`} style={cardSt}>
+              <PanelTitle>Beden Bulunurluk Eşiği</PanelTitle>
+              <div className="flex-1 flex flex-col justify-center gap-stack">
+                <div className="flex items-center justify-between gap-stack">
+                  <p className="text-caption truncate min-w-0" style={{ color: 'var(--tx2)' }}
+                    title="Bu eşiğin altındaki beden oranına sahip çok bedenli ürünler sıralamadan dışlanır">
+                    Bu oranın altındaki çok bedenli ürünler dışlanır
+                  </p>
+                  <span className="text-body font-bold tabular-nums px-2.5 py-1 rounded-lg shrink-0"
+                    style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
+                    %{Math.round(threshold * 100)}
+                  </span>
+                </div>
+                <div>
+                  <input type="range" min={0} max={1} step={0.05} value={threshold}
+                    onChange={e => setThreshold(Number(e.target.value))}
+                    aria-label="Beden bulunurluk eşiği"
+                    className="range-fill"
+                    style={{ '--fill': `${threshold * 100}%` } as React.CSSProperties} />
+                  <div className="flex justify-between text-label mt-tight" style={{ color: 'var(--tx3)' }}>
+                    <span>%0 — Tümü dahil</span>
+                    <span>%50</span>
+                    <span>%100 — Tam stok</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          {/* Kart içeriği */}
-          <div style={{ padding: '24px 24.3px' }}>
-            <WeightDonut criteria={criteria} />
-            <div className="mt-5 pt-5" style={{ borderTop: '1px solid var(--border)' }}>
-              <WeightBar criteria={criteria} onChange={setCriteria} />
+
+          {/* Sıralama Kriterleri */}
+          <div className={panelCls} style={cardSt}>
+            <PanelTitle>Sıralama Kriterleri</PanelTitle>
+            <div>
+              <div className="grid grid-cols-1 gap-stack">
+                {criteria.map((c, i) => (
+                  <CriterionCard key={i} index={i} criterion={c}
+                    usedKeys={criteria.map(x => x.key)}
+                    onChange={u => handleCriterionChange(i, u)}
+                    onRemove={criteria.length > 3 ? () => removeCriterion(i) : undefined}
+                    ga4Connected={ga4Connected} />
+                ))}
+                {criteria.length < 5 && (
+                  <button onClick={addCriterion}
+                    className="flex flex-row items-center justify-center gap-2 rounded-lg transition-all"
+                    style={{
+                      minHeight: '64px', border: '2px dashed var(--border)',
+                      background: 'transparent', cursor: 'pointer', color: 'var(--tx3)',
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.color = 'var(--acc-tx)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
+                    <span style={{ fontSize: '20px', lineHeight: 1 }}>+</span>
+                    <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600 }}>Kriter Ekle</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Sıralama Kriterleri */}
-        <div className={panelCls} style={cardSt}>
-          <PanelTitle>Sıralama Kriterleri</PanelTitle>
-          <div>
-            <div className="grid grid-cols-1 gap-stack">
-              {criteria.map((c, i) => (
-                <CriterionCard key={i} index={i} criterion={c}
-                  usedKeys={criteria.map(x => x.key)}
-                  onChange={u => handleCriterionChange(i, u)}
-                  onRemove={criteria.length > 3 ? () => removeCriterion(i) : undefined}
-                  ga4Connected={ga4Connected} />
-              ))}
-              {criteria.length < 5 && (
-                <button onClick={addCriterion}
-                  className="flex flex-row items-center justify-center gap-2 rounded-lg transition-all"
-                  style={{
-                    minHeight: '64px', border: '2px dashed var(--border)',
-                    background: 'transparent', cursor: 'pointer', color: 'var(--tx3)',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.color = 'var(--acc-tx)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
-                  <span style={{ fontSize: '20px', lineHeight: 1 }}>+</span>
-                  <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600 }}>Kriter Ekle</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        </div>
-
-        {/* Beden Bulunurluk Eşiği */}
-        <div className={panelCls} style={cardSt}>
-          <PanelTitle>Beden Bulunurluk Eşiği</PanelTitle>
-          <div>
-            <div className="flex items-center justify-between mb-tight">
-              <p className="text-sm" style={{ color: 'var(--tx2)', maxWidth: '460px' }}>
-                Bu eşiğin altındaki beden oranına sahip çok bedenli ürünler sıralamadan dışlanır
+        {/* Smart Mix | Sezon Ön-Sıralaması — side by side from lg, equal height */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-stretch gap-section">
+          {/* Smart Mix toggle */}
+          <div className={panelCls} style={cardSt}>
+            <PanelTitle>Smart Mix</PanelTitle>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-section)' }}>
+              <p className="text-sm" style={{ color: 'var(--tx2)', maxWidth: '520px' }}>
+                Aynı ürünün farklı renklerini ürün adına göre tespit eder, yan yana gelmelerini engeller
               </p>
-              <span className="text-body font-bold tabular-nums px-2.5 py-1 rounded-lg shrink-0 ml-4"
-                style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
-                %{Math.round(threshold * 100)}
-              </span>
-            </div>
-            <input type="range" min={0} max={1} step={0.05} value={threshold}
-              onChange={e => setThreshold(Number(e.target.value))}
-              className="w-full" />
-            <div className="flex justify-between text-label mt-2" style={{ color: 'var(--tx3)' }}>
-              <span>%0 — Tümü dahil</span>
-              <span>%50</span>
-              <span>%100 — Tam stok</span>
+              <button onClick={() => setSmartMix(v => !v)}
+                className="relative shrink-0"
+                style={{ width: 48, height: 26, borderRadius: 13, background: smartMix ? 'var(--acc)' : 'var(--border)', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}>
+                <span style={{
+                  position: 'absolute', top: 4, left: smartMix ? 26 : 4,
+                  width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                  transition: 'left 0.2s',
+                }} />
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Smart Mix toggle */}
-        <div className={panelCls} style={cardSt}>
-          <PanelTitle>Smart Mix</PanelTitle>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-section)' }}>
-            <p className="text-sm" style={{ color: 'var(--tx2)', maxWidth: '520px' }}>
-              Aynı ürünün farklı renklerini ürün adına göre tespit eder, yan yana gelmelerini engeller
-            </p>
-            <button onClick={() => setSmartMix(v => !v)}
-              className="relative shrink-0"
-              style={{ width: 48, height: 26, borderRadius: 13, background: smartMix ? 'var(--acc)' : 'var(--border)', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}>
-              <span style={{
-                position: 'absolute', top: 4, left: smartMix ? 26 : 4,
-                width: 18, height: 18, borderRadius: '50%', background: '#fff',
-                transition: 'left 0.2s',
-              }} />
-            </button>
-          </div>
-        </div>
-
-        {/* Sezon Filtresi */}
-        <div className={panelCls} style={cardSt}>
-          <PanelTitle>
-            Sezon Ön-Sıralaması
-            {seasonPreFilter !== 'none' && (
-              <span className="text-label font-semibold normal-case tracking-normal px-2 py-0.5 rounded-full"
-                style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
-                Aktif
+          {/* Sezon Filtresi */}
+          <div className={panelCls} style={cardSt}>
+            <PanelTitle>
+              Sezon Ön-Sıralaması
+              <span className="relative group inline-flex normal-case tracking-normal font-normal">
+                <button type="button" aria-label="Sezon ön-sıralaması hakkında"
+                  aria-describedby="season-info"
+                  className="w-4 h-4 inline-flex items-center justify-center rounded-full"
+                  style={{ color: 'var(--tx3)', background: 'transparent', border: 'none', cursor: 'help' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path strokeLinecap="round" d="M12 11v5M12 8h.01" />
+                  </svg>
+                </button>
+                <span id="season-info" role="tooltip"
+                  className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-0 top-6 z-20 w-72 p-3 rounded-lg text-caption"
+                  style={{ background: 'var(--tx1)', color: 'var(--bg)', boxShadow: '0 6px 20px rgba(0,0,0,0.18)' }}>
+                  Ürünler sıralama öncesinde sezon etiketine (Ek Bilgi 7) göre gruplanır. Seçilen sezonun ürünleri kendi sıralarını (puan, stok, bulunurluk) koruyarak öne alınır, ardından diğer sezon gelir. Dışlanan ürünler bundan etkilenmez.
+                </span>
               </span>
-            )}
-          </PanelTitle>
-          <div>
-            <p className="text-sm mb-stack" style={{ color: 'var(--tx2)', maxWidth: '520px' }}>
-              Ürünleri sıralama öncesinde sezon etiketine (Ek Bilgi 7) göre grupla — tercih ettiğin sezon ürünleri kendi sıralarını (puan, stok, bulunurluk) koruyarak öne alınır, ardından diğer sezon; dışlanan ürünler bundan etkilenmez
+              {seasonPreFilter !== 'none' && (
+                <span className="text-label font-semibold normal-case tracking-normal px-2 py-0.5 rounded-full"
+                  style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
+                  Aktif
+                </span>
+              )}
+            </PanelTitle>
+            <p className="text-caption truncate" style={{ color: 'var(--tx2)' }}>
+              Seçilen sezonun ürünleri sıralamada öne alınır
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div role="radiogroup" aria-label="Sezon ön-sıralaması"
+              className="flex p-1 gap-1 rounded-lg"
+              style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
               {([
-                { value: 'none'          as SeasonPreFilter, label: 'Tümü', desc: 'Sezon filtresi yok' },
-                { value: 'yaz-ilkbahar' as SeasonPreFilter, label: '☀ Yaz · İlkbahar', desc: 'Yaz/İlkbahar ürünleri önce (kendi sıralamasıyla), ardından Kış/Sonbahar' },
-                { value: 'kis-sonbahar' as SeasonPreFilter, label: '❄ Kış · Sonbahar', desc: 'Kış/Sonbahar ürünleri önce (kendi sıralamasıyla), ardından Yaz/İlkbahar' },
+                { value: 'none'          as SeasonPreFilter, label: 'Tümü',            desc: 'Sezon filtresi yok' },
+                { value: 'yaz-ilkbahar' as SeasonPreFilter, label: 'Yaz · İlkbahar', desc: 'Yaz/İlkbahar ürünleri önce (kendi sıralamasıyla), ardından Kış/Sonbahar' },
+                { value: 'kis-sonbahar' as SeasonPreFilter, label: 'Kış · Sonbahar', desc: 'Kış/Sonbahar ürünleri önce (kendi sıralamasıyla), ardından Yaz/İlkbahar' },
               ] as { value: SeasonPreFilter; label: string; desc: string }[]).map(opt => {
                 const isActive = seasonPreFilter === opt.value;
                 return (
-                  <button key={opt.value} onClick={() => setSeasonPreFilter(opt.value)}
+                  <button key={opt.value} type="button" role="radio" aria-checked={isActive}
+                    onClick={() => setSeasonPreFilter(opt.value)}
                     title={opt.desc}
-                    className="flex flex-col items-start gap-0.5 px-4 py-2.5 rounded-lg transition-all"
+                    className="flex-1 min-w-0 h-8 px-2 rounded-md text-caption font-semibold truncate transition-all"
                     style={{
-                      border: isActive ? '1.5px solid var(--acc-bd)' : '1px solid var(--border)',
-                      background: isActive ? 'var(--acc-bg)' : 'var(--surface2)',
+                      background: isActive ? 'var(--surface)' : 'transparent',
+                      color: isActive ? 'var(--acc-tx)' : 'var(--tx2)',
+                      border: isActive ? '1px solid var(--acc-bd)' : '1px solid transparent',
+                      boxShadow: isActive ? '0 1px 2px rgba(21,16,53,0.08)' : 'none',
                       cursor: 'pointer',
-                      
-                    }}
-                    onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; } }}
-                    onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; } }}>
-                    <span className="text-caption font-semibold" style={{ color: isActive ? 'var(--acc-tx)' : 'var(--tx1)' }}>{opt.label}</span>
-                    <span className="text-caption leading-snug max-w-[200px]" style={{ color: 'var(--tx3)' }}>{opt.desc}</span>
+                    }}>
+                    {opt.label}
                   </button>
                 );
               })}

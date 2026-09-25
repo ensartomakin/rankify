@@ -69,10 +69,6 @@ export function Login() {
         </div>
 
         <div className="relative z-10 flex-1 flex flex-col justify-center px-10">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] mb-6"
-            style={{ color: 'rgba(250,250,250,0.5)' }}>
-            T-Soft Sıralama Motoru
-          </div>
           <h1 className="font-serif leading-[1.1] mb-5"
             style={{ fontSize: '40px', color: 'var(--sb-tx-act)' }}>
             Akıllı<br />

@@ -26,9 +26,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(r => r.ok ? r.json() : null)
       .then((data: { userId: number; email: string; role: string; tenantId?: number } | null) => {
         if (data) {
+          // /me returns the token payload, which has no name — keep the one
+          // stored at login so the sidebar can show it.
+          const stored = loadUser();
           const fresh: AuthUser = {
             id: data.userId,
             email: data.email,
+            name: stored?.id === data.userId ? stored.name : undefined,
             role: data.role as AuthUser['role'],
             tenantId: data.tenantId,
           };

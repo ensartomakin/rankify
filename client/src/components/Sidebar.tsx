@@ -57,11 +57,60 @@ const NAV: { key: Page; label: string; icon: React.ReactNode; adminOnly?: boolea
   },
 ];
 
+function LogoutButton({ onClick }: { onClick: () => void }) {
+  // Tooltip is fixed-positioned so the sidebar's overflow-hidden can't clip it.
+  const [tip, setTip] = useState<DOMRect | null>(null);
+
+  return (
+    <>
+      <button
+        onClick={onClick}
+        aria-label="Çıkış Yap"
+        className="w-8 h-8 flex items-center justify-center rounded-md transition-all shrink-0"
+        style={{ color: 'var(--sb-tx-act)', background: 'var(--sb-hover)' }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLElement).style.color = 'var(--err-tx)';
+          (e.currentTarget as HTMLElement).style.background = 'var(--err-bg)';
+          setTip(e.currentTarget.getBoundingClientRect());
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLElement).style.color = 'var(--sb-tx-act)';
+          (e.currentTarget as HTMLElement).style.background = 'var(--sb-hover)';
+          setTip(null);
+        }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[18px] h-[18px]">
+          <path strokeLinecap="round" strokeLinejoin="round"
+            d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+        </svg>
+      </button>
+      {tip && (
+        <div role="tooltip"
+          className="fixed z-50 px-2 py-1 rounded-md text-[11px] font-medium whitespace-nowrap pointer-events-none animate-fade-in"
+          style={{
+            left: tip.left + tip.width / 2,
+            top: tip.top - 8,
+            transform: 'translate(-50%, -100%)',
+            background: 'var(--tx1)',
+            color: 'var(--bg)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+          }}>
+          Çıkış Yap
+        </div>
+      )}
+    </>
+  );
+}
+
 export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin }: Props) {
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
-  const initials = (user?.name ?? user?.email ?? 'U').slice(0, 2).toUpperCase();
+  const fullName    = user?.name?.trim();
+  const displayName = fullName || user?.email?.split('@')[0];
+  const initials = fullName
+    ? fullName.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toLocaleUpperCase('tr')
+    : (user?.email ?? 'U').slice(0, 2).toLocaleUpperCase('tr');
   const visibleNav = NAV.filter(item => !item.adminOnly || isSuperAdmin);
 
   return (
@@ -202,7 +251,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
               onMouseEnter={e => {
                 if (!active) {
                   (e.currentTarget as HTMLElement).style.background = 'var(--sb-hover)';
-                  (e.currentTarget as HTMLElement).style.color = 'var(--tx2)';
+                  (e.currentTarget as HTMLElement).style.color = 'var(--sb-tx-act)';
                 }
               }}
               onMouseLeave={e => {
@@ -238,7 +287,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
           }}
           onMouseEnter={e => {
             (e.currentTarget as HTMLElement).style.background = 'var(--sb-hover)';
-            (e.currentTarget as HTMLElement).style.color = 'var(--tx2)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--sb-tx-act)';
           }}
           onMouseLeave={e => {
             (e.currentTarget as HTMLElement).style.background = 'transparent';
@@ -281,7 +330,7 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
               color: 'var(--cta-tx)',
               border: 'none',
             }}
-            title={collapsed ? (user?.name ?? user?.email) : undefined}
+            title={collapsed ? displayName : undefined}
           >
             {initials}
           </div>
@@ -290,55 +339,21 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
             <>
               <div className="flex-1 min-w-0">
                 <div className="text-[12px] font-semibold truncate leading-none" style={{ color: 'var(--sb-tx-act)' }}>
-                  {user?.name ?? user?.email?.split('@')[0]}
+                  {displayName}
                 </div>
                 <div className="text-[10px] truncate mt-0.5 leading-none" style={{ color: 'var(--sb-tx)' }}>
                   {user?.role === 'super_admin' ? 'Süper Admin' : user?.email}
                 </div>
               </div>
-              <button
-                onClick={logout}
-                className="p-1.5 rounded-md transition-all shrink-0"
-                style={{ color: 'var(--sb-tx)' }}
-                title="Çıkış"
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.color = 'var(--err-tx)';
-                  (e.currentTarget as HTMLElement).style.background = 'var(--err-bg)';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.color = 'var(--sb-tx)';
-                  (e.currentTarget as HTMLElement).style.background = '';
-                }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5">
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-                </svg>
-              </button>
+              <LogoutButton onClick={logout} />
             </>
           )}
         </div>
 
         {collapsed && (
-          <button
-            onClick={logout}
-            className="w-full flex justify-center p-2 rounded-md transition-all mt-1"
-            style={{ color: 'var(--sb-tx)' }}
-            title="Çıkış"
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.color = 'var(--err-tx)';
-              (e.currentTarget as HTMLElement).style.background = 'var(--err-bg)';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.color = 'var(--sb-tx)';
-              (e.currentTarget as HTMLElement).style.background = '';
-            }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5">
-              <path strokeLinecap="round" strokeLinejoin="round"
-                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-            </svg>
-          </button>
+          <div className="flex justify-center mt-1">
+            <LogoutButton onClick={logout} />
+          </div>
         )}
       </div>
     </aside>

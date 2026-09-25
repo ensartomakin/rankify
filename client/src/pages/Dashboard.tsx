@@ -1060,6 +1060,60 @@ export function Dashboard({ prefill }: Props) {
           )}
         </div>
 
+        {/* Strateji Şablonları — ayrı kart */}
+        <div ref={scenarioRef} className={panelCls} style={cardSt}>
+          <PanelTitle action={selectedScenario && (
+            <button onClick={() => setSelectedScenario(null)}
+              className="text-label font-medium px-2 py-0.5 rounded-md"
+              style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--tx2)', cursor: 'pointer' }}>
+              Temizle
+            </button>
+          )}>
+            Hazır Strateji Şablonları
+          </PanelTitle>
+
+          {/* Senaryo ızgarası */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-tight">
+            {SCENARIOS.map(s => {
+              const isSelected = selectedScenario?.id === s.id;
+              return (
+                <button key={s.id}
+                  onClick={() => { setCriteria(s.criteria); setSelectedScenario(isSelected ? null : s); }}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px',
+                    padding: '10px 12px', borderRadius: '12px', cursor: 'pointer', textAlign: 'left',
+                    border: isSelected ? '1.5px solid var(--acc-bd)' : '1px solid var(--border)',
+                    background: isSelected ? 'var(--acc-bg)' : 'var(--surface2)',
+                    
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface)'; } }}
+                  onMouseLeave={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; } }}>
+                  <span style={{ fontSize: '18px', lineHeight: 1 }}>{s.emoji}</span>
+                  <div className="text-label font-bold leading-tight mt-0.5 break-words max-w-full" style={{ color: isSelected ? 'var(--acc-tx)' : 'var(--tx1)' }}>{s.name}</div>
+                  <div className="text-caption leading-tight" style={{ color: 'var(--tx3)' }}>{s.tagline}</div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Seçili senaryo açıklaması */}
+          {selectedScenario && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-stack)', padding: 'var(--spacing-stack)', borderRadius: '12px', background: 'var(--acc-bg)' }}>
+              <span style={{ fontSize: '22px', lineHeight: 1, flexShrink: 0 }}>{selectedScenario.emoji}</span>
+              <div>
+                <div style={{ fontSize: 'var(--text-caption)', fontWeight: 700, color: 'var(--acc-tx)' }}>
+                  {selectedScenario.name}
+                  <span style={{ fontWeight: 400, marginLeft: '6px', color: 'var(--tx3)' }}>· {selectedScenario.tagline}</span>
+                </div>
+                <div style={{ fontSize: 'var(--text-caption)', color: 'var(--tx2)', marginTop: '4px', lineHeight: 1.6 }}>
+                  {selectedScenario.description}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Ağırlık Dağılımı + Sıralama Kriterleri yan yana */}
         {/* minmax(0,1fr) lets columns shrink below their content's min width
             instead of pushing the page wider than the viewport. */}
@@ -1117,60 +1171,6 @@ export function Dashboard({ prefill }: Props) {
           </div>
         </div>
 
-        </div>
-
-        {/* Strateji Şablonları — ayrı kart */}
-        <div ref={scenarioRef} className={panelCls} style={cardSt}>
-          <PanelTitle action={selectedScenario && (
-            <button onClick={() => setSelectedScenario(null)}
-              className="text-label font-medium px-2 py-0.5 rounded-md"
-              style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--tx2)', cursor: 'pointer' }}>
-              Temizle
-            </button>
-          )}>
-            Hazır Strateji Şablonları
-          </PanelTitle>
-
-          {/* Senaryo ızgarası */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-tight">
-            {SCENARIOS.map(s => {
-              const isSelected = selectedScenario?.id === s.id;
-              return (
-                <button key={s.id}
-                  onClick={() => { setCriteria(s.criteria); setSelectedScenario(isSelected ? null : s); }}
-                  style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px',
-                    padding: '10px 12px', borderRadius: '12px', cursor: 'pointer', textAlign: 'left',
-                    border: isSelected ? '1.5px solid var(--acc-bd)' : '1px solid var(--border)',
-                    background: isSelected ? 'var(--acc-bg)' : 'var(--surface2)',
-                    
-                    transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface)'; } }}
-                  onMouseLeave={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; } }}>
-                  <span style={{ fontSize: '18px', lineHeight: 1 }}>{s.emoji}</span>
-                  <div className="text-label font-bold leading-tight mt-0.5 break-words max-w-full" style={{ color: isSelected ? 'var(--acc-tx)' : 'var(--tx1)' }}>{s.name}</div>
-                  <div className="text-caption leading-tight" style={{ color: 'var(--tx3)' }}>{s.tagline}</div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Seçili senaryo açıklaması */}
-          {selectedScenario && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-stack)', padding: 'var(--spacing-stack)', borderRadius: '12px', background: 'var(--acc-bg)' }}>
-              <span style={{ fontSize: '22px', lineHeight: 1, flexShrink: 0 }}>{selectedScenario.emoji}</span>
-              <div>
-                <div style={{ fontSize: 'var(--text-caption)', fontWeight: 700, color: 'var(--acc-tx)' }}>
-                  {selectedScenario.name}
-                  <span style={{ fontWeight: 400, marginLeft: '6px', color: 'var(--tx3)' }}>· {selectedScenario.tagline}</span>
-                </div>
-                <div style={{ fontSize: 'var(--text-caption)', color: 'var(--tx2)', marginTop: '4px', lineHeight: 1.6 }}>
-                  {selectedScenario.description}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Beden Bulunurluk Eşiği */}

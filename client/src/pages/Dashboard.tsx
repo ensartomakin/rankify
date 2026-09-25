@@ -75,7 +75,7 @@ function ImgPlaceholder() {
     <div className="w-full h-full flex items-center justify-center"
       style={{ background: 'var(--surface2)' }}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"
-        className="w-10 h-10" style={{ color: 'var(--border-2)' }}>
+        className="w-10 h-10" style={{ color: 'var(--border-strong)' }}>
         <rect x="3" y="3" width="18" height="18" rx="2" />
         <circle cx="8.5" cy="8.5" r="1.5" />
         <path strokeLinecap="round" d="M21 15l-5-5L5 21" />
@@ -1533,7 +1533,7 @@ export function Dashboard({ prefill }: Props) {
           <button onClick={() => setCriteria(DEFAULT_CRITERIA)}
             className="px-4 py-2 rounded-lg text-[13px] font-medium transition-all whitespace-nowrap"
             style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--tx3)', cursor: 'pointer' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx2)'; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx2)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
             Varsayılan
           </button>
@@ -1551,10 +1551,10 @@ export function Dashboard({ prefill }: Props) {
             className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap"
             style={!isValid || isBusy
               ? { background: 'transparent', color: 'var(--tx3)', cursor: 'not-allowed', border: '1px solid var(--border)' }
-              : { background: 'transparent', color: 'var(--tx1)', border: '1px solid var(--border-2)', cursor: 'pointer' }
+              : { background: 'transparent', color: 'var(--tx1)', border: '1px solid var(--border-strong)', cursor: 'pointer' }
             }
             onMouseEnter={e => { if (isValid && !isBusy) (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc)'; }}
-            onMouseLeave={e => { if (isValid && !isBusy) (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)'; }}>
+            onMouseLeave={e => { if (isValid && !isBusy) (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; }}>
             {previewStatus === 'loading' ? (
               <span className="flex items-center gap-2">
                 <span className="w-3.5 h-3.5 border-2 rounded-full animate-spin"

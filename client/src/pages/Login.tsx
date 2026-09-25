@@ -69,10 +69,6 @@ export function Login() {
         </div>
 
         <div className="relative z-10 flex-1 flex flex-col justify-center px-10">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] mb-6"
-            style={{ color: 'rgba(250,250,250,0.5)' }}>
-            T-Soft Sıralama Motoru
-          </div>
           <h1 className="font-serif leading-[1.1] mb-5"
             style={{ fontSize: '40px', color: 'var(--sb-tx-act)' }}>
             Akıllı<br />
@@ -107,21 +103,21 @@ export function Login() {
 
       {/* Sağ — form */}
       <div className="flex-1 flex items-center justify-center p-8" style={{ background: 'var(--bg)' }}>
-        <div className="w-full max-w-[360px] animate-fade-up">
+        <div className="w-full max-w-[400px] flex flex-col gap-6 animate-fade-up">
 
-          <div className="mb-8 lg:hidden flex items-center gap-2">
+          <div className="lg:hidden flex items-center gap-2">
             <div className="w-2 h-2 rounded-full" style={{ background: 'var(--acc)' }} />
             <span className="text-sm font-semibold font-serif" style={{ color: 'var(--tx1)' }}>Rankify</span>
           </div>
 
           {/* Sekme geçişi — tab radius per spec is 8px, not pill */}
-          <div className="flex mb-8 rounded-lg p-1" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+          <div className="flex rounded-lg p-1" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
             {(['login', 'register'] as Mode[]).map(m => (
               <button
                 key={m}
                 type="button"
                 onClick={() => switchMode(m)}
-                className="flex-1 py-2.5 rounded-lg text-[13px] font-medium transition-all"
+                className="flex-1 h-9 flex items-center justify-center rounded-lg text-[13px] font-medium transition-all"
                 style={mode === m
                   ? { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }
                   : { background: 'transparent', color: 'var(--tx2)', cursor: 'pointer' }
@@ -133,30 +129,30 @@ export function Login() {
           </div>
 
           {mode === 'register' ? (
-            <>
-              <h2 className="font-serif mb-1" style={{ fontSize: '28px', color: 'var(--tx1)', lineHeight: 1.2 }}>
+            <div className="flex flex-col gap-1.5">
+              <h2 className="font-serif" style={{ fontSize: '28px', color: 'var(--tx1)', lineHeight: 1.2 }}>
                 Hesap Oluştur
               </h2>
-              <p className="text-[13px] mb-8" style={{ color: 'var(--tx2)' }}>
+              <p className="text-[13px]" style={{ color: 'var(--tx2)' }}>
                 Kendi mağazanızı yönetmek için üye olun
               </p>
-            </>
+            </div>
           ) : (
-            <>
-              <h2 className="font-serif mb-1" style={{ fontSize: '28px', color: 'var(--tx1)', lineHeight: 1.2 }}>
+            <div className="flex flex-col gap-1.5">
+              <h2 className="font-serif" style={{ fontSize: '28px', color: 'var(--tx1)', lineHeight: 1.2 }}>
                 Hoş geldiniz
               </h2>
-              <p className="text-[13px] mb-8" style={{ color: 'var(--tx2)' }}>
+              <p className="text-[13px]" style={{ color: 'var(--tx2)' }}>
                 Hesabınıza giriş yapın
               </p>
-            </>
+            </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {mode === 'register' && (
               <input type="text" placeholder="Ad Soyad"
                 value={name} onChange={e => setName(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg text-sm focus:outline-none transition-all"
+                className="w-full h-11 px-3 py-2.5 rounded-lg text-sm focus:outline-none transition-all"
                 style={inputStyle}
                 onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx1)'; }}
                 onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; }}
@@ -164,14 +160,14 @@ export function Login() {
             )}
             <input type="email" placeholder="E-posta adresi" required
               value={email} onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg text-sm focus:outline-none transition-all"
+              className="w-full h-11 px-3 py-2.5 rounded-lg text-sm focus:outline-none transition-all"
               style={inputStyle}
               onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx1)'; }}
               onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; }}
             />
             <input type="password" placeholder="Şifre" required
               value={password} onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg text-sm focus:outline-none transition-all"
+              className="w-full h-11 px-3 py-2.5 rounded-lg text-sm focus:outline-none transition-all"
               style={inputStyle}
               onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx1)'; }}
               onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; }}
@@ -185,7 +181,7 @@ export function Login() {
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full py-3.5 rounded-lg text-[13px] font-medium transition-all mt-1"
+              className="w-full h-11 flex items-center justify-center rounded-lg text-[13px] font-medium transition-all"
               style={loading
                 ? { background: 'var(--surface3)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
                 : { background: 'var(--cta-bg)', color: 'var(--cta-tx)', border: 'none', cursor: 'pointer' }
@@ -194,7 +190,7 @@ export function Login() {
             </button>
           </form>
 
-          <div className="flex items-center justify-center gap-1.5 mt-10">
+          <div className="flex items-center justify-center gap-1.5">
             {(['var(--acc)', '#8A86A8', '#5C5680'] as const).map((color, i) => (
               <div key={i} className="rounded-full transition-all"
                 style={{

@@ -1,4 +1,5 @@
 import { CRITERION_LABELS, type CriterionKey } from '../types';
+import { formatPercent } from '../utils/format';
 
 interface Props {
   index: number;
@@ -30,7 +31,7 @@ export function WeightSlider({ index, criterionKey, weight, usedKeys, onKeyChang
         </select>
 
         <span className="text-2xl font-bold text-violet-600 w-16 text-right tabular-nums">
-          %{weight}
+          {formatPercent(weight)}
         </span>
       </div>
 

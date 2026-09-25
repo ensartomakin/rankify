@@ -22,6 +22,7 @@ import type {
 import { saveConfig } from '../api/config';
 import { fetchGa4Status } from '../api/ga4';
 import { getStoredThreshold } from '../utils/threshold';
+import { formatPercent } from '../utils/format';
 import type { WeightCriterion, CriterionKey, SeasonPreFilter } from '../types';
 import type { SavedConfig } from '../api/config';
 import { SCENARIOS } from '../data/scenarios';
@@ -62,9 +63,7 @@ function getImageUrls(apiUrl: string, imageUrl: string, productId: string, produ
   return [...new Set(urls)];
 }
 
-function fmtPct(n: number) {
-  return '%' + n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+const fmtPct = (n: number) => formatPercent(n, 2);
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
@@ -373,13 +372,13 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
               ga4ConversionRate: 'GA4 Dönüşüm',
             };
             const label =
-              key === 'bestSeller'       ? `Satış (${c.weight}%)` :
-              key === 'stockScore'       ? `Stok (${c.weight}%)` :
-              key === 'newness'          ? `Yenilik (${c.weight}%)` :
-              key === 'reviewScore'      ? `Yorum (${c.weight}%)` :
-              key === 'availabilityScore'? `Bulunurluk (${c.weight}%)` :
-              key === 'discountRate'     ? `İndirim (${c.weight}%)` :
-              `${GA4_LABELS[key] ?? key} (${c.weight}%)`;
+              key === 'bestSeller'       ? `Satış (${formatPercent(c.weight)})` :
+              key === 'stockScore'       ? `Stok (${formatPercent(c.weight)})` :
+              key === 'newness'          ? `Yenilik (${formatPercent(c.weight)})` :
+              key === 'reviewScore'      ? `Yorum (${formatPercent(c.weight)})` :
+              key === 'availabilityScore'? `Bulunurluk (${formatPercent(c.weight)})` :
+              key === 'discountRate'     ? `İndirim (${formatPercent(c.weight)})` :
+              `${GA4_LABELS[key] ?? key} (${formatPercent(c.weight)})`;
             let raw: string | number = '';
             if (key === 'stockScore')             raw = p.totalStock.toLocaleString('tr-TR');
             else if (key === 'bestSeller')        raw = p.salesQty.toLocaleString('tr-TR');
@@ -389,7 +388,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             else if (key === 'discountRate')      raw = `%${(p.discountRate ?? 0).toLocaleString('tr-TR')}`;
             else if (key === 'ga4Views')          raw = (p.ga4?.views ?? 0).toLocaleString('tr-TR');
             else if (key === 'ga4CartAdds')       raw = (p.ga4?.cartAdds ?? 0).toLocaleString('tr-TR');
-            else if (key === 'ga4ConversionRate') raw = `${(p.ga4?.conversionRate ?? 0).toFixed(2)}%`;
+            else if (key === 'ga4ConversionRate') raw = formatPercent(p.ga4?.conversionRate ?? 0, 2);
             return (
               <div key={key} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-caption"
                 style={{ borderBottom: '1px solid var(--border)' }}>
@@ -1142,7 +1141,7 @@ export function Dashboard({ prefill }: Props) {
                   </p>
                   <span className="text-body font-bold tabular-nums px-2.5 py-1 rounded-lg shrink-0"
                     style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
-                    %{Math.round(threshold * 100)}
+                    {formatPercent(Math.round(threshold * 100))}
                   </span>
                 </div>
                 <div>
@@ -1152,9 +1151,9 @@ export function Dashboard({ prefill }: Props) {
                     className="range-fill"
                     style={{ '--fill': `${threshold * 100}%` } as React.CSSProperties} />
                   <div className="flex justify-between text-label mt-tight" style={{ color: 'var(--tx3)' }}>
-                    <span>%0 — Tümü dahil</span>
-                    <span>%50</span>
-                    <span>%100 — Tam stok</span>
+                    <span>{formatPercent(0)} — Tümü dahil</span>
+                    <span>{formatPercent(50)}</span>
+                    <span>{formatPercent(100)} — Tam stok</span>
                   </div>
                 </div>
               </div>
@@ -1228,7 +1227,7 @@ export function Dashboard({ prefill }: Props) {
                   </svg>
                 </button>
                 <span id="season-info" role="tooltip"
-                  className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-0 top-6 z-20 w-72 p-3 rounded-lg text-caption"
+                  className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-1/2 -translate-x-1/2 top-6 z-20 w-64 p-3 rounded-lg text-caption"
                   style={{ background: 'var(--tx1)', color: 'var(--bg)', boxShadow: '0 6px 20px rgba(0,0,0,0.18)' }}>
                   Ürünler sıralama öncesinde sezon etiketine (Ek Bilgi 7) göre gruplanır. Seçilen sezonun ürünleri kendi sıralarını (puan, stok, bulunurluk) koruyarak öne alınır, ardından diğer sezon gelir. Dışlanan ürünler bundan etkilenmez.
                 </span>
@@ -1495,7 +1494,7 @@ export function Dashboard({ prefill }: Props) {
             }>
             <span className="w-1.5 h-1.5 rounded-full"
               style={{ background: total === 100 ? 'var(--ok-tx)' : 'var(--warn-tx)' }} />
-            Ağırlık: {total}%
+            Ağırlık: {formatPercent(total)}
           </div>
           {total !== 100 && (
             <span className="text-caption" style={{ color: 'var(--tx3)' }}>

@@ -40,23 +40,29 @@ export const SALES_PERIOD_LABELS: Record<SalesPeriod, string> = {
   '3m':  'Son 3 Ay',
 };
 
-export const CRITERION_COLORS: string[] = [
-  '#1CCAC7', // K1 — Bright Teal
-  '#7C5CFF', // K2 — Violet
-  '#F5A524', // K3 — Amber
-  '#EC5B8C', // K4 — Pink
-  '#4C8DF6', // K5 — Blue
-];
+/* Single source of truth for criterion colours, in criterion order. The donut,
+   legend cards (tint + left border), weight bar, weight-input dots, criterion
+   cards and saved-config chips all read from here via criteriaColor(i). */
+export const CRITERIA_COLORS = [
+  '#1CCAC7', // K1 — Turkuaz
+  '#7C5CFF', // K2 — Mor
+  '#EC5B8C', // K3 — Pembe
+  '#4C8DF6', // K4 — Mavi
+  '#F5A524', // K5 — Turuncu
+] as const;
 
-/* Legible text color for each CRITERION_COLORS fill — only the violet is dark
-   enough to carry white text; the rest take Deep Space Violet. */
-export const CRITERION_TEXT_ON: string[] = [
-  '#151035', // on Bright Teal
-  '#FFFFFF', // on Violet
-  '#151035', // on Amber
-  '#151035', // on Pink
-  '#151035', // on Blue
-];
+/* Legible text on each CRITERIA_COLORS fill (same order) — only the violet
+   takes white; the rest take Deep Space Violet (all ≥4.3:1). */
+export const CRITERIA_TEXT_ON = [
+  '#151035', // on Turkuaz
+  '#FFFFFF', // on Mor
+  '#151035', // on Pembe
+  '#151035', // on Mavi
+  '#151035', // on Turuncu
+] as const;
+
+export const criteriaColor  = (i: number): string => CRITERIA_COLORS[i % CRITERIA_COLORS.length];
+export const criteriaTextOn = (i: number): string => CRITERIA_TEXT_ON[i % CRITERIA_TEXT_ON.length];
 
 
 export interface WeightCriterion {

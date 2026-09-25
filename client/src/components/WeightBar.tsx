@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { CRITERION_COLORS, CRITERION_TEXT_ON, type WeightCriterion } from '../types';
+import { criteriaColor, criteriaTextOn, type WeightCriterion } from '../types';
 
 interface Props {
   criteria: WeightCriterion[];
@@ -93,8 +93,8 @@ export function WeightBar({ criteria, onChange }: Props) {
             className="flex items-center justify-center text-label font-bold overflow-hidden whitespace-nowrap"
             style={{
               width: `${c.weight}%`,
-              background: CRITERION_COLORS[i] ?? CRITERION_COLORS[0],
-              color: CRITERION_TEXT_ON[i] ?? CRITERION_TEXT_ON[0],
+              background: criteriaColor(i),
+              color: criteriaTextOn(i),
             }}>
             K{i + 1} · {c.weight}%
           </div>
@@ -120,7 +120,7 @@ export function WeightBar({ criteria, onChange }: Props) {
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))' }}>
           {criteria.map((c, i) => (
             <label key={i} className="flex items-center justify-center gap-1.5 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CRITERION_COLORS[i] ?? CRITERION_COLORS[0] }} />
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: criteriaColor(i) }} />
               <span className="text-label font-semibold shrink-0" style={{ color: 'var(--tx2)' }}>K{i + 1}</span>
               <span className="relative min-w-0 w-full max-w-[72px]">
                 <input

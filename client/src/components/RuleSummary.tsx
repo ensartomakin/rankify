@@ -1,4 +1,4 @@
-import { CRITERION_COLORS, CRITERION_LABELS, SALES_PERIOD_LABELS, type WeightCriterion, type SalesPeriod } from '../types';
+import { criteriaColor, CRITERION_LABELS, SALES_PERIOD_LABELS, type WeightCriterion, type SalesPeriod } from '../types';
 
 interface Props {
   categoryId: string;
@@ -40,7 +40,7 @@ export function RuleSummary({ categoryId, categoryName, criteria, availabilityTh
               {c.direction === 'desc' ? 'Azalan' : 'Artan'}
               {c.key === 'bestSeller' && c.salesPeriod && ` · ${SALES_PERIOD_LABELS[c.salesPeriod as SalesPeriod] ?? c.salesPeriod}`}
             </div>
-            <div className="text-base font-bold" style={{ color: CRITERION_COLORS[i] }}>
+            <div className="text-base font-bold" style={{ color: criteriaColor(i) }}>
               %{c.weight}
             </div>
           </div>

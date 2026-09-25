@@ -1,5 +1,5 @@
 import {
-  CRITERION_COLORS, CRITERION_LABELS, SALES_PERIOD_LABELS, GA4_CRITERION_KEYS,
+  criteriaColor, CRITERION_LABELS, SALES_PERIOD_LABELS, GA4_CRITERION_KEYS,
   type CriterionKey, type SalesPeriod, type SortDirection, type WeightCriterion,
 } from '../types';
 
@@ -16,15 +16,21 @@ interface Props {
 }
 
 export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, ga4Connected = false }: Props) {
-  const color   = CRITERION_COLORS[index] ?? CRITERION_COLORS[0];
+  const color   = criteriaColor(index);
   const allKeys = [...BASE_KEYS, ...(ga4Connected ? GA4_KEYS : [])];
   const options = allKeys.filter(k => k === criterion.key || !usedKeys.includes(k));
 
   const hasPeriod = criterion.key === 'bestSeller' || GA4_CRITERION_KEYS.has(criterion.key);
 
   return (
-    <div className="flex flex-col gap-stack pl-stack"
-      style={{ borderLeft: `3px solid ${color}` }}>
+    <div className="flex flex-col gap-stack p-card"
+      style={{
+        background: 'var(--crit-card-bg)',
+        border: '1px solid var(--crit-card-bd)',
+        /* The colour is the card's own left border, so it follows the corner radius. */
+        borderLeft: `3px solid ${color}`,
+        borderRadius: 'var(--radius-crit)',
+      }}>
       <div className="flex items-center justify-between gap-tight">
         <span className="text-label font-bold uppercase tracking-wide" style={{ color: 'var(--tx2)' }}>
           Kriter {index + 1}

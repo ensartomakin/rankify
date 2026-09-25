@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { PieChart, Pie, Cell } from 'recharts';
-import { CRITERION_COLORS, CRITERION_LABELS, SALES_PERIOD_LABELS, type WeightCriterion, type SalesPeriod } from '../types';
+import { criteriaColor, CRITERION_LABELS, SALES_PERIOD_LABELS, type WeightCriterion, type SalesPeriod } from '../types';
 
 interface Props {
   criteria: WeightCriterion[];
@@ -14,7 +14,7 @@ export function WeightDonut({ criteria }: Props) {
     name: `K${i + 1}`,
     label: CRITERION_LABELS[c.key],
     value: c.weight,
-    color: CRITERION_COLORS[i] ?? CRITERION_COLORS[0],
+    color: criteriaColor(i),
   }));
   const hovered = active !== null ? data[active] : null;
 

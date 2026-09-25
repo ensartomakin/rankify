@@ -8,7 +8,6 @@ import {
   useSortable, arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { WeightDonut } from '../components/WeightDonut';
 import { WeightBar } from '../components/WeightBar';
 import { CriterionCard } from '../components/CriterionCard';
 import { CategoryPicker } from '../components/CategoryPicker';
@@ -488,6 +487,23 @@ function mergeAiOrder(
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
 const cardSt = { background: 'var(--surface)', border: '1px solid var(--border)' };
+/* Every panel on this page: 16px radius, p-card padding, flat title. */
+/* Footer buttons: one teal primary, the rest outline or ghost. */
+const btnCls      = 'h-9 px-4 rounded-lg text-caption transition-all whitespace-nowrap';
+const btnOutline  = { background: 'transparent', color: 'var(--tx1)', border: '1px solid var(--border-strong)', cursor: 'pointer' };
+const btnDisabled = { background: 'transparent', color: 'var(--tx3)', border: '1px solid var(--border)', cursor: 'not-allowed' };
+const panelCls = 'min-w-0 max-w-full rounded-2xl p-card flex flex-col gap-stack';
+
+function PanelTitle({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-tight">
+      <h2 className="flex items-center gap-tight text-label font-bold uppercase tracking-wide" style={{ color: 'var(--tx2)' }}>
+        {children}
+      </h2>
+      {action}
+    </div>
+  );
+}
 
 interface Props { prefill?: SavedConfig; }
 
@@ -971,29 +987,29 @@ export function Dashboard({ prefill }: Props) {
   return (
     <div className="h-full flex flex-col">
       {/* Başlık */}
-      <div className="shrink-0 pt-5 pb-4 flex items-center justify-between gap-4 px-4 md:px-7"
+      <div className="shrink-0 py-3 flex items-center justify-between gap-4 px-4 md:px-6"
         style={{ borderBottom: '1px solid var(--border)' }}>
-        <h1 className="font-serif" style={{ fontSize: 'clamp(18px,4vw,28px)', fontWeight: 700, color: 'var(--tx1)', lineHeight: 1.2 }}>
+        <h1 className="font-serif" style={{ fontSize: 'clamp(18px,3vw,22px)', fontWeight: 700, color: 'var(--tx1)', lineHeight: 1.2 }}>
           Sıralama Yöneticisi
         </h1>
       </div>
 
       {/* Kaydırılabilir içerik */}
-      <div className="flex-1 overflow-y-auto pb-8 space-y-6 px-4 md:px-7" style={{ paddingTop: '20px' }}>
+      <div className="flex-1 overflow-y-auto space-y-section px-4 md:px-6 py-section">
 
         {/* Hero kategori arama alanı */}
         <div>
           {/* wrapper: border+shadow ama overflow:visible — dropdown taşabilsin */}
           <div className="relative" style={{
-            borderRadius: '20px',
+            borderRadius: '12px',
             border: categoryId ? '1.5px solid var(--acc)' : '1.5px solid var(--border-strong)',
             background: 'var(--surface)',
             transition: 'border-color 0.2s',
           }}>
             {/* Search icon */}
-            <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                className="w-5 h-5" aria-hidden="true"
+                className="w-4 h-4" aria-hidden="true"
                 style={{ color: categoryId ? 'var(--acc)' : 'var(--tx3)' }}>
                 <circle cx="11" cy="11" r="7" />
                 <path strokeLinecap="round" d="M20 20l-4.35-4.35" />
@@ -1011,8 +1027,8 @@ export function Dashboard({ prefill }: Props) {
 
             {/* Kategori sayı pill */}
             {selectedCategories.length > 0 && (
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none
-                              flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none
+                              flex items-center gap-1.5 px-2.5 py-0.5 rounded-full"
                 style={{ background: 'rgba(28,202,199,0.08)', border: '1px solid rgba(28,202,199,0.22)' }}>
                 <span className="text-label font-mono font-semibold" style={{ color: 'var(--acc-tx)' }}>
                   {selectedCategories.length > 1 ? `${selectedCategories.length} kategori` : `#${categoryId}`}
@@ -1021,18 +1037,10 @@ export function Dashboard({ prefill }: Props) {
             )}
           </div>
 
-          {/* Alt açıklama */}
-          <p className="text-caption mt-3 px-1" style={{ color: 'var(--tx3)' }}>
-            {selectedCategories.length === 0
-              ? 'Sıralamayı yönetmek istediğiniz T-Soft kategorisini seçin'
-              : selectedCategories.length === 1
-              ? `"${categoryName || categoryId}" kategorisi seçildi — kriterlerinizi ayarlayın ve önizleyin`
-              : `${selectedCategories.length} kategori seçildi — Kaydet veya Sıralamayı Uygula hepsine uygulanır`}
-          </p>
 
           {/* Seçili kategori chip'leri */}
           {selectedCategories.length > 1 && (
-            <div className="flex flex-wrap gap-2 mt-3 px-1">
+            <div className="flex flex-wrap gap-tight mt-tight">
               {selectedCategories.map(({ id, name }, idx) => (
                 <button key={id} type="button"
                   onClick={() => handleToggleCategory(id, name)}
@@ -1054,48 +1062,19 @@ export function Dashboard({ prefill }: Props) {
         {/* Ağırlık Dağılımı + Sıralama Kriterleri yan yana */}
         {/* minmax(0,1fr) lets columns shrink below their content's min width
             instead of pushing the page wider than the viewport. */}
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-section">
 
         {/* Ağırlık dağılımı */}
-        <div className="min-w-0 max-w-full" style={{ ...cardSt, borderRadius: '20px' }}>
-          {/* Kart başlık şeridi */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
-              </svg>
-            </div>
-            <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
-              Ağırlık Dağılımı
-            </span>
-          </div>
-          {/* Kart içeriği */}
-          <div style={{ padding: '24px 24.3px' }}>
-            <WeightDonut criteria={criteria} />
-            <div className="mt-5 pt-5" style={{ borderTop: '1px solid var(--border)' }}>
-              <WeightBar criteria={criteria} onChange={setCriteria} />
-            </div>
-          </div>
+        <div className={panelCls} style={cardSt}>
+          <PanelTitle>Ağırlık Dağılımı</PanelTitle>
+          <WeightBar criteria={criteria} onChange={setCriteria} />
         </div>
 
         {/* Sıralama Kriterleri */}
-        <div className="min-w-0 max-w-full" style={{ ...cardSt, borderRadius: '20px' }}>
-          {/* Kart başlık şeridi */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-              </svg>
-            </div>
-            <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
-              Sıralama Kriterleri
-            </span>
-          </div>
-          {/* Kart içeriği */}
-          <div style={{ padding: '24px 24.3px' }}>
-            <div className="grid grid-cols-1 gap-3">
+        <div className={panelCls} style={cardSt}>
+          <PanelTitle>Sıralama Kriterleri</PanelTitle>
+          <div>
+            <div className="grid grid-cols-1 gap-stack">
               {criteria.map((c, i) => (
                 <CriterionCard key={i} index={i} criterion={c}
                   usedKeys={criteria.map(x => x.key)}
@@ -1123,30 +1102,19 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         {/* Strateji Şablonları — ayrı kart */}
-        <div ref={scenarioRef} style={{ borderRadius: '20px', overflow: 'hidden', border: '1.5px solid var(--acc-bd)' }}>
-          {/* Başlık */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'var(--acc-bg)', borderBottom: '1px solid var(--acc-bd)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: 'var(--acc)' }}>
-                <span style={{ fontSize: 'var(--text-body)', lineHeight: 1 }}>⚡</span>
-              </div>
-              <div>
-                <div className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--acc-tx)' }}>Hazır Strateji Şablonları</div>
-                <div className="text-caption mt-0.5" style={{ color: 'var(--tx3)' }}>Bir şablon seçin — kriterler otomatik doldurulur</div>
-              </div>
-            </div>
-            {selectedScenario && (
-              <button onClick={() => setSelectedScenario(null)}
-                className="text-label font-medium px-2.5 py-1 rounded-lg"
-                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx3)', cursor: 'pointer' }}>
-                Temizle
-              </button>
-            )}
-          </div>
+        <div ref={scenarioRef} className={panelCls} style={cardSt}>
+          <PanelTitle action={selectedScenario && (
+            <button onClick={() => setSelectedScenario(null)}
+              className="text-label font-medium px-2 py-0.5 rounded-md"
+              style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--tx2)', cursor: 'pointer' }}>
+              Temizle
+            </button>
+          )}>
+            Hazır Strateji Şablonları
+          </PanelTitle>
 
           {/* Senaryo ızgarası */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2" style={{ padding: '14px 16px', background: 'var(--surface)' }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-tight">
             {SCENARIOS.map(s => {
               const isSelected = selectedScenario?.id === s.id;
               return (
@@ -1172,7 +1140,7 @@ export function Dashboard({ prefill }: Props) {
 
           {/* Seçili senaryo açıklaması */}
           {selectedScenario && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 16px', background: 'var(--acc-bg)', borderTop: '1px solid var(--acc-bd)' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-stack)', padding: 'var(--spacing-stack)', borderRadius: '12px', background: 'var(--acc-bg)' }}>
               <span style={{ fontSize: '22px', lineHeight: 1, flexShrink: 0 }}>{selectedScenario.emoji}</span>
               <div>
                 <div style={{ fontSize: 'var(--text-caption)', fontWeight: 700, color: 'var(--acc-tx)' }}>
@@ -1188,23 +1156,14 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         {/* Beden Bulunurluk Eşiği */}
-        <div style={{ ...cardSt, borderRadius: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-              </svg>
-            </div>
-            <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
-              Beden Bulunurluk Eşiği
-            </span>
-          </div>
-          <div style={{ padding: '16px 28.3px' }}>
-            <div className="flex items-center justify-between mb-3">
+        <div className={panelCls} style={cardSt}>
+          <PanelTitle>Beden Bulunurluk Eşiği</PanelTitle>
+          <div>
+            <div className="flex items-center justify-between mb-tight">
               <p className="text-sm" style={{ color: 'var(--tx2)', maxWidth: '460px' }}>
                 Bu eşiğin altındaki beden oranına sahip çok bedenli ürünler sıralamadan dışlanır
               </p>
-              <span className="text-lg font-bold tabular-nums px-4 py-1.5 rounded-lg shrink-0 ml-6"
+              <span className="text-body font-bold tabular-nums px-2.5 py-1 rounded-lg shrink-0 ml-4"
                 style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
                 %{Math.round(threshold * 100)}
               </span>
@@ -1221,24 +1180,14 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         {/* Smart Mix toggle */}
-        <div style={{ ...cardSt, borderRadius: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: smartMix ? 'var(--acc-bg)' : 'var(--surface3)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke={smartMix ? 'var(--acc)' : 'var(--tx3)'} strokeWidth="2" className="w-3.5 h-3.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-              </svg>
-            </div>
-            <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
-              Smart Mix
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 28.3px' }}>
+        <div className={panelCls} style={cardSt}>
+          <PanelTitle>Smart Mix</PanelTitle>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-section)' }}>
             <p className="text-sm" style={{ color: 'var(--tx2)', maxWidth: '520px' }}>
               Aynı ürünün farklı renklerini ürün adına göre tespit eder, yan yana gelmelerini engeller
             </p>
             <button onClick={() => setSmartMix(v => !v)}
-              className="relative shrink-0 ml-8"
+              className="relative shrink-0"
               style={{ width: 48, height: 26, borderRadius: 13, background: smartMix ? 'var(--acc)' : 'var(--border)', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}>
               <span style={{
                 position: 'absolute', top: 4, left: smartMix ? 26 : 4,
@@ -1250,25 +1199,18 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         {/* Sezon Filtresi */}
-        <div style={{ ...cardSt, borderRadius: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
-              </svg>
-            </div>
-            <div>
-              <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>Sezon Ön-Sıralaması</span>
-              {seasonPreFilter !== 'none' && (
-                <span className="ml-2 text-label font-semibold px-2 py-0.5 rounded-full"
-                  style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
-                  Aktif
-                </span>
-              )}
-            </div>
-          </div>
-          <div style={{ padding: '16px 28.3px' }}>
-            <p className="text-sm mb-4" style={{ color: 'var(--tx2)', maxWidth: '520px' }}>
+        <div className={panelCls} style={cardSt}>
+          <PanelTitle>
+            Sezon Ön-Sıralaması
+            {seasonPreFilter !== 'none' && (
+              <span className="text-label font-semibold normal-case tracking-normal px-2 py-0.5 rounded-full"
+                style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
+                Aktif
+              </span>
+            )}
+          </PanelTitle>
+          <div>
+            <p className="text-sm mb-stack" style={{ color: 'var(--tx2)', maxWidth: '520px' }}>
               Ürünleri sıralama öncesinde sezon etiketine (Ek Bilgi 7) göre grupla — tercih ettiğin sezon ürünleri kendi sıralarını (puan, stok, bulunurluk) koruyarak öne alınır, ardından diğer sezon; dışlanan ürünler bundan etkilenmez
             </p>
             <div className="flex flex-wrap gap-2">
@@ -1324,10 +1266,10 @@ export function Dashboard({ prefill }: Props) {
 
         {/* Ürün listesi alanı */}
         {categoryId && (
-          <div style={{ border: '1px solid var(--border)', borderRadius: '20px' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: '16px' }}>
 
             {/* Liste başlığı / araç çubuğu */}
-            <div style={{ padding: '12px 20px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
+            <div style={{ padding: 'var(--spacing-stack) var(--spacing-card)', background: 'var(--surface)', borderBottom: '1px solid var(--border)', borderRadius: '16px 16px 0 0' }}>
               {/* Üst satır: sekmeler + arama */}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 {/* Sol: görünüm sekmeleri */}
@@ -1432,7 +1374,7 @@ export function Dashboard({ prefill }: Props) {
             </div>
 
             {/* İçerik */}
-            <div style={{ padding: '16px 16.3px', background: 'var(--bg)', borderRadius: '0 0 16px 16px' }}>
+            <div style={{ padding: 'var(--spacing-card)', background: 'var(--bg)', borderRadius: '0 0 16px 16px' }}>
               {/* Yükleniyor */}
               {(currentStatus === 'loading' || previewStatus === 'loading') && (
                 <div className="flex items-center justify-center gap-3 py-16">
@@ -1512,7 +1454,7 @@ export function Dashboard({ prefill }: Props) {
 
       {/* Sabit footer */}
       <div className="shrink-0 flex items-center justify-between gap-3 flex-wrap"
-        style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: '10px 28px' }}>
+        style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: 'var(--spacing-tight) var(--spacing-card)' }}>
         {/* Weight indicator */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-label font-medium"
@@ -1533,29 +1475,25 @@ export function Dashboard({ prefill }: Props) {
 
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setCriteria(DEFAULT_CRITERIA)}
-            className="px-4 py-2 rounded-lg text-caption font-medium transition-all whitespace-nowrap"
-            style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--tx3)', cursor: 'pointer' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx2)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
+            className={`${btnCls} font-medium`}
+            style={{ background: 'transparent', border: '1px solid transparent', color: 'var(--tx2)', cursor: 'pointer' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx1)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--tx2)'; }}>
             Varsayılan
           </button>
 
           <button onClick={handleSave} disabled={!isValid || isBusy}
-            className="px-4 py-2 rounded-lg text-caption font-semibold transition-all whitespace-nowrap"
-            style={!isValid || isBusy
-              ? { background: 'transparent', color: 'var(--tx3)', cursor: 'not-allowed', border: '1px solid var(--border)' }
-              : { background: 'var(--ok-bg)', color: 'var(--ok-tx)', border: '1px solid var(--ok-bd)', cursor: 'pointer' }
-            }>
+            className={`${btnCls} font-semibold`}
+            style={!isValid || isBusy ? btnDisabled : btnOutline}
+            onMouseEnter={e => { if (isValid && !isBusy) (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx2)'; }}
+            onMouseLeave={e => { if (isValid && !isBusy) (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; }}>
             {saveStatus === 'loading' ? 'Kaydediliyor…' : 'Kaydet'}
           </button>
 
           <button onClick={handlePreview} disabled={!isValid || isBusy}
-            className="px-4 py-2 rounded-lg text-caption font-semibold transition-all whitespace-nowrap"
-            style={!isValid || isBusy
-              ? { background: 'transparent', color: 'var(--tx3)', cursor: 'not-allowed', border: '1px solid var(--border)' }
-              : { background: 'transparent', color: 'var(--tx1)', border: '1px solid var(--border-strong)', cursor: 'pointer' }
-            }
-            onMouseEnter={e => { if (isValid && !isBusy) (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc)'; }}
+            className={`${btnCls} font-semibold`}
+            style={!isValid || isBusy ? btnDisabled : btnOutline}
+            onMouseEnter={e => { if (isValid && !isBusy) (e.currentTarget as HTMLElement).style.borderColor = 'var(--tx2)'; }}
             onMouseLeave={e => { if (isValid && !isBusy) (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; }}>
             {previewStatus === 'loading' ? (
               <span className="flex items-center gap-2">
@@ -1571,11 +1509,13 @@ export function Dashboard({ prefill }: Props) {
             onClick={canManual ? handleApplyManual : handleTrigger}
             disabled={!canApply || isApplying}
             title={applyTooltip}
-            className="px-5 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap"
+            className={`${btnCls} px-5 font-bold`}
             style={!canApply || isApplying
-              ? { background: 'var(--surface2)', color: 'var(--tx3)', cursor: 'not-allowed', border: '1px solid var(--border)' }
+              ? { background: 'var(--surface3)', color: 'var(--tx3)', cursor: 'not-allowed', border: '1px solid transparent' }
               : { background: 'var(--cta-bg)', color: 'var(--cta-tx)', border: '1px solid transparent', cursor: 'pointer' }
-            }>
+            }
+            onMouseEnter={e => { if (canApply && !isApplying) (e.currentTarget as HTMLElement).style.background = 'var(--cta-hov)'; }}
+            onMouseLeave={e => { if (canApply && !isApplying) (e.currentTarget as HTMLElement).style.background = 'var(--cta-bg)'; }}>
             {isApplying ? (
               <span className="flex items-center gap-2">
                 <span className="w-3.5 h-3.5 border-2 rounded-full animate-spin"

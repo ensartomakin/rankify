@@ -1,5 +1,5 @@
 import {
-  CRITERION_COLORS, CRITERION_TEXT_ON, CRITERION_LABELS, SALES_PERIOD_LABELS, GA4_CRITERION_KEYS,
+  CRITERION_COLORS, CRITERION_LABELS, SALES_PERIOD_LABELS, GA4_CRITERION_KEYS,
   type CriterionKey, type SalesPeriod, type SortDirection, type WeightCriterion,
 } from '../types';
 
@@ -17,158 +17,104 @@ interface Props {
 
 export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, ga4Connected = false }: Props) {
   const color   = CRITERION_COLORS[index] ?? CRITERION_COLORS[0];
-  const onColor = CRITERION_TEXT_ON[index] ?? CRITERION_TEXT_ON[0];
   const allKeys = [...BASE_KEYS, ...(ga4Connected ? GA4_KEYS : [])];
   const options = allKeys.filter(k => k === criterion.key || !usedKeys.includes(k));
 
-  const selectSt: React.CSSProperties = {
-    width: '100%',
-    padding: '9px 32.3px 9px 12.3px',
-    borderRadius: '8px',
-    fontSize: 'var(--text-caption)',
-    background: 'var(--input-bg)',
-    border: '1px solid var(--border)',
-    color: 'var(--tx1)',
-    appearance: 'none',
-    cursor: 'pointer',
-    outline: 'none',
-  };
+  const hasPeriod = criterion.key === 'bestSeller' || GA4_CRITERION_KEYS.has(criterion.key);
 
   return (
-    <div style={{
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-      borderRadius: '20px',
-      /* Sol aksan — overflow:hidden gerekmez, metin kırpılmaz */
-      boxShadow: `inset 4px 0 0 ${color}`,
-    }}>
-      {/* Başlık */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 14.3px 12px 18.3px',
-        background: color + '12',
-        borderBottom: '1px solid var(--border)',
-        borderRadius: '20px 20px 0 0',
+    <div className="p-card flex flex-col gap-stack rounded-xl"
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderLeft: `3px solid ${color}`,
       }}>
-        <div>
-          <div style={{ fontSize: 'var(--text-label)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--tx2)' }}>
-            Kriter {index + 1}
-          </div>
-          <div style={{ fontSize: 'var(--text-body)', fontWeight: 700, marginTop: '2px', color: 'var(--tx1)' }}>
-            {CRITERION_LABELS[criterion.key]}
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-          <div style={{
-            width: '30px', height: '30px', borderRadius: '8px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 'var(--text-label)', fontWeight: 700,
-            background: color, color: onColor,
-          }}>
-            K{index + 1}
-          </div>
-          {onRemove && (
-            <button onClick={onRemove}
-              title="Kriteri kaldır"
-              style={{
-                width: '24px', height: '24px', borderRadius: '8px', border: 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 'var(--text-body)', lineHeight: 1, cursor: 'pointer',
-                background: 'rgba(0,0,0,0.06)', color: 'var(--tx3)',
-              }}>
-              ×
-            </button>
-          )}
-        </div>
+      <div className="flex items-center justify-between gap-tight">
+        <span className="text-label font-bold uppercase tracking-wide" style={{ color: 'var(--tx2)' }}>
+          Kriter {index + 1}
+        </span>
+        {onRemove && (
+          <button onClick={onRemove}
+            title="Kriteri kaldır"
+            aria-label={`Kriter ${index + 1}'i kaldır`}
+            className="w-6 h-6 flex items-center justify-center rounded-md text-body leading-none"
+            style={{ border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--tx3)' }}>
+            ×
+          </button>
+        )}
       </div>
 
-      {/* İçerik */}
-      <div style={{ padding: '16px 16.3px' }}>
-        {/* Progress bar */}
-        <div style={{ height: '5px', borderRadius: '9999px', overflow: 'hidden', background: 'var(--border)', marginBottom: '14px' }}>
-          <div style={{ height: '100%', borderRadius: '9999px', width: `${criterion.weight}%`, background: color, transition: 'width 0.3s' }} />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-stack">
+        <Field label="Sıralama Türü">
+          <Select value={criterion.key}
+            onChange={v => onChange({ ...criterion, key: v as CriterionKey, salesPeriod: undefined })}>
+            {options.filter(k => !GA4_CRITERION_KEYS.has(k)).map(k =>
+              <option key={k} value={k}>{CRITERION_LABELS[k]}</option>
+            )}
+            {ga4Connected && options.some(k => GA4_CRITERION_KEYS.has(k)) && (
+              <optgroup label="── Google Analytics 4 ──">
+                {options.filter(k => GA4_CRITERION_KEYS.has(k)).map(k =>
+                  <option key={k} value={k}>{CRITERION_LABELS[k]}</option>
+                )}
+              </optgroup>
+            )}
+          </Select>
+        </Field>
 
-        {/* Sıralama Türü */}
-        <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontSize: 'var(--text-label)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--tx3)', marginBottom: '5px' }}>
-            Sıralama Türü
-          </label>
-          <div style={{ position: 'relative' }}>
-            <select value={criterion.key}
-              onChange={e => onChange({ ...criterion, key: e.target.value as CriterionKey, salesPeriod: undefined })}
-              style={selectSt}>
-              {options.filter(k => !GA4_CRITERION_KEYS.has(k)).map(k =>
-                <option key={k} value={k}>{CRITERION_LABELS[k]}</option>
-              )}
-              {ga4Connected && options.some(k => GA4_CRITERION_KEYS.has(k)) && (
-                <optgroup label="── Google Analytics 4 ──">
-                  {options.filter(k => GA4_CRITERION_KEYS.has(k)).map(k =>
-                    <option key={k} value={k}>{CRITERION_LABELS[k]}</option>
-                  )}
-                </optgroup>
-              )}
-            </select>
-            <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: 'var(--text-label)', color: 'var(--tx3)', pointerEvents: 'none' }}>▼</span>
-          </div>
-        </div>
+        <Field label="Sıralama Yönü">
+          <Select value={criterion.direction}
+            onChange={v => onChange({ ...criterion, direction: v as SortDirection })}>
+            <option value="desc">Azalan</option>
+            <option value="asc">Artan</option>
+          </Select>
+        </Field>
 
-        {/* Sıralama Yönü */}
-        <div style={{ marginBottom: (criterion.key === 'bestSeller' || GA4_CRITERION_KEYS.has(criterion.key)) ? '12px' : '0' }}>
-          <label style={{ display: 'block', fontSize: 'var(--text-label)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--tx3)', marginBottom: '5px' }}>
-            Sıralama Yönü
-          </label>
-          <div style={{ position: 'relative' }}>
-            <select value={criterion.direction}
-              onChange={e => onChange({ ...criterion, direction: e.target.value as SortDirection })}
-              style={selectSt}>
-              <option value="desc">Azalan</option>
-              <option value="asc">Artan</option>
-            </select>
-            <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: 'var(--text-label)', color: 'var(--tx3)', pointerEvents: 'none' }}>▼</span>
-          </div>
-        </div>
-
-        {/* Best Seller period */}
-        {criterion.key === 'bestSeller' && (
-          <div style={{ borderRadius: '8px', padding: '10px 12px', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
-            <label style={{ display: 'block', fontSize: 'var(--text-label)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--tx3)', marginBottom: '5px' }}>
-              Satış Dönemi
-            </label>
-            <div style={{ position: 'relative' }}>
-              <select value={criterion.salesPeriod ?? '14d'}
-                onChange={e => onChange({ ...criterion, salesPeriod: e.target.value as SalesPeriod })}
-                style={selectSt}>
+        {hasPeriod && (
+          <Field label={criterion.key === 'bestSeller' ? 'Satış Dönemi' : 'Veri Dönemi'}>
+            {criterion.key === 'bestSeller' ? (
+              <Select value={criterion.salesPeriod ?? '14d'}
+                onChange={v => onChange({ ...criterion, salesPeriod: v as SalesPeriod })}>
                 {(Object.keys(SALES_PERIOD_LABELS) as SalesPeriod[]).map(k => (
                   <option key={k} value={k}>{SALES_PERIOD_LABELS[k]}</option>
                 ))}
-              </select>
-              <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: 'var(--text-label)', color: 'var(--tx3)', pointerEvents: 'none' }}>▼</span>
-            </div>
-          </div>
-        )}
-
-        {/* GA4 veri dönemi */}
-        {GA4_CRITERION_KEYS.has(criterion.key) && (
-          <div style={{ borderRadius: '8px', padding: '10px 12px', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
-            <label style={{ display: 'block', fontSize: 'var(--text-label)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--tx3)', marginBottom: '5px' }}>
-              Veri Dönemi
-            </label>
-            <div style={{ position: 'relative' }}>
-              <select value={criterion.salesPeriod ?? '1m'}
-                onChange={e => onChange({ ...criterion, salesPeriod: e.target.value as SalesPeriod })}
-                style={selectSt}>
+              </Select>
+            ) : (
+              <Select value={criterion.salesPeriod ?? '1m'}
+                onChange={v => onChange({ ...criterion, salesPeriod: v as SalesPeriod })}>
                 {(['3d','7d','14d','1m','3m'] as SalesPeriod[]).map(k => (
                   <option key={k} value={k}>{SALES_PERIOD_LABELS[k]}</option>
                 ))}
-              </select>
-              <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: 'var(--text-label)', color: 'var(--tx3)', pointerEvents: 'none' }}>▼</span>
-            </div>
-          </div>
+              </Select>
+            )}
+          </Field>
         )}
       </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1.5 min-w-0">
+      <span className="text-label font-semibold" style={{ color: 'var(--tx2)' }}>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Select({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) {
+  return (
+    <div className="relative">
+      <select value={value} onChange={e => onChange(e.target.value)}
+        className="w-full h-9 pl-3 pr-8 rounded-lg text-caption appearance-none cursor-pointer outline-none"
+        style={{ background: 'var(--input-bg)', border: '1px solid var(--border-strong)', color: 'var(--tx1)' }}>
+        {children}
+      </select>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"
+        className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
+        style={{ color: 'var(--tx3)' }}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+      </svg>
     </div>
   );
 }

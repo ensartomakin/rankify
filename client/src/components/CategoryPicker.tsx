@@ -96,8 +96,8 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
         <button type="button" onClick={load}
           className="w-full text-left flex items-center focus:outline-none transition-all"
           style={{
-            padding: '0 140px 0 52px',
-            height: '62px',
+            padding: '0 120px 0 38px',
+            height: '40px',
             background: 'transparent',
             border: 'none',
             color: value ? 'var(--tx1)' : 'var(--tx3)',
@@ -106,14 +106,14 @@ export function CategoryPicker({ value, label, onChange, heroMode = false, multi
             <span className="flex items-center gap-3">
               <span className="w-4 h-4 border-2 rounded-full animate-spin"
                 style={{ borderColor: 'var(--border)', borderTopColor: 'var(--acc)' }} />
-              <span className="text-base" style={{ color: 'var(--tx3)' }}>Yükleniyor…</span>
+              <span className="text-body" style={{ color: 'var(--tx3)' }}>Yükleniyor…</span>
             </span>
           ) : displayText ? (
-            <span className="text-base font-semibold truncate" style={{ color: 'var(--tx1)' }}>
+            <span className="text-body font-semibold truncate" style={{ color: 'var(--tx1)' }}>
               {displayText}
             </span>
           ) : (
-            <span className="text-base" style={{ color: 'var(--tx3)' }}>
+            <span className="text-body" style={{ color: 'var(--tx3)' }}>
               Kategori seçin veya arayın…
             </span>
           )}

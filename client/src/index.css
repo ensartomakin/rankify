@@ -13,6 +13,12 @@
   --text-caption--line-height: 1.5;
   --text-body:    14px;  /* default UI text */
   --text-body--line-height: 1.5;
+
+  /* Spacing scale — p-card, gap-section, mb-stack, gap-tight… or var(--spacing-*) */
+  --spacing-card:    16px;  /* card inner padding */
+  --spacing-section: 16px;  /* gap between page sections / panels */
+  --spacing-stack:   12px;  /* gap between blocks inside a card */
+  --spacing-tight:    8px;  /* gap between a label and its control, chips */
 }
 
 /* ─────────────────────────────────────────────────

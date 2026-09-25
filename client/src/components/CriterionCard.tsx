@@ -23,12 +23,8 @@ export function CriterionCard({ index, criterion, usedKeys, onChange, onRemove, 
   const hasPeriod = criterion.key === 'bestSeller' || GA4_CRITERION_KEYS.has(criterion.key);
 
   return (
-    <div className="p-card flex flex-col gap-stack rounded-xl"
-      style={{
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderLeft: `3px solid ${color}`,
-      }}>
+    <div className="flex flex-col gap-stack pl-stack"
+      style={{ borderLeft: `3px solid ${color}` }}>
       <div className="flex items-center justify-between gap-tight">
         <span className="text-label font-bold uppercase tracking-wide" style={{ color: 'var(--tx2)' }}>
           Kriter {index + 1}

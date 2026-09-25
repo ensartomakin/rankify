@@ -190,3 +190,25 @@ input[type=range]::-webkit-slider-thumb {
   border: 2px solid var(--surface);
   cursor: pointer;
 }
+
+/* Filled range: teal up to the thumb. Set --fill (0–100%) inline. */
+input[type=range].range-fill {
+  height: 6px;
+  background: linear-gradient(to right, var(--acc) 0 var(--fill, 0%), var(--border-strong) var(--fill, 0%) 100%);
+  cursor: pointer;
+}
+input[type=range].range-fill::-webkit-slider-thumb {
+  width: 20px; height: 20px;
+  background: var(--surface);
+  border: 3px solid var(--acc);
+  box-shadow: 0 1px 4px rgba(21,16,53,0.25);
+}
+input[type=range].range-fill::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 3px solid var(--acc);
+  box-shadow: 0 1px 4px rgba(21,16,53,0.25);
+  cursor: pointer;
+}
+input[type=range].range-fill::-moz-range-track { background: transparent; }

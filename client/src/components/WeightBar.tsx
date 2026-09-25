@@ -72,19 +72,16 @@ export function WeightBar({ criteria, onChange }: Props) {
   const dividers = weights.slice(0, -1).map((_, i) => weights.slice(0, i + 1).reduce((s, w) => s + w, 0));
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="text-body font-semibold" style={{ color: 'var(--tx1)' }}>Puan Dağılım Çubuğu</div>
-          {off ? (
-            <div role="alert" className="text-caption mt-0.5 font-medium" style={{ color: 'var(--err-tx)' }}>
-              Toplam %100 olmalı — {total > 100 ? `${total - 100} puan fazla` : `${100 - total} puan eksik`}
-            </div>
-          ) : (
-            <div className="text-caption mt-0.5" style={{ color: 'var(--tx3)' }}>Sürükleyerek ağırlıkları ayarlayın</div>
-          )}
-        </div>
-        <span className="text-lg font-bold tabular-nums shrink-0 rounded-lg px-2 py-0.5"
+    <div className="flex flex-col gap-stack">
+      <div className="flex items-center justify-between gap-stack">
+        {off ? (
+          <div role="alert" className="text-caption font-medium" style={{ color: 'var(--err-tx)' }}>
+            Toplam %100 olmalı — {total > 100 ? `${total - 100} puan fazla` : `${100 - total} puan eksik`}
+          </div>
+        ) : (
+          <div className="text-caption" style={{ color: 'var(--tx3)' }}>Sürükleyerek veya yazarak ayarlayın</div>
+        )}
+        <span className="text-body font-bold tabular-nums shrink-0 rounded-md px-1.5"
           style={off
             ? { color: 'var(--err-tx)', background: 'var(--err-bg)', border: '1px solid var(--err-bd)' }
             : { color: 'var(--ok-tx)', border: '1px solid transparent' }}>
@@ -94,7 +91,7 @@ export function WeightBar({ criteria, onChange }: Props) {
 
       {/* Draggable bar */}
       <div ref={containerRef}
-        className="relative h-11 rounded-lg overflow-hidden flex select-none"
+        className="relative h-9 rounded-lg overflow-hidden flex select-none"
         style={{ border: '1px solid var(--border)' }}>
         {criteria.map((c, i) => (
           <div key={i}
@@ -121,13 +118,10 @@ export function WeightBar({ criteria, onChange }: Props) {
       </div>
 
       {/* Numeric inputs */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg px-4 py-3"
-        style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
-        <span className="text-caption font-medium shrink-0" style={{ color: 'var(--tx2)' }}>Ağırlıklar</span>
-        <div className="flex-1 grid gap-3"
-          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))' }}>
+      <div className="grid gap-stack"
+        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))' }}>
           {criteria.map((c, i) => (
-            <label key={i} className="flex items-center justify-center gap-1.5 min-w-0">
+            <label key={i} className="flex items-center gap-1.5 min-w-0">
               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CRITERION_COLORS[i] ?? CRITERION_COLORS[0] }} />
               <span className="text-label font-semibold shrink-0" style={{ color: 'var(--tx2)' }}>K{i + 1}</span>
               <span className="relative min-w-0 w-full max-w-[72px]">
@@ -150,7 +144,6 @@ export function WeightBar({ criteria, onChange }: Props) {
               </span>
             </label>
           ))}
-        </div>
       </div>
     </div>
   );

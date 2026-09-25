@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchConfigs, deleteConfig, triggerSaved, type SavedConfig } from '../api/config';
 import { CRITERION_LABELS, criteriaColor } from '../types';
+import { formatPercent } from '../utils/format';
 
 interface Props { onEdit: (config: SavedConfig) => void; }
 
@@ -41,7 +42,7 @@ export function Configs({ onEdit }: Props) {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="shrink-0 pt-8 pb-6 flex items-start justify-between gap-4" style={{ paddingLeft: '28px', paddingRight: '28px' }}>
+      <div className="shrink-0 pt-8 pb-6 flex items-start justify-between gap-4" style={{ paddingLeft: 'var(--spacing-page)', paddingRight: 'var(--spacing-page)' }}>
         <div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--tx1)' }}>
             Kayıtlı Kategoriler
@@ -56,7 +57,7 @@ export function Configs({ onEdit }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-8 space-y-4 animate-fade-up" style={{ paddingLeft: '28px', paddingRight: '28px' }}>
+      <div className="flex-1 overflow-y-auto pb-8 space-y-4 animate-fade-up" style={{ paddingLeft: 'var(--spacing-page)', paddingRight: 'var(--spacing-page)' }}>
         {/* Flash */}
         {flash && (
           <div className="rounded-lg px-4 py-3 text-sm font-medium flex items-center gap-2 animate-fade-in"
@@ -111,7 +112,7 @@ export function Configs({ onEdit }: Props) {
                     )}
                     <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
                       style={{ background: 'var(--ok-bg)', color: 'var(--ok-tx)', border: '1px solid var(--ok-bd)' }}>
-                      Eşik %{Math.round(cfg.availabilityThreshold * 100)}
+                      Eşik {formatPercent(Math.round(cfg.availabilityThreshold * 100))}
                     </span>
                   </div>
 
@@ -121,7 +122,7 @@ export function Configs({ onEdit }: Props) {
                       <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
                         style={{ background: criteriaColor(i) + '18', color: 'var(--tx1)', border: `1px solid ${criteriaColor(i)}30` }}>
                         <div className="w-1.5 h-1.5 rounded-full" style={{ background: criteriaColor(i) }} />
-                        K{i + 1} · {CRITERION_LABELS[c.key]} · %{c.weight}
+                        K{i + 1} · {CRITERION_LABELS[c.key]} · {formatPercent(c.weight)}
                       </div>
                     ))}
                   </div>

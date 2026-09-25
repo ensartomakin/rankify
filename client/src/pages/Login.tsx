@@ -57,9 +57,9 @@ export function Login() {
         style={{ background: 'var(--sb-bg)' }}>
 
         <div className="absolute top-0 right-0 w-72 h-72 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 100% 0%, rgba(28,202,199,0.18) 0%, transparent 65%)' }} />
+          style={{ background: 'radial-gradient(ellipse at 100% 0%, var(--hero-glow-teal) 0%, transparent 65%)' }} />
         <div className="absolute bottom-0 left-0 w-64 h-64 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 0% 100%, rgba(47,34,108,0.6) 0%, transparent 65%)' }} />
+          style={{ background: 'radial-gradient(ellipse at 0% 100%, var(--hero-glow-violet) 0%, transparent 65%)' }} />
 
         <div className="relative z-10 px-10 pt-10 flex items-center gap-2.5">
           <div className="w-2 h-2 rounded-full" style={{ background: 'var(--acc)' }} />
@@ -70,24 +70,24 @@ export function Login() {
 
         <div className="relative z-10 flex-1 flex flex-col justify-center px-10">
           <h1 className="font-serif leading-[1.1] mb-5"
-            style={{ fontSize: '40px', color: 'var(--sb-tx-act)' }}>
+            style={{ fontSize: 'var(--text-display)', color: 'var(--sb-tx-act)' }}>
             Akıllı<br />
             Kategori<br />
             <em>Sıralama</em>
           </h1>
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(250,250,250,0.65)', maxWidth: '260px', letterSpacing: '-0.028em' }}>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--hero-tx-muted)', maxWidth: '260px', letterSpacing: '-0.028em' }}>
             Stok, satış, yenilik ve yorum kriterlerine göre ürünlerinizi otomatik sıralayın.
           </p>
 
           <div className="mt-10 space-y-4">
             {[
               { label: 'Smart Mix algoritması',    color: 'var(--acc)' },
-              { label: 'Ağırlıklı kriter sistemi', color: '#8A86A8' },
-              { label: 'Anlık önizleme',            color: '#5C5680' },
+              { label: 'Ağırlıklı kriter sistemi', color: 'var(--hero-dot-2)' },
+              { label: 'Anlık önizleme',            color: 'var(--hero-dot-3)' },
             ].map(({ label, color }) => (
               <div key={label} className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-                <span className="text-[13px]" style={{ color: 'rgba(250,250,250,0.75)' }}>{label}</span>
+                <span className="text-[length:var(--text-caption)]" style={{ color: 'var(--hero-tx-soft)' }}>{label}</span>
               </div>
             ))}
           </div>
@@ -95,8 +95,8 @@ export function Login() {
 
         <div className="relative z-10 px-10 pb-10">
           <div className="flex items-center gap-3">
-            <div style={{ height: '1px', flex: 1, background: 'rgba(250,250,250,0.15)' }} />
-            <span className="text-[11px] font-medium" style={{ color: 'rgba(250,250,250,0.4)' }}>01</span>
+            <div style={{ height: '1px', flex: 1, background: 'var(--hero-rule)' }} />
+            <span className="text-mini font-medium" style={{ color: 'var(--hero-tx-faint)' }}>01</span>
           </div>
         </div>
       </div>
@@ -117,7 +117,7 @@ export function Login() {
                 key={m}
                 type="button"
                 onClick={() => switchMode(m)}
-                className="flex-1 h-9 flex items-center justify-center rounded-lg text-[13px] font-medium transition-all"
+                className="flex-1 h-9 flex items-center justify-center rounded-lg text-[length:var(--text-caption)] font-medium transition-all"
                 style={mode === m
                   ? { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }
                   : { background: 'transparent', color: 'var(--tx2)', cursor: 'pointer' }
@@ -130,19 +130,19 @@ export function Login() {
 
           {mode === 'register' ? (
             <div className="flex flex-col gap-1.5">
-              <h2 className="font-serif" style={{ fontSize: '28px', color: 'var(--tx1)', lineHeight: 1.2 }}>
+              <h2 className="font-serif" style={{ fontSize: 'var(--text-title)', color: 'var(--tx1)', lineHeight: 1.2 }}>
                 Hesap Oluştur
               </h2>
-              <p className="text-[13px]" style={{ color: 'var(--tx2)' }}>
+              <p className="text-[length:var(--text-caption)]" style={{ color: 'var(--tx2)' }}>
                 Kendi mağazanızı yönetmek için üye olun
               </p>
             </div>
           ) : (
             <div className="flex flex-col gap-1.5">
-              <h2 className="font-serif" style={{ fontSize: '28px', color: 'var(--tx1)', lineHeight: 1.2 }}>
+              <h2 className="font-serif" style={{ fontSize: 'var(--text-title)', color: 'var(--tx1)', lineHeight: 1.2 }}>
                 Hoş geldiniz
               </h2>
-              <p className="text-[13px]" style={{ color: 'var(--tx2)' }}>
+              <p className="text-[length:var(--text-caption)]" style={{ color: 'var(--tx2)' }}>
                 Hesabınıza giriş yapın
               </p>
             </div>
@@ -174,14 +174,14 @@ export function Login() {
             />
 
             {error && (
-              <div className="px-4 py-3 rounded-lg text-[13px]"
+              <div className="px-4 py-3 rounded-lg text-[length:var(--text-caption)]"
                 style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
                 {error}
               </div>
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full h-11 flex items-center justify-center rounded-lg text-[13px] font-medium transition-all"
+              className="w-full h-11 flex items-center justify-center rounded-lg text-[length:var(--text-caption)] font-medium transition-all"
               style={loading
                 ? { background: 'var(--surface3)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
                 : { background: 'var(--cta-bg)', color: 'var(--cta-tx)', border: 'none', cursor: 'pointer' }
@@ -191,7 +191,7 @@ export function Login() {
           </form>
 
           <div className="flex items-center justify-center gap-1.5">
-            {(['var(--acc)', '#8A86A8', '#5C5680'] as const).map((color, i) => (
+            {(['var(--acc)', 'var(--hero-dot-2)', 'var(--hero-dot-3)'] as const).map((color, i) => (
               <div key={i} className="rounded-full transition-all"
                 style={{
                   width: i === 0 ? '20px' : '6px',

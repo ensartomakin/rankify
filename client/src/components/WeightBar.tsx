@@ -108,8 +108,8 @@ export function WeightBar({ criteria, onChange }: Props) {
               style={{
                 width: `${c.weight}%`,
                 background: criteriaColor(i),
-                color: '#FFFFFF',
-                textShadow: '0 1px 2px rgba(21,16,53,0.45)',
+                color: 'var(--on-fill)',
+                textShadow: 'var(--text-shadow-on-fill)',
               }}>
               <span className="truncate">{wide ? name : `K${i + 1}`} · {formatPercent(c.weight)}</span>
             </div>
@@ -123,7 +123,7 @@ export function WeightBar({ criteria, onChange }: Props) {
             style={{ left: `${pos}%`, transform: 'translateX(-50%)', cursor: 'col-resize' }}
             onMouseDown={e => startDrag(i, e)}>
             <div className="w-1.5 h-6 rounded-full transition-transform group-hover:scale-y-125"
-              style={{ background: '#FFFFFF', boxShadow: '0 0 0 1px rgba(21,16,53,0.25), 0 1px 3px rgba(21,16,53,0.35)' }} />
+              style={{ background: 'var(--knob)', boxShadow: 'var(--shadow-handle)' }} />
           </div>
         ))}
       </div>

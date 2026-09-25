@@ -26,7 +26,7 @@
   /* Sidebar — Deep Space Violet panel, Rich Violet for active/selected state */
   --sb-bg:     #151035;
   --sb-border: #2F226C;
-  --sb-tx:     rgba(250,250,250,0.6);
+  --sb-tx:     rgba(250,250,250,0.78);
   --sb-tx-act: #FAFAFA;
   --sb-act-bg: #2F226C;
   --sb-hover:  rgba(250,250,250,0.06);
@@ -72,7 +72,7 @@
 
   --sb-bg:     #0A0820;
   --sb-border: #2F226C;
-  --sb-tx:     rgba(250,250,250,0.55);
+  --sb-tx:     rgba(250,250,250,0.74);
   --sb-tx-act: #FAFAFA;
   --sb-act-bg: #2F226C;
   --sb-hover:  rgba(250,250,250,0.05);

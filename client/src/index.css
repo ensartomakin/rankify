@@ -99,9 +99,13 @@
 }
 
 /* ── Base ──────────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0; padding: 0;
+/* Reset lives in the base layer: unlayered rules beat Tailwind v4's layered
+   utilities, which silently disabled every p-*, m-*, space-* class. */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0; padding: 0;
+  }
 }
 html, body, #root { height: 100%; }
 body {

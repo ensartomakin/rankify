@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PieChart, Pie, Cell } from 'recharts';
+import { PieChart, Pie, Cell, Label } from 'recharts';
 import { criteriaColor, CRITERION_LABELS, SALES_PERIOD_LABELS, GA4_CRITERION_KEYS, type WeightCriterion, type SalesPeriod } from '../types';
 import { formatPercent } from '../utils/format';
 
@@ -27,16 +27,19 @@ export function WeightDonut({ criteria }: Props) {
     color: criteriaColor(i),
   }));
   const hovered = active !== null ? data[active] : null;
+  const centreMain = hovered ? formatPercent(hovered.value) : String(data.length);
+  const centreSub  = hovered ? hovered.label : 'Kriter';
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-5">
       {/* Donut */}
       <div className="relative shrink-0" style={{ width: SIZE, height: SIZE }}
         onMouseLeave={() => setActive(null)}>
-        <PieChart width={SIZE} height={SIZE}>
+        {/* margin 0: Recharts' default 5px margin shifts the ring off-centre. */}
+        <PieChart width={SIZE} height={SIZE} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
           {/* Gaps come from a panel-coloured stroke rather than paddingAngle, so
               they are the same width everywhere instead of wedge-shaped. */}
-          <Pie data={data} cx={SIZE / 2} cy={SIZE / 2}
+          <Pie data={data} cx="50%" cy="50%"
             innerRadius={58} outerRadius={82}
             paddingAngle={0} dataKey="value"
             stroke="var(--panel)" strokeWidth={3}
@@ -47,28 +50,27 @@ export function WeightDonut({ criteria }: Props) {
               <Cell key={i} fill={d.color} fillOpacity={active === null || active === i ? 1 : 0.35}
                 style={{ cursor: 'pointer', outline: 'none', transition: 'fill-opacity 0.15s' }} />
             ))}
+            {/* Drawn in the SVG at the pie's own cx/cy, so it is centred on the
+                ring itself rather than on an HTML box laid over it. */}
+            <Label position="center" content={({ viewBox }) => {
+              const { cx = SIZE / 2, cy = SIZE / 2 } = (viewBox ?? {}) as { cx?: number; cy?: number };
+              return (
+                <g aria-hidden="true" style={{ pointerEvents: 'none', fontFamily: 'inherit' }}>
+                  <text x={cx} y={cy - 9} textAnchor="middle" dominantBaseline="central"
+                    style={{ fontSize: 20, fontWeight: 700, fill: 'var(--tx1)', letterSpacing: 0 }}>
+                    {centreMain}
+                  </text>
+                  <text x={cx} y={cy + 13} textAnchor="middle" dominantBaseline="central"
+                    style={{ fontSize: 'var(--text-caption)', fill: 'var(--tx2)', letterSpacing: 0 }}>
+                    {centreSub}
+                  </text>
+                </g>
+              );
+            }} />
           </Pie>
         </PieChart>
-        <div aria-live="polite" className="pointer-events-none text-center"
-          style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          {hovered ? (
-            <>
-              <span className="text-xl font-bold leading-tight tabular-nums" style={{ color: 'var(--tx1)' }}>
-                {formatPercent(hovered.value)}
-              </span>
-              <span className="text-caption leading-tight max-w-[96px]" style={{ color: 'var(--tx2)' }}>
-                {hovered.label}
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="text-xl font-bold leading-tight tabular-nums" style={{ color: 'var(--tx1)' }}>
-                {data.length}
-              </span>
-              <span className="text-caption leading-tight" style={{ color: 'var(--tx2)' }}>Kriter</span>
-            </>
-          )}
-        </div>
+        {/* Screen-reader copy of the centre text */}
+        <span className="sr-only" aria-live="polite">{centreMain} {centreSub}</span>
       </div>
 
       {/* Legend */}

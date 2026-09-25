@@ -8,6 +8,7 @@ import {
   useSortable, arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { WeightDonut } from '../components/WeightDonut';
 import { WeightBar } from '../components/WeightBar';
 import { CriterionCard } from '../components/CriterionCard';
 import { CategoryPicker } from '../components/CategoryPicker';
@@ -1059,48 +1060,6 @@ export function Dashboard({ prefill }: Props) {
           )}
         </div>
 
-        {/* Ağırlık Dağılımı + Sıralama Kriterleri yan yana */}
-        {/* minmax(0,1fr) lets columns shrink below their content's min width
-            instead of pushing the page wider than the viewport. */}
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-section">
-
-        {/* Ağırlık dağılımı */}
-        <div className={panelCls} style={cardSt}>
-          <PanelTitle>Ağırlık Dağılımı</PanelTitle>
-          <WeightBar criteria={criteria} onChange={setCriteria} />
-        </div>
-
-        {/* Sıralama Kriterleri */}
-        <div className={panelCls} style={cardSt}>
-          <PanelTitle>Sıralama Kriterleri</PanelTitle>
-          <div>
-            <div className="grid grid-cols-1 gap-stack">
-              {criteria.map((c, i) => (
-                <CriterionCard key={i} index={i} criterion={c}
-                  usedKeys={criteria.map(x => x.key)}
-                  onChange={u => handleCriterionChange(i, u)}
-                  onRemove={criteria.length > 3 ? () => removeCriterion(i) : undefined}
-                  ga4Connected={ga4Connected} />
-              ))}
-              {criteria.length < 5 && (
-                <button onClick={addCriterion}
-                  className="flex flex-row items-center justify-center gap-2 rounded-lg transition-all"
-                  style={{
-                    minHeight: '64px', border: '2px dashed var(--border)',
-                    background: 'transparent', cursor: 'pointer', color: 'var(--tx3)',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.color = 'var(--acc-tx)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
-                  <span style={{ fontSize: '20px', lineHeight: 1 }}>+</span>
-                  <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600 }}>Kriter Ekle</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        </div>
-
         {/* Strateji Şablonları — ayrı kart */}
         <div ref={scenarioRef} className={panelCls} style={cardSt}>
           <PanelTitle action={selectedScenario && (
@@ -1153,6 +1112,65 @@ export function Dashboard({ prefill }: Props) {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Ağırlık Dağılımı + Sıralama Kriterleri yan yana */}
+        {/* minmax(0,1fr) lets columns shrink below their content's min width
+            instead of pushing the page wider than the viewport. */}
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-section">
+
+        {/* Ağırlık dağılımı */}
+        <div className="min-w-0 max-w-full" style={{ ...cardSt, borderRadius: '20px' }}>
+          {/* Kart başlık şeridi */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
+              </svg>
+            </div>
+            <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
+              Ağırlık Dağılımı
+            </span>
+          </div>
+          {/* Kart içeriği */}
+          <div style={{ padding: '24px 24.3px' }}>
+            <WeightDonut criteria={criteria} />
+            <div className="mt-5 pt-5" style={{ borderTop: '1px solid var(--border)' }}>
+              <WeightBar criteria={criteria} onChange={setCriteria} />
+            </div>
+          </div>
+        </div>
+
+        {/* Sıralama Kriterleri */}
+        <div className={panelCls} style={cardSt}>
+          <PanelTitle>Sıralama Kriterleri</PanelTitle>
+          <div>
+            <div className="grid grid-cols-1 gap-stack">
+              {criteria.map((c, i) => (
+                <CriterionCard key={i} index={i} criterion={c}
+                  usedKeys={criteria.map(x => x.key)}
+                  onChange={u => handleCriterionChange(i, u)}
+                  onRemove={criteria.length > 3 ? () => removeCriterion(i) : undefined}
+                  ga4Connected={ga4Connected} />
+              ))}
+              {criteria.length < 5 && (
+                <button onClick={addCriterion}
+                  className="flex flex-row items-center justify-center gap-2 rounded-lg transition-all"
+                  style={{
+                    minHeight: '64px', border: '2px dashed var(--border)',
+                    background: 'transparent', cursor: 'pointer', color: 'var(--tx3)',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.color = 'var(--acc-tx)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
+                  <span style={{ fontSize: '20px', lineHeight: 1 }}>+</span>
+                  <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600 }}>Kriter Ekle</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         </div>
 
         {/* Beden Bulunurluk Eşiği */}

@@ -165,11 +165,13 @@ function CardImage({ apiUrl, p, faded, children }: {
   const [idx, setIdx] = useState(0);
   return (
     <div className="relative overflow-hidden rounded-t-xl"
-      style={{ aspectRatio: '3 / 4', maxHeight: 240, background: 'var(--surface2)' }}>
+      style={{ aspectRatio: '3 / 4', maxHeight: 240, background: idx < urls.length ? '#FFFFFF' : 'var(--surface2)' }}>
       {idx < urls.length
         ? <img key={urls[idx]} src={urls[idx]} alt={p.productName} draggable={false}
             onError={() => setIdx(i => i + 1)}
-            className="w-full h-full object-cover"
+            /* contain: the whole photo fits the frame (no cropping when the
+               240px cap makes wide cards' frames landscape). */
+            className="w-full h-full object-contain"
             style={faded ? { filter: 'grayscale(1)', opacity: 0.55 } : undefined} />
         : <ImgPlaceholder />
       }
@@ -302,6 +304,11 @@ function ScoreBreakdown({ p, criteria }: { p: ProductPreviewItem; criteria: Prev
   );
 }
 
+/* Only stock-outs are greyed out; other exclusions (visibility off, size
+   ratio) keep a normal look and are flagged by the red line alone. */
+const OUT_OF_STOCK_REASON = 'Stok yok';   // mirrors ranker.applyDisqualification
+const isStockOut = (p: ProductPreviewItem) => p.isDisqualified && p.disqualifyReason === OUT_OF_STOCK_REASON;
+
 /* "Dışlandı · Beden oranı %60 altında" */
 function excludedLine(p: ProductPreviewItem) {
   return p.disqualifyReason ? `Dışlandı · ${p.disqualifyReason}` : 'Dışlandı';
@@ -320,7 +327,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, o
   const dq = p.isDisqualified;
   return (
     <div className="group relative rounded-xl flex flex-col h-full" style={cardShellStyle(isPinned)}>
-      <CardImage apiUrl={apiUrl} p={p} faded={dq}>
+      <CardImage apiUrl={apiUrl} p={p} faded={isStockOut(p)}>
         {displayRank !== null && (
           <div className="absolute top-2 left-2"><RankBadge rank={displayRank} onRankEdit={onRankEdit} /></div>
         )}
@@ -333,7 +340,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, o
             {excludedLine(p)}
           </p>
         )}
-        <div className="flex flex-col gap-1.5 flex-1" style={dq ? { opacity: 0.55 } : undefined}>
+        <div className="flex flex-col gap-1.5 flex-1" style={isStockOut(p) ? { opacity: 0.55 } : undefined}>
           <a href={productHref(apiUrl, p.seoUrl, p.productCode)} target="_blank" rel="noopener noreferrer"
             title={p.productName || p.productCode}
             className="text-caption font-semibold leading-snug line-clamp-2 hover:underline" style={{ color: 'var(--tx1)' }}>
@@ -371,13 +378,13 @@ function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, on
           ? <RankBadge rank={displayRank} onRankEdit={onRankEdit} />
           : <span className="text-label font-semibold" style={{ color: 'var(--err-tx)' }}>—</span>}
       </span>
-      <div className="w-9 h-12 rounded overflow-hidden shrink-0" style={{ background: 'var(--surface2)' }}>
+      <div className="w-9 h-12 rounded overflow-hidden shrink-0" style={{ background: '#FFFFFF', border: '1px solid var(--border)' }}>
         {idx < urls.length
-          ? <img src={urls[idx]} alt="" draggable={false} onError={() => setIdx(i => i + 1)} className="w-full h-full object-cover"
-              style={p.isDisqualified ? { filter: 'grayscale(1)', opacity: 0.55 } : undefined} />
+          ? <img src={urls[idx]} alt="" draggable={false} onError={() => setIdx(i => i + 1)} className="w-full h-full object-contain"
+              style={isStockOut(p) ? { filter: 'grayscale(1)', opacity: 0.55 } : undefined} />
           : null}
       </div>
-      <div className="min-w-0 flex-1" style={p.isDisqualified ? { opacity: 0.55 } : undefined}>
+      <div className="min-w-0 flex-1" style={isStockOut(p) ? { opacity: 0.55 } : undefined}>
         <a href={productHref(apiUrl, p.seoUrl, p.productCode)} target="_blank" rel="noopener noreferrer"
           onPointerDown={e => e.stopPropagation()}
           title={p.productName || p.productCode}

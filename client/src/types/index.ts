@@ -42,20 +42,20 @@ export const SALES_PERIOD_LABELS: Record<SalesPeriod, string> = {
 
 export const CRITERION_COLORS: string[] = [
   '#1CCAC7', // K1 — Bright Teal
-  '#2F226C', // K2 — Rich Violet
-  '#151035', // K3 — Deep Space Violet
-  '#5C5680', // K4 — Muted violet-gray
-  '#9A94B8', // K5 — Light violet-gray
+  '#7C5CFF', // K2 — Violet
+  '#F5A524', // K3 — Amber
+  '#EC5B8C', // K4 — Pink
+  '#4C8DF6', // K5 — Blue
 ];
 
-/* Legible text color for each CRITERION_COLORS fill — teal and the light
-   violet-gray need dark text, the darker violets need white. */
+/* Legible text color for each CRITERION_COLORS fill — only the violet is dark
+   enough to carry white text; the rest take Deep Space Violet. */
 export const CRITERION_TEXT_ON: string[] = [
   '#151035', // on Bright Teal
-  '#FAFAFA', // on Rich Violet
-  '#FAFAFA', // on Deep Space Violet
-  '#FAFAFA', // on Muted violet-gray
-  '#151035', // on Light violet-gray
+  '#FFFFFF', // on Violet
+  '#151035', // on Amber
+  '#151035', // on Pink
+  '#151035', // on Blue
 ];
 
 

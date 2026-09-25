@@ -73,23 +73,15 @@ export function WeightBar({ criteria, onChange }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="text-body font-semibold" style={{ color: 'var(--tx1)' }}>Puan Dağılım Çubuğu</div>
-          {off ? (
-            <div role="alert" className="text-caption mt-0.5 font-medium" style={{ color: 'var(--err-tx)' }}>
-              Toplam %100 olmalı — {total > 100 ? `${total - 100} puan fazla` : `${100 - total} puan eksik`}
-            </div>
-          ) : (
-            <div className="text-caption mt-0.5" style={{ color: 'var(--tx3)' }}>Sürükleyerek ağırlıkları ayarlayın</div>
-          )}
-        </div>
-        <span className="text-lg font-bold tabular-nums shrink-0 rounded-lg px-2 py-0.5"
-          style={off
-            ? { color: 'var(--err-tx)', background: 'var(--err-bg)', border: '1px solid var(--err-bd)' }
-            : { color: 'var(--ok-tx)', border: '1px solid transparent' }}>
-          {total}%
-        </span>
+      <div>
+        <div className="text-body font-semibold" style={{ color: 'var(--tx1)' }}>Puan Dağılım Çubuğu</div>
+        {off ? (
+          <div role="alert" className="text-caption mt-0.5 font-semibold" style={{ color: 'var(--err-tx)' }}>
+            Toplam %{total}, %{Math.abs(100 - total)} {total > 100 ? 'fazla' : 'eksik'}
+          </div>
+        ) : (
+          <div className="text-caption mt-0.5" style={{ color: 'var(--tx3)' }}>Sürükleyerek ağırlıkları ayarlayın</div>
+        )}
       </div>
 
       {/* Draggable bar */}
@@ -122,7 +114,7 @@ export function WeightBar({ criteria, onChange }: Props) {
 
       {/* Numeric inputs */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg px-4 py-3"
-        style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+        style={{ background: 'var(--surface2)' }}>
         <span className="text-caption font-medium shrink-0" style={{ color: 'var(--tx2)' }}>Ağırlıklar</span>
         <div className="flex-1 grid gap-3"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))' }}>

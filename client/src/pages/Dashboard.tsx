@@ -487,7 +487,7 @@ function mergeAiOrder(
 /* ─── Ana bileşen ─── */
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
-const cardSt = { background: 'var(--surface)', border: '1px solid var(--border)' };
+const cardSt = { background: 'var(--panel)', boxShadow: 'var(--shadow-panel)' };
 /* Every panel on this page: 16px radius, p-card padding, flat title. */
 /* Footer buttons: one teal primary, the rest outline or ghost. */
 const btnCls      = 'h-9 px-4 rounded-lg text-caption transition-all whitespace-nowrap';
@@ -986,7 +986,7 @@ export function Dashboard({ prefill }: Props) {
   const hasProducts = currentResult !== null || previewResult !== null;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col" style={{ background: 'var(--page-bg)' }}>
       {/* Başlık */}
       <div className="shrink-0 py-3 flex items-center justify-between gap-4 px-4 md:px-6"
         style={{ borderBottom: '1px solid var(--border)' }}>
@@ -1079,16 +1079,17 @@ export function Dashboard({ prefill }: Props) {
               return (
                 <button key={s.id}
                   onClick={() => { setCriteria(s.criteria); setSelectedScenario(isSelected ? null : s); }}
+                  aria-pressed={isSelected}
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px',
                     padding: '10px 12px', borderRadius: '12px', cursor: 'pointer', textAlign: 'left',
-                    border: isSelected ? '1.5px solid var(--acc-bd)' : '1px solid var(--border)',
+                    border: 'none',
                     background: isSelected ? 'var(--acc-bg)' : 'var(--surface2)',
-                    
-                    transition: 'all 0.15s',
+                    boxShadow: isSelected ? 'inset 0 0 0 1.5px var(--acc)' : 'none',
+                    transition: 'background 0.15s',
                   }}
-                  onMouseEnter={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface)'; } }}
-                  onMouseLeave={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; } }}>
+                  onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface3)'; }}
+                  onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}>
                   <span style={{ fontSize: '18px', lineHeight: 1 }}>{s.emoji}</span>
                   <div className="text-label font-bold leading-tight mt-0.5 break-words max-w-full" style={{ color: isSelected ? 'var(--acc-tx)' : 'var(--tx1)' }}>{s.name}</div>
                   <div className="text-caption leading-tight" style={{ color: 'var(--tx3)' }}>{s.tagline}</div>
@@ -1122,25 +1123,11 @@ export function Dashboard({ prefill }: Props) {
 
           <div className="min-w-0 flex flex-col gap-section">
             {/* Ağırlık dağılımı */}
-            <div className="min-w-0 max-w-full shrink-0" style={{ ...cardSt, borderRadius: '20px' }}>
-              {/* Kart başlık şeridi */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
-                  </svg>
-                </div>
-                <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
-                  Ağırlık Dağılımı
-                </span>
-              </div>
-              {/* Kart içeriği */}
-              <div style={{ padding: '24px 24.3px' }}>
-                <WeightDonut criteria={criteria} />
-                <div className="mt-5 pt-5" style={{ borderTop: '1px solid var(--border)' }}>
-                  <WeightBar criteria={criteria} onChange={setCriteria} />
-                </div>
+            <div className={`${panelCls} shrink-0`} style={cardSt}>
+              <PanelTitle>Ağırlık Dağılımı</PanelTitle>
+              <WeightDonut criteria={criteria} />
+              <div className="pt-stack" style={{ borderTop: '1px solid var(--border)' }}>
+                <WeightBar criteria={criteria} onChange={setCriteria} />
               </div>
             </div>
 
@@ -1178,13 +1165,16 @@ export function Dashboard({ prefill }: Props) {
           <div className={panelCls} style={cardSt}>
             <PanelTitle>Sıralama Kriterleri</PanelTitle>
             <div>
-              <div className="grid grid-cols-1 gap-stack">
+              <div className="flex flex-col">
                 {criteria.map((c, i) => (
-                  <CriterionCard key={i} index={i} criterion={c}
-                    usedKeys={criteria.map(x => x.key)}
-                    onChange={u => handleCriterionChange(i, u)}
-                    onRemove={criteria.length > 3 ? () => removeCriterion(i) : undefined}
-                    ga4Connected={ga4Connected} />
+                  <div key={i} className="py-stack first:pt-0"
+                    style={i > 0 ? { borderTop: '1px solid var(--border)' } : undefined}>
+                    <CriterionCard index={i} criterion={c}
+                      usedKeys={criteria.map(x => x.key)}
+                      onChange={u => handleCriterionChange(i, u)}
+                      onRemove={criteria.length > 3 ? () => removeCriterion(i) : undefined}
+                      ga4Connected={ga4Connected} />
+                  </div>
                 ))}
                 {criteria.length < 5 && (
                   <button onClick={addCriterion}
@@ -1309,10 +1299,10 @@ export function Dashboard({ prefill }: Props) {
 
         {/* Ürün listesi alanı */}
         {categoryId && (
-          <div style={{ border: '1px solid var(--border)', borderRadius: '16px' }}>
+          <div style={{ ...cardSt, borderRadius: '16px' }}>
 
             {/* Liste başlığı / araç çubuğu */}
-            <div style={{ padding: 'var(--spacing-stack) var(--spacing-card)', background: 'var(--surface)', borderBottom: '1px solid var(--border)', borderRadius: '16px 16px 0 0' }}>
+            <div style={{ padding: 'var(--spacing-stack) var(--spacing-card)', background: 'var(--panel)', borderBottom: '1px solid var(--border)', borderRadius: '16px 16px 0 0' }}>
               {/* Üst satır: sekmeler + arama */}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 {/* Sol: görünüm sekmeleri */}
@@ -1417,7 +1407,7 @@ export function Dashboard({ prefill }: Props) {
             </div>
 
             {/* İçerik */}
-            <div style={{ padding: 'var(--spacing-card)', background: 'var(--bg)', borderRadius: '0 0 16px 16px' }}>
+            <div style={{ padding: 'var(--spacing-card)', background: 'var(--panel)', borderRadius: '0 0 16px 16px' }}>
               {/* Yükleniyor */}
               {(currentStatus === 'loading' || previewStatus === 'loading') && (
                 <div className="flex items-center justify-center gap-3 py-16">
@@ -1554,7 +1544,7 @@ export function Dashboard({ prefill }: Props) {
             title={applyTooltip}
             className={`${btnCls} px-5 font-bold`}
             style={!canApply || isApplying
-              ? { background: 'var(--surface3)', color: 'var(--tx3)', cursor: 'not-allowed', border: '1px solid transparent' }
+              ? { background: 'var(--cta-bg)', color: 'var(--cta-tx)', opacity: 0.55, cursor: 'not-allowed', border: '1px solid transparent' }
               : { background: 'var(--cta-bg)', color: 'var(--cta-tx)', border: '1px solid transparent', cursor: 'pointer' }
             }
             onMouseEnter={e => { if (canApply && !isApplying) (e.currentTarget as HTMLElement).style.background = 'var(--cta-hov)'; }}

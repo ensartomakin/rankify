@@ -30,6 +30,9 @@
   --bg:        #FAFAFA;  /* Off-White canvas */
   --surface:   #FAFAFA;  /* Card surface — same tone, separated by border not shadow */
   --surface2:  #F2F2F2;  /* nested containers, header strips */
+  --page-bg:   #F4F5F7;  /* page canvas behind white panels */
+  --panel:     #FFFFFF;  /* primary panels on --page-bg */
+  --shadow-panel: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --surface3:  #EEEEEE;  /* Light Gray — tag/badge fills */
   --input-bg:  #FFFFFF;
 
@@ -79,6 +82,9 @@
   --bg:        #0E0B28;
   --surface:   #171240;
   --surface2:  #1D1850;
+  --page-bg:   #0E0B28;
+  --panel:     #171240;
+  --shadow-panel: 0 1px 3px rgba(0,0,0,0.35);
   --surface3:  #241D5C;
   --input-bg:  #171240;
 

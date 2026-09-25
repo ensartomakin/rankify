@@ -67,7 +67,13 @@ function getImageUrls(apiUrl: string, imageUrl: string, productId: string, produ
 
 const fmtPct = (n: number) => formatPercent(n, 1);
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+/* 10.08.23 — fits the narrow card rows; the long form goes in the tooltip. */
+function fmtDateShort(iso: string) {
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
 /* ─── Placeholder ikonu ─── */
@@ -105,15 +111,17 @@ function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void
       onPointerDown={e => e.stopPropagation()}
       aria-pressed={pinned} aria-label={label} title={label}
       className="w-7 h-7 flex items-center justify-center rounded-full transition-all shrink-0"
-      /* Same chip on every card; pinned state = filled icon. */
-      style={{ background: 'rgba(0,0,0,0.5)', color: '#FFFFFF', backdropFilter: 'blur(4px)' }}>
+      /* Same chip on every card; pinned = teal fill with a filled icon. */
+      style={pinned
+        ? { background: 'var(--acc)', color: 'var(--cta-tx)' }
+        : { background: 'rgba(0,0,0,0.5)', color: '#FFFFFF', backdropFilter: 'blur(4px)' }}>
       <PinIcon pinned={pinned} />
     </button>
   );
 }
 
 /* ─── Sıra rozeti (düzenlenebilir) ─── */
-function RankBadge({ rank, dq, onRankEdit }: { rank: number; dq?: boolean; onRankEdit?: (n: number) => void }) {
+function RankBadge({ rank, onRankEdit }: { rank: number; onRankEdit?: (n: number) => void }) {
   const [editing, setEditing] = useState(false);
   const [rankInput, setRankInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -140,11 +148,7 @@ function RankBadge({ rank, dq, onRankEdit }: { rank: number; dq?: boolean; onRan
     <button onClick={e => { e.stopPropagation(); startEdit(); }}
       onPointerDown={e => e.stopPropagation()}
       className="text-label font-bold px-2 py-0.5 rounded-full tabular-nums"
-      style={{
-        background: dq ? 'rgba(0,0,0,0.55)' : 'var(--panel)',
-        color: dq ? 'rgba(255,255,255,0.95)' : 'var(--acc-tx)',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.2)', cursor: 'pointer', border: 'none',
-      }}
+      style={{ background: 'rgba(0,0,0,0.6)', color: '#FFFFFF', backdropFilter: 'blur(4px)', cursor: 'pointer', border: 'none' }}
       title="Sıra numarasını düzenle">
       #{rank}
     </button>
@@ -152,8 +156,9 @@ function RankBadge({ rank, dq, onRankEdit }: { rank: number; dq?: boolean; onRan
 }
 
 /* ─── Ortak kart görseli: 3:4, en fazla 240px, cover ─── */
-function CardImage({ apiUrl, p, children }: {
+function CardImage({ apiUrl, p, faded, children }: {
   apiUrl: string; p: { imageUrl: string; productId: string; productCode: string; productName: string };
+  faded?: boolean;
   children?: React.ReactNode;
 }) {
   const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode);
@@ -164,7 +169,8 @@ function CardImage({ apiUrl, p, children }: {
       {idx < urls.length
         ? <img key={urls[idx]} src={urls[idx]} alt={p.productName} draggable={false}
             onError={() => setIdx(i => i + 1)}
-            className="w-full h-full object-cover" />
+            className="w-full h-full object-cover"
+            style={faded ? { filter: 'grayscale(1)', opacity: 0.55 } : undefined} />
         : <ImgPlaceholder />
       }
       {/* Sürükleme ipucu — sadece hover'da; kartın tamamı sürüklenebilir */}
@@ -187,10 +193,10 @@ function productHref(apiUrl: string, seoUrl: string, productCode: string) {
   return seoUrl.startsWith('http') ? seoUrl : `${base}/${seoUrl.replace(/^\//, '')}`;
 }
 
-function cardShellStyle(isPinned: boolean, dq?: boolean): React.CSSProperties {
+function cardShellStyle(isPinned: boolean): React.CSSProperties {
   return {
     background: 'var(--panel)',
-    border: isPinned ? '1.5px solid var(--acc)' : dq ? '1.5px solid var(--err-bd)' : '1px solid var(--border)',
+    border: isPinned ? '1.5px solid var(--acc)' : '1px solid var(--border)',
     cursor: isPinned ? 'default' : 'grab',
   };
 }
@@ -248,11 +254,11 @@ const SCORE_NAMES: Partial<Record<CriterionKey, string>> = {
   ga4Views: 'GA4 Görüntülenme', ga4CartAdds: 'GA4 Sepete Ekleme', ga4ConversionRate: 'GA4 Dönüşüm',
 };
 
-function rawValue(p: ProductPreviewItem, key: CriterionKey): string {
+function rawValue(p: ProductPreviewItem, key: CriterionKey, compact = false): string {
   switch (key) {
     case 'stockScore':        return p.totalStock.toLocaleString('tr-TR');
     case 'bestSeller':        return p.salesQty.toLocaleString('tr-TR');
-    case 'newness':           return fmtDate(p.registrationDate);
+    case 'newness':           return compact ? fmtDateShort(p.registrationDate) : fmtDate(p.registrationDate);
     case 'reviewScore':       return p.reviewCount.toLocaleString('tr-TR');
     case 'availabilityScore': return fmtPct(p.availabilityRate * 100);
     case 'discountRate':      return formatPercent(p.discountRate ?? 0);
@@ -261,17 +267,6 @@ function rawValue(p: ProductPreviewItem, key: CriterionKey): string {
     case 'ga4ConversionRate': return fmtPct(p.ga4?.conversionRate ?? 0);
     default:                  return '';
   }
-}
-
-/* Contribution per criterion on a 0–100 track, in criterion colours. */
-function ScoreStackBar({ p, criteria }: { p: ProductPreviewItem; criteria: PreviewResponse['criteria'] }) {
-  return (
-    <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface3)' }} aria-hidden="true">
-      {criteria.map((c, i) => (
-        <div key={c.key} style={{ width: `${Math.max(0, p.criteriaContributions[c.key as CriterionKey] ?? 0)}%`, background: criteriaColor(i) }} />
-      ))}
-    </div>
-  );
 }
 
 function ScoreBreakdown({ p, criteria }: { p: ProductPreviewItem; criteria: PreviewResponse['criteria'] }) {
@@ -285,13 +280,12 @@ function ScoreBreakdown({ p, criteria }: { p: ProductPreviewItem; criteria: Prev
         const isZero = Math.round(contrib * 10) === 0;
         return (
           <div key={key} title={`${name} — ağırlık ${formatPercent(c.weight)}`}
-            className="flex items-center justify-between gap-3 py-1.5 text-caption"
+            className="flex items-center justify-between gap-2 py-1 text-caption"
             style={ci > 0 ? { borderTop: '1px solid var(--border)' } : undefined}>
-            <span className="min-w-0 truncate flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: criteriaColor(ci) }} />
+            <span className="min-w-0 truncate" title={`${name} · ${rawValue(p, key)}`}>
               <span style={{ color: 'var(--tx2)' }}>{name}</span>
-              <span style={{ color: 'var(--tx3)' }}>·</span>
-              <span className="font-medium truncate" style={{ color: 'var(--tx1)' }}>{rawValue(p, key)}</span>
+              <span style={{ color: 'var(--tx3)' }}> · </span>
+              <span className="font-medium" style={{ color: 'var(--tx1)' }}>{rawValue(p, key, true)}</span>
             </span>
             <span className="tabular-nums shrink-0"
               style={isZero ? { color: 'var(--tx3)', fontWeight: 400 } : { color: 'var(--acc-tx)', fontWeight: 700 }}>
@@ -300,7 +294,7 @@ function ScoreBreakdown({ p, criteria }: { p: ProductPreviewItem; criteria: Prev
           </div>
         );
       })}
-      <div className="flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border-strong)' }}>
+      <div className="flex items-center justify-between py-1" style={{ borderTop: '1px solid var(--border-strong)' }}>
         <span className="text-caption font-bold" style={{ color: 'var(--tx1)' }}>Toplam</span>
         <span className="text-caption font-bold tabular-nums" style={{ color: 'var(--acc-tx)' }}>{fmtPct(p.rankingScore)}</span>
       </div>
@@ -308,68 +302,52 @@ function ScoreBreakdown({ p, criteria }: { p: ProductPreviewItem; criteria: Prev
   );
 }
 
-/* ─── Kart: Önizleme (kompakt; detay tablosu hover/odakta açılır) ─── */
-function PreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, onTogglePin, dragging }: {
+/* "Dışlandı · Beden oranı %60 altında" */
+function excludedLine(p: ProductPreviewItem) {
+  return p.disqualifyReason ? `Dışlandı · ${p.disqualifyReason}` : 'Dışlandı';
+}
+
+/* ─── Kart: Önizleme ─── */
+function PreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, onTogglePin }: {
   p: ProductPreviewItem;
-  displayRank: number;
+  displayRank: number | null;   // null → excluded, no rank
   criteria: PreviewResponse['criteria'];
   apiUrl: string;
   onRankEdit?: (newRank: number) => void;
   isPinned: boolean;
   onTogglePin: () => void;
-  dragging?: boolean;
 }) {
+  const dq = p.isDisqualified;
   return (
-    <div className="group relative rounded-xl flex flex-col h-full" style={cardShellStyle(isPinned, p.isDisqualified)}>
-      <CardImage apiUrl={apiUrl} p={p}>
-        <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
-          <RankBadge rank={displayRank} dq={p.isDisqualified} onRankEdit={onRankEdit} />
-          {p.isDisqualified && (
-            <span className="text-label font-bold px-2 py-0.5 rounded-full"
-              title={p.disqualifyReason}
-              style={{ background: 'var(--err-bg)', color: 'var(--err-tx)', border: '1px solid var(--err-bd)', backdropFilter: 'blur(4px)' }}>
-              Dışlandı
-            </span>
-          )}
-        </div>
+    <div className="group relative rounded-xl flex flex-col h-full" style={cardShellStyle(isPinned)}>
+      <CardImage apiUrl={apiUrl} p={p} faded={dq}>
+        {displayRank !== null && (
+          <div className="absolute top-2 left-2"><RankBadge rank={displayRank} onRankEdit={onRankEdit} /></div>
+        )}
         <div className="absolute top-2 right-2"><PinButton pinned={isPinned} onToggle={onTogglePin} /></div>
       </CardImage>
 
-      <div className="p-2.5 flex flex-col gap-1.5 flex-1">
-        <a href={productHref(apiUrl, p.seoUrl, p.productCode)} target="_blank" rel="noopener noreferrer"
-          title={p.productName || p.productCode}
-          className="text-caption font-semibold truncate hover:underline" style={{ color: 'var(--tx1)' }}>
-          {p.productName || p.productCode}
-        </a>
-
-        {/* Özet: katkı çubuğu + toplam — detay hover/odakta */}
-        <div tabIndex={0} aria-label={`Toplam puan ${fmtPct(p.rankingScore)}, detay için odaklanın`}
-          className="flex items-center gap-2 rounded outline-none focus-visible:ring-2">
-          <div className="flex-1 min-w-0"><ScoreStackBar p={p} criteria={criteria} /></div>
-          <span className="text-caption font-bold tabular-nums shrink-0" style={{ color: 'var(--acc-tx)' }}>
-            {fmtPct(p.rankingScore)}
-          </span>
-        </div>
-
-        <div className="mt-auto flex items-center gap-1.5 min-w-0 text-label" style={{ color: 'var(--tx3)' }}>
-          {p.season && (
-            <span className="shrink-0 px-1.5 rounded" style={{ background: 'var(--surface2)', color: 'var(--tx2)' }}>{p.season}</span>
-          )}
-          <span className="font-mono truncate min-w-0">#{p.productCode}</span>
+      <div className="p-2.5 flex flex-col gap-1.5 flex-1 min-w-0">
+        {dq && (
+          <p className="text-label font-semibold leading-snug line-clamp-2" style={{ color: 'var(--err-tx)' }} title={excludedLine(p)}>
+            {excludedLine(p)}
+          </p>
+        )}
+        <div className="flex flex-col gap-1.5 flex-1" style={dq ? { opacity: 0.55 } : undefined}>
+          <a href={productHref(apiUrl, p.seoUrl, p.productCode)} target="_blank" rel="noopener noreferrer"
+            title={p.productName || p.productCode}
+            className="text-caption font-semibold leading-snug line-clamp-2 hover:underline" style={{ color: 'var(--tx1)' }}>
+            {p.productName || p.productCode}
+          </a>
+          <ScoreBreakdown p={p} criteria={criteria} />
+          <div className="mt-auto flex items-center gap-1.5 min-w-0 text-label" style={{ color: 'var(--tx3)' }}>
+            {p.season && (
+              <span className="shrink-0 px-1.5 rounded" style={{ background: 'var(--surface2)', color: 'var(--tx2)' }}>{p.season}</span>
+            )}
+            <span className="font-mono truncate min-w-0">#{p.productCode}</span>
+          </div>
         </div>
       </div>
-
-      {/* Detay popover — kart hover'ında veya puan satırına klavye odağında */}
-      {!dragging && (
-        <div role="tooltip"
-          className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-0 top-full mt-1 z-30 w-full min-w-[220px] p-2.5 rounded-lg pointer-events-none"
-          style={{ background: 'var(--panel)', boxShadow: '0 8px 24px rgba(21,16,53,0.18)', border: '1px solid var(--border)' }}>
-          <ScoreBreakdown p={p} criteria={criteria} />
-          {p.isDisqualified && p.disqualifyReason && (
-            <p className="text-caption mt-1" style={{ color: 'var(--err-tx)' }}>⚠ {p.disqualifyReason}</p>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -377,7 +355,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, o
 /* ─── Liste satırı: Önizleme ─── */
 function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, onTogglePin }: {
   p: ProductPreviewItem;
-  displayRank: number;
+  displayRank: number | null;
   criteria: PreviewResponse['criteria'];
   apiUrl: string;
   onRankEdit?: (newRank: number) => void;
@@ -387,14 +365,19 @@ function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, on
   const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode);
   const [idx, setIdx] = useState(0);
   return (
-    <div className="flex items-center gap-3 px-2.5 py-2 rounded-lg" style={cardShellStyle(isPinned, p.isDisqualified)}>
-      <RankBadge rank={displayRank} dq={p.isDisqualified} onRankEdit={onRankEdit} />
+    <div className="flex items-center gap-3 px-2.5 py-2 rounded-lg" style={cardShellStyle(isPinned)}>
+      <span className="w-10 shrink-0">
+        {displayRank !== null
+          ? <RankBadge rank={displayRank} onRankEdit={onRankEdit} />
+          : <span className="text-label font-semibold" style={{ color: 'var(--err-tx)' }}>—</span>}
+      </span>
       <div className="w-9 h-12 rounded overflow-hidden shrink-0" style={{ background: 'var(--surface2)' }}>
         {idx < urls.length
-          ? <img src={urls[idx]} alt="" draggable={false} onError={() => setIdx(i => i + 1)} className="w-full h-full object-cover" />
+          ? <img src={urls[idx]} alt="" draggable={false} onError={() => setIdx(i => i + 1)} className="w-full h-full object-cover"
+              style={p.isDisqualified ? { filter: 'grayscale(1)', opacity: 0.55 } : undefined} />
           : null}
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1" style={p.isDisqualified ? { opacity: 0.55 } : undefined}>
         <a href={productHref(apiUrl, p.seoUrl, p.productCode)} target="_blank" rel="noopener noreferrer"
           onPointerDown={e => e.stopPropagation()}
           title={p.productName || p.productCode}
@@ -402,8 +385,11 @@ function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, on
           {p.productName || p.productCode}
         </a>
         <span className="text-label font-mono" style={{ color: 'var(--tx3)' }}>
-          #{p.productCode}{p.isDisqualified && p.disqualifyReason ? ` · ${p.disqualifyReason}` : ''}
+          #{p.productCode}
         </span>
+        {p.isDisqualified && (
+          <span className="block text-label font-semibold truncate" style={{ color: 'var(--err-tx)' }}>{excludedLine(p)}</span>
+        )}
       </div>
       <div className="hidden md:flex items-center gap-3 shrink-0">
         {criteria.map((c, ci) => {
@@ -430,7 +416,7 @@ function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, on
 
 /* ─── Sortable wrapper: Önizleme (kart veya satır) ─── */
 function SortablePreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, onTogglePin, layout = 'grid' }: {
-  p: ProductPreviewItem; displayRank: number; criteria: PreviewResponse['criteria'];
+  p: ProductPreviewItem; displayRank: number | null; criteria: PreviewResponse['criteria'];
   apiUrl: string; onRankEdit: (code: string, newRank: number) => void;
   isPinned: boolean; onTogglePin: (code: string, rank: number) => void;
   layout?: 'grid' | 'list';
@@ -438,16 +424,16 @@ function SortablePreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isP
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.productCode, disabled: isPinned });
   const shared = {
     p, displayRank, criteria, apiUrl, isPinned,
-    onTogglePin: () => onTogglePin(p.productCode, displayRank),
+    onTogglePin: () => onTogglePin(p.productCode, displayRank ?? p.finalRank),
     onRankEdit: (newRank: number) => onRankEdit(p.productCode, newRank),
   };
   return (
     <div ref={setNodeRef} {...attributes} {...(!isPinned ? listeners : {})}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.45 : 1, zIndex: isDragging ? 50 : undefined, touchAction: 'manipulation' }}
-      className="hover:z-20 focus-within:z-20 relative">
+      className="h-full">
       {layout === 'list'
         ? <PreviewRow {...shared} />
-        : <PreviewCard {...shared} dragging={isDragging} />}
+        : <PreviewCard {...shared} />}
     </div>
   );
 }
@@ -988,13 +974,19 @@ export function Dashboard({ prefill }: Props) {
     p.productCode.toLowerCase().includes(filter.toLowerCase())
   );
 
-  const filteredPreview = previewOrder
-    .filter(p => showDq || !p.isDisqualified)
-    .filter(p =>
-      !filter.trim() ||
-      p.productName.toLowerCase().includes(filter.toLowerCase()) ||
-      p.productCode.toLowerCase().includes(filter.toLowerCase())
-    );
+  // Rank numbers count active products only; excluded ones get none.
+  const activeRank = new Map(
+    previewOrder.filter(p => !p.isDisqualified).map((p, i) => [p.productCode, i + 1] as const)
+  );
+  const matchesFilter = (p: ProductPreviewItem) =>
+    !filter.trim() ||
+    p.productName.toLowerCase().includes(filter.toLowerCase()) ||
+    p.productCode.toLowerCase().includes(filter.toLowerCase());
+  // Active products in their ranked order, excluded ones always at the end.
+  const filteredPreview = [
+    ...previewOrder.filter(p => !p.isDisqualified && matchesFilter(p)),
+    ...(showDq ? previewOrder.filter(p => p.isDisqualified && matchesFilter(p)) : []),
+  ];
 
   const hasProducts = currentResult !== null || previewResult !== null;
 
@@ -1010,7 +1002,9 @@ export function Dashboard({ prefill }: Props) {
       </div>
 
       {/* Kaydırılabilir içerik */}
-      <div className="flex-1 overflow-y-auto space-y-section px-4 md:px-6 py-section">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-section px-4 md:px-6 pt-section"
+        /* bottom room so the floating chat button never sits on the last row */
+        style={{ paddingBottom: previewResult ? 88 : 'var(--spacing-section)' }}>
 
         {/* Hero kategori arama alanı */}
         <div>
@@ -1432,7 +1426,8 @@ export function Dashboard({ prefill }: Props) {
             </div>
 
             {/* İçerik */}
-            <div style={{ padding: 'var(--spacing-card)', background: 'var(--panel)', borderRadius: '0 0 16px 16px' }}>
+            {/* @container: columns step 2 → 3 → 4 → 6 with the panel's own width */}
+            <div className="@container" style={{ padding: 'var(--spacing-card)', background: 'var(--panel)', borderRadius: '0 0 16px 16px' }}>
               {/* Yükleniyor */}
               {(currentStatus === 'loading' || previewStatus === 'loading') && (
                 <div className="flex items-center justify-center gap-3 py-16">
@@ -1448,7 +1443,7 @@ export function Dashboard({ prefill }: Props) {
               {view === 'current' && currentStatus !== 'loading' && filteredCurrent.length > 0 && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={filteredCurrent.map(p => p.productCode)} strategy={rectSortingStrategy}>
-                    <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))' }}>
+                    <div className="grid gap-3 grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 @5xl:grid-cols-6">
                       {filteredCurrent.map(p => (
                         <SortableCurrentCard key={p.productCode} p={p} apiUrl={apiUrl} onRankEdit={handleRankEdit}
                           isPinned={pinnedPositions[p.productCode] !== undefined}
@@ -1463,10 +1458,9 @@ export function Dashboard({ prefill }: Props) {
               {view === 'preview' && previewStatus !== 'loading' && filteredPreview.length > 0 && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePreviewDragEnd}>
                   <SortableContext items={filteredPreview.map(p => p.productCode)} strategy={rectSortingStrategy}>
-                    <div className={layout === 'list' ? 'flex flex-col gap-1.5' : 'grid gap-3'}
-                      style={layout === 'list' ? undefined : { gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))' }}>
+                    <div className={layout === 'list' ? 'flex flex-col gap-1.5' : 'grid gap-3 grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 @5xl:grid-cols-6'}>
                       {filteredPreview.map(p => (
-                        <SortablePreviewCard key={p.productCode} p={p} displayRank={p.finalRank}
+                        <SortablePreviewCard key={p.productCode} p={p} displayRank={activeRank.get(p.productCode) ?? null}
                           criteria={previewResult!.criteria} apiUrl={apiUrl}
                           onRankEdit={handlePreviewRankEdit}
                           isPinned={pinnedPositions[p.productCode] !== undefined}

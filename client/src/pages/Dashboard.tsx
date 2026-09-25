@@ -165,12 +165,12 @@ function CurrentCard({
               onChange={e => setRankInput(e.target.value)}
               onBlur={commitEdit}
               onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(false); }}
-              className="w-14 text-center text-xs font-bold rounded-full px-2 py-1 outline-none"
+              className="w-14 text-center text-label font-bold rounded-full px-2 py-1 outline-none"
               style={{ background: 'var(--acc)', color: 'var(--cta-tx)', border: '2px solid var(--acc)' }}
               onClick={e => e.stopPropagation()} />
           ) : (
             <button onClick={startEdit}
-              className="text-xs font-bold px-2.5 py-1 rounded-full"
+              className="text-label font-bold px-2.5 py-1 rounded-full"
               style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', backdropFilter: 'blur(4px)', border: '1px solid var(--acc-bd)', cursor: 'pointer' }}
               title="Sıra numarasını düzenle">
               #{p.currentRank}
@@ -194,7 +194,7 @@ function CurrentCard({
       <div className="px-3 pt-2 pb-1 flex-1">
         {isPinned && (
           <div className="flex items-center gap-1 mb-1">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+            <span className="text-label font-bold px-2 py-0.5 rounded-full"
               style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
               📌 Sabitlendi
             </span>
@@ -213,8 +213,8 @@ function CurrentCard({
       {/* Alt bilgi */}
       <div className="px-3 py-2 flex items-center justify-between gap-2"
         style={{ borderTop: '1px solid var(--border)' }}>
-        <span className="text-[11px] font-mono truncate min-w-0" style={{ color: 'var(--tx3)' }}>#{p.productCode}</span>
-        <span className="text-[11px] shrink-0" style={{ color: 'var(--tx3)' }}>Stok: {p.totalStock.toLocaleString('tr-TR')}</span>
+        <span className="text-label font-mono truncate min-w-0" style={{ color: 'var(--tx3)' }}>#{p.productCode}</span>
+        <span className="text-label shrink-0" style={{ color: 'var(--tx3)' }}>Stok: {p.totalStock.toLocaleString('tr-TR')}</span>
       </div>
     </div>
   );
@@ -305,12 +305,12 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
               onChange={e => setRankInput(e.target.value)}
               onBlur={commitEdit}
               onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(false); }}
-              className="w-14 text-center text-xs font-bold rounded-full px-2 py-1 outline-none"
+              className="w-14 text-center text-label font-bold rounded-full px-2 py-1 outline-none"
               style={{ background: 'var(--acc)', color: 'var(--cta-tx)', border: '2px solid var(--acc)' }}
               onClick={e => e.stopPropagation()} />
           ) : (
             <button onClick={startEdit}
-              className="text-xs font-bold px-2.5 py-1 rounded-full"
+              className="text-label font-bold px-2.5 py-1 rounded-full"
               style={{
                 background: p.isDisqualified ? 'rgba(0,0,0,0.45)' : 'var(--acc-bg)',
                 color: p.isDisqualified ? 'rgba(255,255,255,0.9)' : 'var(--acc-tx)',
@@ -322,7 +322,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             </button>
           )}
           {p.isDisqualified && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full self-start"
+            <span className="text-label font-bold px-2 py-0.5 rounded-full self-start"
               style={{ background: 'var(--err-bg)', color: 'var(--err-tx)', border: '1px solid var(--err-bd)' }}>
               Dışlandı
             </span>
@@ -345,7 +345,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
       <div className="px-3 pt-2.5 pb-1.5 flex-1">
         {isPinned && (
           <div className="flex items-center gap-1 mb-1">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+            <span className="text-label font-bold px-2 py-0.5 rounded-full"
               style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
               📌 Sabitlendi
             </span>
@@ -355,7 +355,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             ? (p.seoUrl.startsWith('http') ? p.seoUrl : `${apiUrl.replace(/\/$/, '')}/${p.seoUrl.replace(/^\//, '')}`)
             : `${apiUrl.replace(/\/$/, '')}/urun-detay/${p.productCode}`}
           target="_blank" rel="noopener noreferrer"
-          className="text-[13px] font-semibold leading-snug line-clamp-2 hover:underline"
+          className="text-caption font-semibold leading-snug line-clamp-2 hover:underline"
           style={{ color: 'var(--tx1)' }}>
           {p.productName || p.productCode}
         </a>
@@ -391,7 +391,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
             else if (key === 'ga4CartAdds')       raw = (p.ga4?.cartAdds ?? 0).toLocaleString('tr-TR');
             else if (key === 'ga4ConversionRate') raw = `${(p.ga4?.conversionRate ?? 0).toFixed(2)}%`;
             return (
-              <div key={key} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px]"
+              <div key={key} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-caption"
                 style={{ borderBottom: '1px solid var(--border)' }}>
                 <div className="min-w-0 flex items-baseline gap-1 overflow-hidden">
                   <span className="shrink-0" style={{ color: 'var(--tx2)' }}>{label}:</span>
@@ -405,28 +405,28 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, dragHandleProps, onRank
           })}
           <div className="flex items-center justify-between px-2.5 py-2"
             style={{ background: 'var(--acc-bg)' }}>
-            <span className="text-[12px] font-bold" style={{ color: 'var(--tx1)' }}>Toplam</span>
-            <span className="text-[13px] font-bold" style={{ color: 'var(--acc-tx)' }}>
+            <span className="text-caption font-bold" style={{ color: 'var(--tx1)' }}>Toplam</span>
+            <span className="text-caption font-bold" style={{ color: 'var(--acc-tx)' }}>
               {fmtPct(p.rankingScore)}
             </span>
           </div>
         </div>
         {p.isDisqualified && p.disqualifyReason && (
-          <p className="text-[10px] mt-1 px-0.5" style={{ color: 'var(--err-tx)' }}>⚠ {p.disqualifyReason}</p>
+          <p className="text-caption mt-1 px-0.5" style={{ color: 'var(--err-tx)' }}>⚠ {p.disqualifyReason}</p>
         )}
       </div>
 
       <div className="px-3 py-2 flex flex-col gap-1"
         style={{ borderTop: '1px solid var(--border)' }}>
         {p.season && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full self-start"
+          <span className="text-label font-semibold px-2 py-0.5 rounded-full self-start"
             style={{ background: 'var(--surface2)', color: 'var(--tx3)', border: '1px solid var(--border)' }}>
             🗓 {p.season}
           </span>
         )}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-mono truncate min-w-0" style={{ color: 'var(--tx3)' }}>#{p.productCode}</span>
-          <span className="text-[11px] shrink-0" style={{ color: 'var(--tx3)' }}>Stok: {p.totalStock.toLocaleString('tr-TR')}</span>
+          <span className="text-label font-mono truncate min-w-0" style={{ color: 'var(--tx3)' }}>#{p.productCode}</span>
+          <span className="text-label shrink-0" style={{ color: 'var(--tx3)' }}>Stok: {p.totalStock.toLocaleString('tr-TR')}</span>
         </div>
       </div>
     </div>
@@ -993,10 +993,10 @@ export function Dashboard({ prefill }: Props) {
             {/* Search icon */}
             <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none z-10">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                className="w-5 h-5"
+                className="w-5 h-5" aria-hidden="true"
                 style={{ color: categoryId ? 'var(--acc)' : 'var(--tx3)' }}>
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z" />
+                <circle cx="11" cy="11" r="7" />
+                <path strokeLinecap="round" d="M20 20l-4.35-4.35" />
               </svg>
             </div>
 
@@ -1014,7 +1014,7 @@ export function Dashboard({ prefill }: Props) {
               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none
                               flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                 style={{ background: 'rgba(28,202,199,0.08)', border: '1px solid rgba(28,202,199,0.22)' }}>
-                <span className="text-[11px] font-mono font-semibold" style={{ color: 'var(--acc-tx)' }}>
+                <span className="text-label font-mono font-semibold" style={{ color: 'var(--acc-tx)' }}>
                   {selectedCategories.length > 1 ? `${selectedCategories.length} kategori` : `#${categoryId}`}
                 </span>
               </div>
@@ -1022,7 +1022,7 @@ export function Dashboard({ prefill }: Props) {
           </div>
 
           {/* Alt açıklama */}
-          <p className="text-[12px] mt-3 px-1" style={{ color: 'var(--tx3)' }}>
+          <p className="text-caption mt-3 px-1" style={{ color: 'var(--tx3)' }}>
             {selectedCategories.length === 0
               ? 'Sıralamayı yönetmek istediğiniz T-Soft kategorisini seçin'
               : selectedCategories.length === 1
@@ -1036,11 +1036,11 @@ export function Dashboard({ prefill }: Props) {
               {selectedCategories.map(({ id, name }, idx) => (
                 <button key={id} type="button"
                   onClick={() => handleToggleCategory(id, name)}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full text-label font-semibold transition-all"
                   style={idx === 0
                     ? { background: 'rgba(28,202,199,0.12)', border: '1px solid rgba(28,202,199,0.3)', color: 'var(--acc-tx)' }
                     : { background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx2)' }}>
-                  {idx === 0 && <span style={{ fontSize: '9px' }}>★</span>}
+                  {idx === 0 && <span style={{ fontSize: 'var(--text-label)' }}>★</span>}
                   <span>{name || id}</span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3 opacity-60">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -1052,10 +1052,12 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         {/* Ağırlık Dağılımı + Sıralama Kriterleri yan yana */}
-        <div className="flex flex-col md:flex-row md:items-start gap-6">
+        {/* minmax(0,1fr) lets columns shrink below their content's min width
+            instead of pushing the page wider than the viewport. */}
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-6">
 
         {/* Ağırlık dağılımı */}
-        <div className="w-full md:w-1/2" style={{ ...cardSt, borderRadius: '20px' }}>
+        <div className="min-w-0 max-w-full" style={{ ...cardSt, borderRadius: '20px' }}>
           {/* Kart başlık şeridi */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
             <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
@@ -1064,7 +1066,7 @@ export function Dashboard({ prefill }: Props) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
               </svg>
             </div>
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
+            <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
               Ağırlık Dağılımı
             </span>
           </div>
@@ -1078,7 +1080,7 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         {/* Sıralama Kriterleri */}
-        <div className="w-full md:w-1/2" style={{ ...cardSt, borderRadius: '20px' }}>
+        <div className="min-w-0 max-w-full" style={{ ...cardSt, borderRadius: '20px' }}>
           {/* Kart başlık şeridi */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28.3px', background: 'var(--surface3)', borderBottom: '1px solid var(--border)', borderRadius: '20px 20px 0 0' }}>
             <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--acc-bg)' }}>
@@ -1087,7 +1089,7 @@ export function Dashboard({ prefill }: Props) {
                   d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
               </svg>
             </div>
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
+            <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
               Sıralama Kriterleri
             </span>
           </div>
@@ -1111,7 +1113,7 @@ export function Dashboard({ prefill }: Props) {
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.color = 'var(--acc-tx)'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
                   <span style={{ fontSize: '20px', lineHeight: 1 }}>+</span>
-                  <span style={{ fontSize: '12px', fontWeight: 600 }}>Kriter Ekle</span>
+                  <span style={{ fontSize: 'var(--text-caption)', fontWeight: 600 }}>Kriter Ekle</span>
                 </button>
               )}
             </div>
@@ -1127,16 +1129,16 @@ export function Dashboard({ prefill }: Props) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: 'var(--acc)' }}>
-                <span style={{ fontSize: '14px', lineHeight: 1 }}>⚡</span>
+                <span style={{ fontSize: 'var(--text-body)', lineHeight: 1 }}>⚡</span>
               </div>
               <div>
-                <div className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--acc-tx)' }}>Hazır Strateji Şablonları</div>
-                <div className="text-[11px] mt-0.5" style={{ color: 'var(--tx3)' }}>Bir şablon seçin — kriterler otomatik doldurulur</div>
+                <div className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--acc-tx)' }}>Hazır Strateji Şablonları</div>
+                <div className="text-caption mt-0.5" style={{ color: 'var(--tx3)' }}>Bir şablon seçin — kriterler otomatik doldurulur</div>
               </div>
             </div>
             {selectedScenario && (
               <button onClick={() => setSelectedScenario(null)}
-                className="text-[11px] font-medium px-2.5 py-1 rounded-lg"
+                className="text-label font-medium px-2.5 py-1 rounded-lg"
                 style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx3)', cursor: 'pointer' }}>
                 Temizle
               </button>
@@ -1144,7 +1146,7 @@ export function Dashboard({ prefill }: Props) {
           </div>
 
           {/* Senaryo ızgarası */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2" style={{ padding: '14px 16px', background: 'var(--surface)' }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2" style={{ padding: '14px 16px', background: 'var(--surface)' }}>
             {SCENARIOS.map(s => {
               const isSelected = selectedScenario?.id === s.id;
               return (
@@ -1161,8 +1163,8 @@ export function Dashboard({ prefill }: Props) {
                   onMouseEnter={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface)'; } }}
                   onMouseLeave={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; } }}>
                   <span style={{ fontSize: '18px', lineHeight: 1 }}>{s.emoji}</span>
-                  <div className="text-[11px] font-bold leading-tight mt-0.5" style={{ color: isSelected ? 'var(--acc-tx)' : 'var(--tx1)' }}>{s.name}</div>
-                  <div className="text-[10px] leading-tight" style={{ color: 'var(--tx3)' }}>{s.tagline}</div>
+                  <div className="text-label font-bold leading-tight mt-0.5 break-words max-w-full" style={{ color: isSelected ? 'var(--acc-tx)' : 'var(--tx1)' }}>{s.name}</div>
+                  <div className="text-caption leading-tight" style={{ color: 'var(--tx3)' }}>{s.tagline}</div>
                 </button>
               );
             })}
@@ -1173,11 +1175,11 @@ export function Dashboard({ prefill }: Props) {
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 16px', background: 'var(--acc-bg)', borderTop: '1px solid var(--acc-bd)' }}>
               <span style={{ fontSize: '22px', lineHeight: 1, flexShrink: 0 }}>{selectedScenario.emoji}</span>
               <div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--acc-tx)' }}>
+                <div style={{ fontSize: 'var(--text-caption)', fontWeight: 700, color: 'var(--acc-tx)' }}>
                   {selectedScenario.name}
                   <span style={{ fontWeight: 400, marginLeft: '6px', color: 'var(--tx3)' }}>· {selectedScenario.tagline}</span>
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--tx2)', marginTop: '4px', lineHeight: 1.6 }}>
+                <div style={{ fontSize: 'var(--text-caption)', color: 'var(--tx2)', marginTop: '4px', lineHeight: 1.6 }}>
                   {selectedScenario.description}
                 </div>
               </div>
@@ -1193,7 +1195,7 @@ export function Dashboard({ prefill }: Props) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
               </svg>
             </div>
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
+            <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
               Beden Bulunurluk Eşiği
             </span>
           </div>
@@ -1210,7 +1212,7 @@ export function Dashboard({ prefill }: Props) {
             <input type="range" min={0} max={1} step={0.05} value={threshold}
               onChange={e => setThreshold(Number(e.target.value))}
               className="w-full" />
-            <div className="flex justify-between text-[10px] mt-2" style={{ color: 'var(--tx3)' }}>
+            <div className="flex justify-between text-label mt-2" style={{ color: 'var(--tx3)' }}>
               <span>%0 — Tümü dahil</span>
               <span>%50</span>
               <span>%100 — Tam stok</span>
@@ -1227,7 +1229,7 @@ export function Dashboard({ prefill }: Props) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
               </svg>
             </div>
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
+            <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>
               Smart Mix
             </span>
           </div>
@@ -1256,9 +1258,9 @@ export function Dashboard({ prefill }: Props) {
               </svg>
             </div>
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>Sezon Ön-Sıralaması</span>
+              <span className="text-label font-bold uppercase tracking-widest" style={{ color: 'var(--tx2)' }}>Sezon Ön-Sıralaması</span>
               {seasonPreFilter !== 'none' && (
-                <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                <span className="ml-2 text-label font-semibold px-2 py-0.5 rounded-full"
                   style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }}>
                   Aktif
                 </span>
@@ -1288,8 +1290,8 @@ export function Dashboard({ prefill }: Props) {
                     }}
                     onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; } }}
                     onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; } }}>
-                    <span className="text-[13px] font-semibold" style={{ color: isActive ? 'var(--acc-tx)' : 'var(--tx1)' }}>{opt.label}</span>
-                    <span className="text-[10px] leading-snug max-w-[200px]" style={{ color: 'var(--tx3)' }}>{opt.desc}</span>
+                    <span className="text-caption font-semibold" style={{ color: isActive ? 'var(--acc-tx)' : 'var(--tx1)' }}>{opt.label}</span>
+                    <span className="text-caption leading-snug max-w-[200px]" style={{ color: 'var(--tx3)' }}>{opt.desc}</span>
                   </button>
                 );
               })}
@@ -1335,7 +1337,7 @@ export function Dashboard({ prefill }: Props) {
                       style={{ border: '1px solid var(--border)' }}>
                       {(['current', 'preview'] as const).map(v => (
                         <button key={v} onClick={() => setView(v)}
-                          className="px-4 py-2 text-xs font-semibold transition-colors whitespace-nowrap"
+                          className="px-4 py-2 text-caption font-semibold transition-colors whitespace-nowrap"
                           style={view === v
                             ? { background: 'var(--acc-bg)', color: 'var(--acc-tx)' }
                             : { background: 'var(--surface)', color: 'var(--tx3)' }
@@ -1345,7 +1347,7 @@ export function Dashboard({ prefill }: Props) {
                       ))}
                     </div>
                   ) : (
-                    <span className="text-xs font-semibold" style={{ color: 'var(--tx2)' }}>Mevcut Sıralama</span>
+                    <span className="text-caption font-semibold" style={{ color: 'var(--tx2)' }}>Mevcut Sıralama</span>
                   )}
                 </div>
 
@@ -1353,7 +1355,7 @@ export function Dashboard({ prefill }: Props) {
                 <div className="flex flex-wrap items-center gap-2">
                   {(manualOrder.length > 0 || previewOrder.length > 0) && (
                     <button onClick={handleExportCsv}
-                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors"
+                      className="flex items-center gap-1.5 text-caption px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors"
                       style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx2)' }}
                       title="Sıralamayı CSV olarak indir"
                       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--acc-bd)'; (e.currentTarget as HTMLElement).style.color = 'var(--acc-tx)'; }}
@@ -1366,7 +1368,7 @@ export function Dashboard({ prefill }: Props) {
                   )}
                   {Object.keys(pinnedPositions).length > 0 && (
                     <button onClick={clearAllPins}
-                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors"
+                      className="flex items-center gap-1.5 text-caption px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors"
                       style={{ background: 'var(--acc-bg)', border: '1px solid var(--acc-bd)', color: 'var(--acc-tx)' }}
                       title="Tüm sabitlemeleri kaldır">
                       <PinIcon pinned={false} />
@@ -1375,7 +1377,7 @@ export function Dashboard({ prefill }: Props) {
                   )}
                   {view === 'preview' && previewResult && previewResult.disqualifiedCount > 0 && (
                     <button onClick={() => setShowDq(v => !v)}
-                      className="text-xs px-3 py-1.5 rounded-lg font-medium whitespace-nowrap"
+                      className="text-caption px-3 py-1.5 rounded-lg font-medium whitespace-nowrap"
                       style={{
                         background: showDq ? 'var(--err-bg)' : 'var(--surface2)',
                         border: `1px solid ${showDq ? 'var(--err-bd)' : 'var(--border)'}`,
@@ -1404,11 +1406,11 @@ export function Dashboard({ prefill }: Props) {
                 <div className="flex items-center gap-2 mt-2.5 flex-wrap">
                   {view === 'current' && currentResult && (
                     <>
-                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                      <span className="text-label font-semibold px-2.5 py-1 rounded-full"
                         style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx2)' }}>
                         {currentResult.total} ürün
                       </span>
-                      <span className="text-[11px] font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5"
+                      <span className="text-label font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5"
                         style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx3)' }}>
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'var(--tx3)' }} />
                         T-Soft sıralaması · Puanlama uygulanmıyor
@@ -1420,7 +1422,7 @@ export function Dashboard({ prefill }: Props) {
                     { label: 'Aktif',    val: previewResult.qualifiedCount,    bg: 'var(--ok-bg)',    bd: 'var(--ok-bd)',  tx: 'var(--ok-tx)'  },
                     { label: 'Dışlanan', val: previewResult.disqualifiedCount, bg: 'var(--err-bg)',   bd: 'var(--err-bd)', tx: 'var(--err-tx)' },
                   ].map(s => (
-                    <span key={s.label} className="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
+                    <span key={s.label} className="text-label font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
                       style={{ background: s.bg, border: `1px solid ${s.bd}`, color: s.tx }}>
                       {s.val} {s.label}
                     </span>
@@ -1513,7 +1515,7 @@ export function Dashboard({ prefill }: Props) {
         style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: '10px 28px' }}>
         {/* Weight indicator */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-medium"
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-label font-medium"
             style={total === 100
               ? { border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)', background: 'var(--ok-bg)' }
               : { border: '1px solid var(--warn-bd)', color: 'var(--warn-tx)', background: 'var(--warn-bg)' }
@@ -1523,7 +1525,7 @@ export function Dashboard({ prefill }: Props) {
             Ağırlık: {total}%
           </div>
           {total !== 100 && (
-            <span className="text-[11px]" style={{ color: 'var(--tx3)' }}>
+            <span className="text-caption" style={{ color: 'var(--tx3)' }}>
               ({total > 100 ? `${total - 100} fazla` : `${100 - total} eksik`})
             </span>
           )}
@@ -1531,7 +1533,7 @@ export function Dashboard({ prefill }: Props) {
 
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setCriteria(DEFAULT_CRITERIA)}
-            className="px-4 py-2 rounded-lg text-[13px] font-medium transition-all whitespace-nowrap"
+            className="px-4 py-2 rounded-lg text-caption font-medium transition-all whitespace-nowrap"
             style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--tx3)', cursor: 'pointer' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx2)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx3)'; }}>
@@ -1539,7 +1541,7 @@ export function Dashboard({ prefill }: Props) {
           </button>
 
           <button onClick={handleSave} disabled={!isValid || isBusy}
-            className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap"
+            className="px-4 py-2 rounded-lg text-caption font-semibold transition-all whitespace-nowrap"
             style={!isValid || isBusy
               ? { background: 'transparent', color: 'var(--tx3)', cursor: 'not-allowed', border: '1px solid var(--border)' }
               : { background: 'var(--ok-bg)', color: 'var(--ok-tx)', border: '1px solid var(--ok-bd)', cursor: 'pointer' }
@@ -1548,7 +1550,7 @@ export function Dashboard({ prefill }: Props) {
           </button>
 
           <button onClick={handlePreview} disabled={!isValid || isBusy}
-            className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-all whitespace-nowrap"
+            className="px-4 py-2 rounded-lg text-caption font-semibold transition-all whitespace-nowrap"
             style={!isValid || isBusy
               ? { background: 'transparent', color: 'var(--tx3)', cursor: 'not-allowed', border: '1px solid var(--border)' }
               : { background: 'transparent', color: 'var(--tx1)', border: '1px solid var(--border-strong)', cursor: 'pointer' }
@@ -1601,7 +1603,7 @@ export function Dashboard({ prefill }: Props) {
               </svg>
             )}
             {!chatOpen && aiRules.length > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+              <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full text-label font-bold flex items-center justify-center"
                 style={{ background: 'var(--err-tx)', color: 'white' }}>
                 {aiRules.length}
               </span>
@@ -1620,7 +1622,7 @@ export function Dashboard({ prefill }: Props) {
               <div className="shrink-0 px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
                 <div>
                   <div className="text-sm font-semibold" style={{ color: 'var(--tx1)' }}>AI Sıralama Asistanı</div>
-                  <div className="text-[11px]" style={{ color: 'var(--tx3)' }}>{categoryName || categoryId}</div>
+                  <div className="text-caption" style={{ color: 'var(--tx3)' }}>{categoryName || categoryId}</div>
                 </div>
                 <button onClick={() => setChatOpen(false)}
                   className="w-7 h-7 rounded-full flex items-center justify-center hover:opacity-70 shrink-0"
@@ -1630,13 +1632,13 @@ export function Dashboard({ prefill }: Props) {
               {/* Mesaj akışı */}
               <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2.5">
                 {messages.length === 0 && (
-                  <p className="text-xs leading-relaxed" style={{ color: 'var(--tx3)' }}>
+                  <p className="text-caption leading-relaxed" style={{ color: 'var(--tx3)' }}>
                     Önizleme sıralamasıyla ilgili bir talimat yazın, örn: <em>"ilk 100 sırada çanta kategorisinden ürün olmasın"</em>. Sonuç Önizleme sekmesine uygulanır.
                   </p>
                 )}
                 {messages.map((m, i) => (
                   <div key={i}
-                    className="max-w-[85%] px-3 py-2 rounded-[20px] text-[13px] leading-snug"
+                    className="max-w-[85%] px-3 py-2 rounded-[20px] text-caption leading-snug"
                     style={{
                       alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
                       ...(m.role === 'user'
@@ -1649,7 +1651,7 @@ export function Dashboard({ prefill }: Props) {
                   </div>
                 ))}
                 {aiLoading && (
-                  <div className="px-3 py-2 rounded-[20px] text-[13px] flex items-center gap-1.5"
+                  <div className="px-3 py-2 rounded-[20px] text-caption flex items-center gap-1.5"
                     style={{ alignSelf: 'flex-start', background: 'var(--surface2)', color: 'var(--tx3)' }}>
                     <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
                     düşünüyor…
@@ -1662,11 +1664,11 @@ export function Dashboard({ prefill }: Props) {
                 <div className="shrink-0 px-4 py-2.5 flex flex-wrap gap-1.5" style={{ borderTop: '1px solid var(--border)' }}>
                   {aiRules.map((r, i) => (
                     <span key={i}
-                      className="text-[11px] font-medium pl-2 pr-1 py-1 rounded-full flex items-center gap-1"
+                      className="text-label font-medium pl-2 pr-1 py-1 rounded-full flex items-center gap-1"
                       style={{ background: 'var(--acc-bg)', color: 'var(--acc-tx)' }}>
                       {r.description}
                       <button onClick={() => handleRemoveAiRule(i)} disabled={aiLoading}
-                        className="w-3.5 h-3.5 rounded-full flex items-center justify-center hover:opacity-70 shrink-0 text-[10px]"
+                        className="w-4 h-4 rounded-full flex items-center justify-center hover:opacity-70 shrink-0 text-label"
                         style={{ background: 'rgba(0,0,0,0.08)' }}>
                         ✕
                       </button>

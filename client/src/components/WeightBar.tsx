@@ -75,13 +75,13 @@ export function WeightBar({ criteria, onChange }: Props) {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-sm font-semibold" style={{ color: 'var(--tx1)' }}>Puan Dağılım Çubuğu</div>
+          <div className="text-body font-semibold" style={{ color: 'var(--tx1)' }}>Puan Dağılım Çubuğu</div>
           {off ? (
-            <div role="alert" className="text-xs mt-0.5 font-medium" style={{ color: 'var(--err-tx)' }}>
+            <div role="alert" className="text-caption mt-0.5 font-medium" style={{ color: 'var(--err-tx)' }}>
               Toplam %100 olmalı — {total > 100 ? `${total - 100} puan fazla` : `${100 - total} puan eksik`}
             </div>
           ) : (
-            <div className="text-xs mt-0.5" style={{ color: 'var(--tx3)' }}>Sürükleyerek ağırlıkları ayarlayın</div>
+            <div className="text-caption mt-0.5" style={{ color: 'var(--tx3)' }}>Sürükleyerek ağırlıkları ayarlayın</div>
           )}
         </div>
         <span className="text-lg font-bold tabular-nums shrink-0 rounded-lg px-2 py-0.5"
@@ -98,7 +98,7 @@ export function WeightBar({ criteria, onChange }: Props) {
         style={{ border: '1px solid var(--border)' }}>
         {criteria.map((c, i) => (
           <div key={i}
-            className="flex items-center justify-center text-xs font-bold overflow-hidden whitespace-nowrap"
+            className="flex items-center justify-center text-label font-bold overflow-hidden whitespace-nowrap"
             style={{
               width: `${c.weight}%`,
               background: CRITERION_COLORS[i] ?? CRITERION_COLORS[0],
@@ -123,13 +123,13 @@ export function WeightBar({ criteria, onChange }: Props) {
       {/* Numeric inputs */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg px-4 py-3"
         style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
-        <span className="text-xs font-medium shrink-0" style={{ color: 'var(--tx2)' }}>Ağırlıklar</span>
+        <span className="text-caption font-medium shrink-0" style={{ color: 'var(--tx2)' }}>Ağırlıklar</span>
         <div className="flex-1 grid gap-3"
-          style={{ gridTemplateColumns: `repeat(${criteria.length}, minmax(0, 1fr))` }}>
+          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))' }}>
           {criteria.map((c, i) => (
             <label key={i} className="flex items-center justify-center gap-1.5 min-w-0">
               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CRITERION_COLORS[i] ?? CRITERION_COLORS[0] }} />
-              <span className="text-xs font-semibold shrink-0" style={{ color: 'var(--tx2)' }}>K{i + 1}</span>
+              <span className="text-label font-semibold shrink-0" style={{ color: 'var(--tx2)' }}>K{i + 1}</span>
               <span className="relative min-w-0 w-full max-w-[72px]">
                 <input
                   type="text"
@@ -143,10 +143,10 @@ export function WeightBar({ criteria, onChange }: Props) {
                   }}
                   onBlur={() => commitDraft(i)}
                   onKeyDown={e => { if (e.key === 'Enter') commitDraft(i); }}
-                  className="w-full h-8 pl-2 pr-6 text-right text-sm font-bold tabular-nums rounded-lg focus:outline-none transition-all"
+                  className="w-full h-8 pl-2 pr-6 text-right text-body font-bold tabular-nums rounded-lg focus:outline-none transition-all"
                   style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--tx1)' }}
                 />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none" style={{ color: 'var(--tx3)' }}>%</span>
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-label pointer-events-none" style={{ color: 'var(--tx3)' }}>%</span>
               </span>
             </label>
           ))}

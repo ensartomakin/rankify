@@ -16,7 +16,7 @@ export function WeightDonut({ criteria }: Props) {
   const off   = total !== 100;
 
   return (
-    <div className="flex items-center gap-8">
+    <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-5">
       {/* Donut */}
       <div className="relative shrink-0">
         <PieChart width={160} height={160}>
@@ -28,28 +28,28 @@ export function WeightDonut({ criteria }: Props) {
           </Pie>
         </PieChart>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-[9px] font-semibold tracking-widest uppercase" style={{ color: 'var(--tx3)' }}>
+          <span className="text-label font-semibold tracking-widest uppercase" style={{ color: 'var(--tx3)' }}>
             TOPLAM
           </span>
           <span className="text-xl font-bold leading-tight tabular-nums" style={{ color: off ? 'var(--err-tx)' : 'var(--tx1)' }}>
             {total}%
           </span>
-          <span className="text-[9px]" style={{ color: off ? 'var(--err-tx)' : 'var(--tx2)' }}>
+          <span className="text-caption" style={{ color: off ? 'var(--err-tx)' : 'var(--tx2)' }}>
             {off ? '100 olmalı' : 'dağılım'}
           </span>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="flex-1 space-y-2">
+      <div className="flex-1 min-w-[220px] space-y-2">
         {data.map((d, i) => (
-          <div key={i} className="flex items-center justify-between rounded-lg px-4 py-2.5"
+          <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-4 py-2.5"
             style={{ background: d.color + '1A', border: `1px solid ${d.color}59`, boxShadow: `inset 3px 0 0 ${d.color}` }}>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
-              <div>
-                <div className="text-sm font-semibold" style={{ color: 'var(--tx1)' }}>Kriter {i + 1}</div>
-                <div className="text-xs" style={{ color: 'var(--tx2)' }}>
+              <div className="min-w-0">
+                <div className="text-body font-semibold" style={{ color: 'var(--tx1)' }}>Kriter {i + 1}</div>
+                <div className="text-caption" style={{ color: 'var(--tx2)' }}>
                   {d.label} · {criteria[i].direction === 'desc' ? 'Azalan' : 'Artan'}
                   {criteria[i].key === 'bestSeller' && criteria[i].salesPeriod
                     ? ` · ${SALES_PERIOD_LABELS[criteria[i].salesPeriod as SalesPeriod] ?? criteria[i].salesPeriod}`
@@ -57,7 +57,7 @@ export function WeightDonut({ criteria }: Props) {
                 </div>
               </div>
             </div>
-            <span className="text-base font-bold tabular-nums" style={{ color: 'var(--tx1)' }}>
+            <span className="text-base font-bold tabular-nums shrink-0" style={{ color: 'var(--tx1)' }}>
               {d.value}%
             </span>
           </div>

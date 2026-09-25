@@ -976,14 +976,6 @@ export function Dashboard({ prefill }: Props) {
         <h1 className="font-serif" style={{ fontSize: 'clamp(18px,4vw,28px)', fontWeight: 700, color: 'var(--tx1)', lineHeight: 1.2 }}>
           Sıralama Yöneticisi
         </h1>
-        <div className="shrink-0 flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-semibold"
-          style={isValid
-            ? { border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)', background: 'var(--ok-bg)' }
-            : { border: '1px solid var(--border-2)', color: 'var(--tx3)', background: 'transparent' }
-          }>
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: isValid ? 'var(--ok-tx)' : 'var(--border-2)' }} />
-          {isValid ? 'Hazır' : 'Yapılandırılıyor'}
-        </div>
       </div>
 
       {/* Kaydırılabilir içerik */}

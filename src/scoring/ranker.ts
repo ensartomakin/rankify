@@ -47,7 +47,7 @@ export function applyDisqualification(
       return {
         ...p,
         isDisqualified: true,
-        disqualifyReason: `Bulunurluk yetersiz (%${pct} < %${Math.round(threshold * 100)})`,
+        disqualifyReason: `Beden oranı %${Math.round(threshold * 100)} altında (%${pct})`,
       };
     }
     return { ...p, isDisqualified: false };

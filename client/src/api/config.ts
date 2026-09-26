@@ -13,6 +13,9 @@ export interface SavedConfig {
   smartMix?: boolean;
   seasonPreFilter?: SeasonPreFilter;
   schedule?: CategorySchedule;
+  updatedAt?: string;
+  /** Latest run of the category; null = never run. Absent on older API versions. */
+  lastRun?: { ranAt: string; status: 'success' | 'error'; triggeredBy: string } | null;
 }
 
 export async function fetchConfigs(): Promise<SavedConfig[]> {

@@ -36,13 +36,14 @@ function devRowToConfig(row: DevConfig) {
     smartMix:              row.smartMix ?? true,
     seasonPreFilter:       (row.seasonPreFilter ?? 'none') as SeasonPreFilter,
     schedule:              row.schedule ?? { ...NO_SCHEDULE },
+    updatedAt:             row.updatedAt,
   };
 }
 
 interface PgConfigRow {
   id: number; user_id: number; category_id: string; category_name: string | null;
   availability_threshold: string; criteria: WeightCriterion[]; is_active: boolean;
-  smart_mix: boolean; season_pre_filter: string;
+  smart_mix: boolean; season_pre_filter: string; updated_at: string | Date;
   schedule_enabled: boolean; schedule_day_hours: Record<string, number[]>;
 }
 
@@ -58,6 +59,7 @@ function pgRowToConfig(r: PgConfigRow) {
     smartMix:              r.smart_mix,
     seasonPreFilter:       r.season_pre_filter as SeasonPreFilter,
     schedule:              { isEnabled: r.schedule_enabled, dayHours: toDayHours(r.schedule_day_hours) },
+    updatedAt:             new Date(r.updated_at).toISOString(),
   };
 }
 

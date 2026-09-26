@@ -5,12 +5,16 @@ interface Props {
   title: string;
   description: string;
   confirmLabel: string;
+  /** Destructive action: red confirm button. */
+  danger?: boolean;
+  /** Extra warning shown in an orange box above the buttons. */
+  warning?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 /* Small modal confirmation: Esc or a click on the backdrop cancels. */
-export function ConfirmDialog({ open, title, description, confirmLabel, onConfirm, onCancel }: Props) {
+export function ConfirmDialog({ open, title, description, confirmLabel, danger, warning, onConfirm, onCancel }: Props) {
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -31,6 +35,12 @@ export function ConfirmDialog({ open, title, description, confirmLabel, onConfir
         onMouseDown={e => e.stopPropagation()}>
         <h2 id="confirm-title" className="text-body font-bold" style={{ color: 'var(--tx1)' }}>{title}</h2>
         <p id="confirm-desc" className="text-caption leading-relaxed" style={{ color: 'var(--tx2)' }}>{description}</p>
+        {warning && (
+          <p role="alert" className="text-caption leading-relaxed px-3 py-2 rounded-lg"
+            style={{ background: 'var(--warn-bg)', border: '1px solid var(--warn-bd)', color: 'var(--warn-tx)' }}>
+            {warning}
+          </p>
+        )}
         <div className="flex justify-end gap-2 pt-tight">
           <button ref={cancelRef} type="button" onClick={onCancel}
             className="h-9 px-4 rounded-lg text-caption font-semibold"
@@ -39,7 +49,9 @@ export function ConfirmDialog({ open, title, description, confirmLabel, onConfir
           </button>
           <button type="button" onClick={onConfirm}
             className="h-9 px-4 rounded-lg text-caption font-bold"
-            style={{ background: 'var(--cta-bg)', color: 'var(--cta-tx)', border: '1px solid transparent', cursor: 'pointer' }}>
+            style={danger
+              ? { background: 'var(--err-tx)', color: 'var(--on-fill)', border: '1px solid transparent', cursor: 'pointer' }
+              : { background: 'var(--cta-bg)', color: 'var(--cta-tx)', border: '1px solid transparent', cursor: 'pointer' }}>
             {confirmLabel}
           </button>
         </div>

@@ -99,6 +99,12 @@
   --cta-bg:    #1CCAC7;
   --cta-tx:    #151035;
   --cta-hov:   #17B0AD;
+
+  /* AI assistant button — light violet chip with brand-violet ink */
+  --ai-bg:     #EFEBFF;
+  --ai-bg-hov: #E2DAFF;
+  --ai-bd:     #2F226C;
+  --ai-tx:     #2F226C;
 }
 
 /* ── Fixed tokens — identical in both themes ─────────────── */
@@ -195,6 +201,11 @@
   --cta-bg:    #35D9D6;
   --cta-tx:    #151035;
   --cta-hov:   #5CE3E0;
+
+  --ai-bg:     rgba(124,92,255,0.16);
+  --ai-bg-hov: rgba(124,92,255,0.26);
+  --ai-bd:     #7C5CFF;
+  --ai-tx:     #C9BDFF;
 }
 
 /* ── Base ──────────────────────────────────── */

@@ -43,20 +43,13 @@ const DEFAULT_CRITERIA: WeightCriterion[] = [
 
 const fmtPct = (n: number) => formatPercent(n, 1);
 
-/** Positions written to the store: active products in the shown order (1..N),
- *  then the excluded ones — the same order the preview displays. */
+/** Positions written to the store: every product (excluded ones included) in
+ *  exactly the order the preview shows. The ranking puts excluded products last;
+ *  a manual move can place one anywhere, including among the active ones. */
 function fullStoreOrder(items: ProductPreviewItem[]): { productCode: string; rank: number }[] {
-  const ordered = [...items.filter(p => !p.isDisqualified), ...items.filter(p => p.isDisqualified)];
-  return ordered.map((p, i) => ({ productCode: p.productCode, rank: i + 1 }));
+  return items.map((p, i) => ({ productCode: p.productCode, rank: i + 1 }));
 }
 
-
-/** Preview order is always: active products, then the excluded ones. Keeps each
- *  group's own order (so manual moves within a group stick) and renumbers 1..N. */
-function groupExcludedLast(items: ProductPreviewItem[]): ProductPreviewItem[] {
-  const ordered = [...items.filter(p => !p.isDisqualified), ...items.filter(p => p.isDisqualified)];
-  return ordered.map((p, i) => (p.finalRank === i + 1 ? p : { ...p, finalRank: i + 1 }));
-}
 
 /* ─── Boş durum ikonları ─── */
 function GridIcon() {
@@ -138,7 +131,8 @@ function RankBadge({ rank, onRankEdit, plain }: { rank: number; onRankEdit?: (n:
     <input ref={inputRef} type="number" min={1} value={rankInput}
       onChange={e => setRankInput(e.target.value)}
       onBlur={commitEdit}
-      onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(false); }}
+      // stopPropagation: otherwise Enter/Space also reach the sortable row and start a keyboard drag
+      onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(false); }}
       onPointerDown={e => e.stopPropagation()}
       className="w-14 text-center text-label font-bold rounded-full px-2 py-0.5 outline-none"
       style={{ background: 'var(--acc)', color: 'var(--cta-tx)', border: '2px solid var(--acc)' }}
@@ -695,8 +689,7 @@ export function Dashboard({ prefill }: Props) {
   const [previewStatus, setPreviewStatus] = useState<Status>('idle');
 
   // Manuel sıralama — önizleme görünümü
-  const [previewOrder, setPreviewOrderRaw] = useState<ProductPreviewItem[]>([]);
-  const setPreviewOrder = (items: ProductPreviewItem[]) => setPreviewOrderRaw(groupExcludedLast(items));
+  const [previewOrder, setPreviewOrder] = useState<ProductPreviewItem[]>([]);
 
   // Sabitleme
   const [pinnedPositions, setPinnedPositions] = useState<Record<string, number>>({});
@@ -1108,7 +1101,7 @@ export function Dashboard({ prefill }: Props) {
     if (!isValid || previewOrder.length === 0) return;
     setTriggerStatus('loading');
     try {
-      // Tüm ürünlere sıra yaz (aktifler önce, dışlananlar sonra). Gönderilmeyen ürün
+      // Tüm ürünlere önizlemedeki sırayla sıra yaz (dışlananlar dahil). Gönderilmeyen ürün
       // mağazada eski sıra numarasını korur ve yeni sıralamanın arasına karışır.
       await applyManualRanking(categoryId.trim(), fullStoreOrder(previewOrder));
       // Ek kategoriler için algoritmayı çalıştır ve uygula
@@ -1147,17 +1140,15 @@ export function Dashboard({ prefill }: Props) {
     p.productCode.toLowerCase().includes(filter.toLowerCase())
   );
 
-  // Every product is numbered: active ones 1..N, then the excluded ones continue.
+  // Every product is numbered by its position, excluded ones included.
   const activeRank = new Map(previewOrder.map((p, i) => [p.productCode, i + 1] as const));
   const matchesFilter = (p: ProductPreviewItem) =>
     !filter.trim() ||
     p.productName.toLowerCase().includes(filter.toLowerCase()) ||
     p.productCode.toLowerCase().includes(filter.toLowerCase());
   // Active products in their ranked order, excluded ones always at the end.
-  const filteredPreview = [
-    ...previewOrder.filter(p => !p.isDisqualified && matchesFilter(p)),
-    ...(showDq ? previewOrder.filter(p => p.isDisqualified && matchesFilter(p)) : []),
-  ];
+  // Shown in the actual order, so an excluded product moved among the active ones stays there.
+  const filteredPreview = previewOrder.filter(p => (showDq || !p.isDisqualified) && matchesFilter(p));
 
   const hasProducts = currentResult !== null || previewResult !== null;
 

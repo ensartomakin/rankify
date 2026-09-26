@@ -1,8 +1,7 @@
-import type { TSoftVariant } from '../types/tsoft';
 import type { SizeAvailability } from '../types/product';
 
 export function computeSizeAvailability(
-  variants: TSoftVariant[],
+  variants: { stock: number }[],
   threshold: number
 ): SizeAvailability {
   // Varyant verisi hiç gelmediyse güvenli default

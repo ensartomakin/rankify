@@ -1,4 +1,5 @@
-import { getClientForUser } from '../services/tsoft-client';
+import { getAdapterForUser } from '../platform/registry';
+import type { PlatformAdapter, PlatformProduct, SalesStat } from '../platform/types';
 import { computeSizeAvailability } from '../scoring/availability';
 import { getGa4Credentials, getGa4Metrics, upsertGa4Metrics, getGa4LastSyncForRange } from '../db/ga4.repo';
 import { fetchGa4ProductMetrics, } from '../services/ga4-client';
@@ -72,7 +73,6 @@ import { logger } from '../utils/logger';
 import { sleep } from '../utils/helpers';
 import { insertAuditLog } from '../db/audit.repo';
 import type { WeightConfig, NormalizedProduct, CriterionKey, SeasonPreFilter } from '../types/product';
-import type { TSoftProduct, TSoftSalesData } from '../types/tsoft';
 
 // ── Sezon ön-sıralama ────────────────────────────────────────────────────────
 
@@ -101,16 +101,18 @@ export interface CurrentRankItem {
   productId:   string;
   productCode: string;
   productName: string;
-  imageUrl:    string;
-  imageUrls?:  string[];
+  productUrl:  string;     // absolute product page URL
+  imageUrl:    string;     // first of imageUrls (kept for older clients)
+  imageUrls:   string[];   // absolute, best first
   totalStock:  number;
-  seoUrl:      string;
+  seoUrl:      string;     // = productUrl (kept for older clients)
 }
 
 export interface CurrentRankingResult {
   products: CurrentRankItem[];
   total:    number;
   apiUrl:   string;
+  categoryExportCode: string;   // category id as the store's sort import expects it
 }
 
 export async function getCurrentRanking(
@@ -118,25 +120,25 @@ export async function getCurrentRanking(
   userId = 0,
   tenantId?: number
 ): Promise<CurrentRankingResult> {
-  const client   = await getClientForUser(userId, tenantId);
-  const apiUrl   = client.getBaseUrl();
-  // T-Soft'un ListNo'ya göre sıralanmış ürünlerini iste
-  const products = await client.getCategoryProductsSorted(categoryId);
+  const adapter  = await getAdapterForUser(userId, tenantId);
+  // Mağazanın şu an gösterdiği sıra
+  const products = await adapter.getProductsInStoreOrder(categoryId);
 
   logger.info(`[getCurrentRanking] kategori=${categoryId} toplam=${products.length}`);
 
   const items: CurrentRankItem[] = products.map((p, i) => ({
     currentRank: i + 1,
-    productId:   p.productId,
-    productCode: p.productCode,
-    productName: p.productName,
-    imageUrl:    p.imageUrl,
+    productId:   p.id,
+    productCode: p.code,
+    productName: p.name,
+    productUrl:  p.url,
+    imageUrl:    p.imageUrls[0] ?? '',
     imageUrls:   p.imageUrls,
     totalStock:  p.variants.reduce((s, v) => s + v.stock, 0),
-    seoUrl:      p.seoUrl,
+    seoUrl:      p.url,
   }));
 
-  return { products: items, total: items.length, apiUrl };
+  return { products: items, total: items.length, apiUrl: adapter.storeUrl, categoryExportCode: adapter.exportCategoryCode(categoryId) };
 }
 
 export interface ProductPreviewItem {
@@ -155,11 +157,11 @@ export interface ProductPreviewItem {
   salesQty:             number; // seçilen salesPeriod'a göre çekilen satış adedi
   reviewCount:          number;
   discountRate:         number;
-  seoUrl:               string;
+  productUrl:           string;
+  seoUrl:               string; // = productUrl (kept for older clients)
   registrationDate:     string;
-  imageCount:           number;
-  imageUrl:             string;
-  imageUrls?:            string[];
+  imageUrl:             string; // first of imageUrls (kept for older clients)
+  imageUrls:            string[];
   season:               string;
   ga4?: NormalizedProduct['ga4'];
 }
@@ -170,7 +172,69 @@ export interface PreviewResult {
   qualifiedCount:    number;
   disqualifiedCount: number;
   apiUrl:            string;
+  categoryExportCode: string;
   criteria:          WeightConfig['criteria'];
+}
+
+/* ── Ortak adımlar: veri toplama + normalleştirme + sıralama ─────────────── */
+
+/** Platform products → scoring model, with sales and GA4 metrics attached. */
+async function loadAndScore(
+  adapter: PlatformAdapter,
+  products: PlatformProduct[],
+  config: WeightConfig,
+  userId: number,
+): Promise<NormalizedProduct[]> {
+  const { availabilityThreshold } = config;
+  const bestSellerCriterion = config.criteria.find(c => c.key === 'bestSeller');
+  const salesDays = salesPeriodToDays(bestSellerCriterion?.salesPeriod);
+  const sales     = await adapter.getSales(products.map(p => p.code), salesDays);
+  const salesMap  = new Map<string, SalesStat>(sales.map(s => [s.code, s]));
+
+  // GA4 metrikleri — periyoda göre önbellekten veya auto-sync
+  const ga4Map = await resolveGa4Map(config, userId);
+
+  const normalized: NormalizedProduct[] = products.map(p => {
+    const ga4 = ga4Map.get(p.id);
+    return {
+      productId:        p.id,
+      productCode:      p.code,
+      productName:      p.name,
+      categoryId:       p.categoryId,
+      categoryPath:     p.categoryPath,
+      registrationDate: new Date(p.createdAt),
+      reviewCount:      p.reviewCount,
+      salesQty:         salesMap.get(p.code)?.quantity ?? 0,
+      discountRate:     p.discountRate,
+      isActive:         p.isActive,
+      season:           p.season,
+      sizeAvailability: computeSizeAvailability(p.variants, availabilityThreshold),
+      ga4: ga4 ? { views: ga4.views, cartAdds: ga4.cartAdds, conversionRate: ga4.conversionRate } : undefined,
+      scores: { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
+      rankingScore:   0,
+      isDisqualified: false,
+      finalRank:      0,
+    };
+  });
+
+  return computeRankingScores(applyDisqualification(normalized, availabilityThreshold), config);
+}
+
+/** 1) Kriter puanı → 2) Sezon gruplandırması → 3) Smart mix (en son — böylece sezon
+ *  gruplandırmasının bir araya getirdiği aynı model/farklı renk ürünler arasına da
+ *  Smart Mix'in araya koyduğu minimum ürün mesafesi bozulmadan uygulanır). */
+function rankProducts(normalized: NormalizedProduct[], config: WeightConfig): NormalizedProduct[] {
+  let ranked = buildFinalRanking(normalized);
+  if (config.seasonPreFilter && config.seasonPreFilter !== 'none') {
+    ranked = applySeasonPreSort(ranked, config.seasonPreFilter);
+  }
+  if (config.smartMix) ranked = applySmartMix(ranked);
+  return ranked;
+}
+
+/** Order written to the store: active products in rank order, then the excluded ones. */
+export function fullStoreOrder<T extends { isDisqualified: boolean }>(ranked: T[]): T[] {
+  return [...ranked.filter(p => !p.isDisqualified), ...ranked.filter(p => p.isDisqualified)];
 }
 
 export async function runRankingPipeline(
@@ -179,82 +243,38 @@ export async function runRankingPipeline(
   userId = 0,
   tenantId?: number
 ): Promise<void> {
-  const { categoryId, availabilityThreshold } = config;
+  const { categoryId } = config;
   const startedAt = Date.now();
   logger.info(`Pipeline başladı — kategori: ${categoryId} [${triggeredBy}]`);
 
   try {
     // Phase 1: Veri toplama
-    const client   = await getClientForUser(userId, tenantId);
-    const products = await client.getCategoryProductsFull(categoryId);
+    const adapter  = await getAdapterForUser(userId, tenantId);
+    const products = await adapter.getProducts(categoryId);
 
     if (products.length === 0) {
       logger.warn(`Kategoride ürün bulunamadı: ${categoryId}`);
       return;
     }
 
-    logger.info(`${products.length} ürün bulundu, satış verileri çekiliyor… (ilk: ${products[0]?.productCode})`);
-    const emptyCode = products.filter(p => !p.productCode).length;
+    logger.info(`${products.length} ürün bulundu, satış verileri çekiliyor… (ilk: ${products[0]?.code})`);
+    const emptyCode = products.filter(p => !p.code).length;
     if (emptyCode > 0) logger.warn(`${emptyCode} üründe productCode boş`);
-    const productCodes = products.map(p => p.productCode);
-    const bestSellerCriterion = config.criteria.find(c => c.key === 'bestSeller');
-    const salesDays = salesPeriodToDays(bestSellerCriterion?.salesPeriod);
-    const salesData    = await client.getSalesReport(productCodes, salesDays);
 
-    // GA4 metrikleri — periyoda göre önbellekten veya auto-sync
-    const ga4Map = await resolveGa4Map(config, userId);
-
-    // Phase 2: Normalleştirme
-    const salesMap = new Map<string, TSoftSalesData>(
-      salesData.map(s => [s.productCode, s])
-    );
-
-    let normalized: NormalizedProduct[] = products.map((p: TSoftProduct) => {
-      const sales = salesMap.get(p.productCode);
-      const sizeAvailability = computeSizeAvailability(p.variants, availabilityThreshold);
-      const ga4 = ga4Map.get(p.productId);
-      const soldQty  = sales?.soldQuantity14Days ?? 0;
-
-      return {
-        productId:        p.productId,
-        productCode:      p.productCode,
-        productName:      p.productName,
-        categoryId:       p.categoryId,
-        categoryPath:     p.categoryPath ?? '',
-        registrationDate: new Date(p.registrationDate),
-        reviewCount:      p.reviewCount,
-        salesQty:         soldQty,
-        discountRate:     p.discountRate,
-        isActive:         p.isActive,
-        season:           p.season ?? '',
-        sizeAvailability,
-        ga4: ga4 ? { views: ga4.views, cartAdds: ga4.cartAdds, conversionRate: ga4.conversionRate } : undefined,
-        scores: { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
-        rankingScore:   0,
-        isDisqualified: false,
-        finalRank:      0,
-      };
-    });
-
-    normalized = applyDisqualification(normalized, availabilityThreshold);
-    normalized = computeRankingScores(normalized, config);
+    // Phase 2: Normalleştirme + puanlama
+    const normalized = await loadAndScore(adapter, products, config, userId);
 
     // Phase 3: Sıralama ve yazma
-    // 1) Kriter puanı → 2) Sezon gruplandırması → 3) Smart mix (en son — böylece sezon
-    // gruplandırmasının bir araya getirdiği aynı model/farklı renk ürünler arasına da
-    // Smart Mix'in araya koyduğu minimum ürün mesafesi bozulmadan uygulanır)
-    let ranked = buildFinalRanking(normalized);
-    if (config.seasonPreFilter && config.seasonPreFilter !== 'none') {
-      ranked = applySeasonPreSort(ranked, config.seasonPreFilter);
-    }
-    if (config.smartMix) ranked = applySmartMix(ranked);
+    const ranked = rankProducts(normalized, config);
     const disqualifiedCount = ranked.filter(p => p.isDisqualified).length;
     const qualifiedCount    = ranked.length - disqualifiedCount;
 
-    // Sadece aktif ürünleri gönder — T-Soft dışlananları zaten sona alır
-    const toRank = ranked.filter(p => !p.isDisqualified);
-    const { ok, fail } = await client.setKategoriSira(
-      toRank.map((p, i) => ({ productCode: p.productCode, categoryId, sortOrder: i + 1 }))
+    // Kategorideki TÜM ürünlere sıra numarası yaz: aktifler 1..N, dışlananlar N+1'den
+    // itibaren. Mağaza dışlananları kendiliğinden sona almaz — gönderilmeyen ürün eski
+    // sıra numarasını korur ve yeni numaralarla çakışarak aktif ürünlerin arasına girer.
+    const toRank = fullStoreOrder(ranked);
+    const { ok, fail } = await adapter.applySorting(
+      categoryId, toRank.map((p, i) => ({ code: p.productCode, position: i + 1 }))
     );
     if (fail > 0) {
       throw new Error(`Mağaza ${fail} üründe sıralama güncellemesini reddetti (${ok} başarılı, toplam ${toRank.length})`);
@@ -300,67 +320,20 @@ export async function previewRanking(
   userId = 0,
   tenantId?: number
 ): Promise<PreviewResult> {
-  const { categoryId, availabilityThreshold } = config;
+  const { categoryId } = config;
   logger.info(`Preview başladı — kategori: ${categoryId}`);
 
-  const client   = await getClientForUser(userId, tenantId);
-  const apiUrl   = client.getBaseUrl();
-  const products = await client.getCategoryProductsFull(categoryId);
+  const adapter  = await getAdapterForUser(userId, tenantId);
+  const apiUrl   = adapter.storeUrl;
+  const products = await adapter.getProducts(categoryId);
 
   if (products.length === 0) {
-    return { products: [], total: 0, qualifiedCount: 0, disqualifiedCount: 0, apiUrl, criteria: config.criteria };
+    return { products: [], total: 0, qualifiedCount: 0, disqualifiedCount: 0, apiUrl, categoryExportCode: adapter.exportCategoryCode(categoryId), criteria: config.criteria };
   }
 
-  const productCodes = products.map(p => p.productCode);
-  const bestSellerCriterion = config.criteria.find(c => c.key === 'bestSeller');
-  const salesDays = salesPeriodToDays(bestSellerCriterion?.salesPeriod);
-  const salesData    = await client.getSalesReport(productCodes, salesDays);
-  const salesMap     = new Map<string, TSoftSalesData>(salesData.map(s => [s.productCode, s]));
-
-  // GA4 metrikleri — periyoda göre önbellekten veya auto-sync
-  const ga4Map = await resolveGa4Map(config, userId);
-
-  // imageCount is stored per-product alongside normalized data
-  const imageCountMap = new Map<string, number>(products.map(p => [p.productCode, p.imageCount]));
-  const imageUrlMap   = new Map<string, string>(products.map(p => [p.productCode, p.imageUrl]));
-  const imageUrlsMap  = new Map<string, string[] | undefined>(products.map(p => [p.productCode, p.imageUrls]));
-  const productIdMap  = new Map<string, string>(products.map(p => [p.productCode, p.productId]));
-  const seoUrlMap     = new Map<string, string>(products.map(p => [p.productCode, p.seoUrl]));
-
-  let normalized: NormalizedProduct[] = products.map((p: TSoftProduct) => {
-    const sales            = salesMap.get(p.productCode);
-    const sizeAvailability = computeSizeAvailability(p.variants, availabilityThreshold);
-    const ga4 = ga4Map.get(p.productId);
-    const soldQty  = sales?.soldQuantity14Days ?? 0;
-    return {
-      productId:        p.productId,
-      productCode:      p.productCode,
-      productName:      p.productName,
-      categoryId:       p.categoryId,
-      categoryPath:     p.categoryPath ?? '',
-      registrationDate: new Date(p.registrationDate),
-      reviewCount:      p.reviewCount,
-      salesQty:         soldQty,
-      discountRate:     p.discountRate,
-      isActive:         p.isActive,
-      season:           p.season ?? '',
-      sizeAvailability,
-      ga4: ga4 ? { views: ga4.views, cartAdds: ga4.cartAdds, conversionRate: ga4.conversionRate } : undefined,
-      scores:        { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
-      rankingScore:   0,
-      isDisqualified: false,
-      finalRank:      0,
-    };
-  });
-
-  normalized = applyDisqualification(normalized, availabilityThreshold);
-  normalized = computeRankingScores(normalized, config);
-  let ranked = buildFinalRanking(normalized);
-  if (config.seasonPreFilter && config.seasonPreFilter !== 'none') {
-    ranked = applySeasonPreSort(ranked, config.seasonPreFilter);
-  }
-  if (config.smartMix) ranked = applySmartMix(ranked);
-  const qualifiedCount   = ranked.filter(p => !p.isDisqualified).length;
+  const byCode = new Map<string, PlatformProduct>(products.map(p => [p.code, p]));
+  const ranked = rankProducts(await loadAndScore(adapter, products, config, userId), config);
+  const qualifiedCount    = ranked.filter(p => !p.isDisqualified).length;
   const disqualifiedCount = ranked.length - qualifiedCount;
 
   const items: ProductPreviewItem[] = ranked.map(p => {
@@ -370,9 +343,10 @@ export async function previewRanking(
       const directed = c.direction === 'asc' ? (100 - raw) : raw;
       contributions[c.key] = (directed * c.weight) / 100;
     }
+    const src = byCode.get(p.productCode);
     return {
       finalRank:             p.finalRank,
-      productId:             productIdMap.get(p.productCode) ?? '',
+      productId:             src?.id ?? '',
       productCode:           p.productCode,
       productName:           p.productName,
       categoryPath:          p.categoryPath,
@@ -386,18 +360,18 @@ export async function previewRanking(
       salesQty:              p.salesQty,
       reviewCount:           p.reviewCount,
       discountRate:          p.discountRate,
-      seoUrl:                seoUrlMap.get(p.productCode) ?? '',
+      productUrl:            src?.url ?? '',
+      seoUrl:                src?.url ?? '',
       registrationDate:      p.registrationDate.toISOString(),
-      imageCount:            imageCountMap.get(p.productCode) ?? 0,
-      imageUrl:              imageUrlMap.get(p.productCode) ?? '',
-      imageUrls:             imageUrlsMap.get(p.productCode),
+      imageUrl:              src?.imageUrls[0] ?? '',
+      imageUrls:             src?.imageUrls ?? [],
       season:                p.season,
       ga4:                   p.ga4,
     };
   });
 
   logger.info(`Preview bitti — ${qualifiedCount} aktif, ${disqualifiedCount} disqualified`);
-  return { products: items, total: ranked.length, qualifiedCount, disqualifiedCount, apiUrl, criteria: config.criteria };
+  return { products: items, total: ranked.length, qualifiedCount, disqualifiedCount, apiUrl, categoryExportCode: adapter.exportCategoryCode(categoryId), criteria: config.criteria };
 }
 
 export async function applyManualRanking(
@@ -406,9 +380,9 @@ export async function applyManualRanking(
   userId = 0,
   tenantId?: number
 ): Promise<void> {
-  const client = await getClientForUser(userId, tenantId);
-  const { ok, fail } = await client.setKategoriSira(
-    items.map(item => ({ productCode: item.productCode, categoryId, sortOrder: item.rank }))
+  const adapter = await getAdapterForUser(userId, tenantId);
+  const { ok, fail } = await adapter.applySorting(
+    categoryId, items.map(item => ({ code: item.productCode, position: item.rank }))
   );
 
   if (fail > 0) {

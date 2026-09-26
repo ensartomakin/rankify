@@ -38,35 +38,14 @@ const DEFAULT_CRITERIA: WeightCriterion[] = [
   { key: 'newness',     weight: 33, direction: 'desc' },
 ];
 
-/* ─── Fotoğraf URL yardımcısı ─── */
-function buildFallbackUrls(apiUrl: string, productId: string, productCode: string): string[] {
-  const base = apiUrl.replace(/\/$/, '');
-  const stripped = productCode.replace(/^[Tt]/, '');
-  const ids = [...new Set([productId, stripped, productCode].filter(Boolean))];
-  const paths = [
-    (id: string) => `${base}/img/products/b/${id}_1.jpg`,
-    (id: string) => `${base}/img/products/s/${id}_1.jpg`,
-    (id: string) => `${base}/img/products/${id}_1.jpg`,
-    (id: string) => `${base}/upload/urun/${id}_1.jpg`,
-    (id: string) => `${base}/upload/urunler/${id}_1.jpg`,
-    (id: string) => `${base}/UserFiles/Image/urun/${id}_1.jpg`,
-  ];
-  const urls: string[] = [];
-  for (const id of ids) for (const fn of paths) urls.push(fn(id));
-  return urls;
-}
-
-function getImageUrls(apiUrl: string, imageUrl: string, productId: string, productCode: string, imageUrls: string[] = []): string[] {
-  const abs = (u: string) => (/^(https?:)?\/\//.test(u) ? u : `${apiUrl.replace(/\/$/, '')}${u.startsWith('/') ? '' : '/'}${u}`);
-  const urls: string[] = [];
-  // Adapter's candidates come largest-first; the listed image is the last of them.
-  for (const u of imageUrls) if (u) urls.push(abs(u));
-  if (imageUrl) urls.push(abs(imageUrl));
-  urls.push(...buildFallbackUrls(apiUrl, productId, productCode));
-  return [...new Set(urls)];
-}
-
 const fmtPct = (n: number) => formatPercent(n, 1);
+
+/** Positions written to the store: active products in the shown order (1..N),
+ *  then the excluded ones — the same order the preview displays. */
+function fullStoreOrder(items: ProductPreviewItem[]): { productCode: string; rank: number }[] {
+  const ordered = [...items.filter(p => !p.isDisqualified), ...items.filter(p => p.isDisqualified)];
+  return ordered.map((p, i) => ({ productCode: p.productCode, rank: i + 1 }));
+}
 
 
 /* ─── Boş durum ikonları ─── */
@@ -166,12 +145,12 @@ function RankBadge({ rank, onRankEdit }: { rank: number; onRankEdit?: (n: number
 }
 
 /* ─── Ortak kart görseli: 3:4, en fazla 240px, cover ─── */
-function CardImage({ apiUrl, p, faded, children }: {
-  apiUrl: string; p: { imageUrl: string; imageUrls?: string[]; productId: string; productCode: string; productName: string };
+function CardImage({ p, faded, children }: {
+  p: { imageUrls: string[]; productName: string };
   faded?: boolean;
   children?: React.ReactNode;
 }) {
-  const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode, p.imageUrls);
+  const urls = p.imageUrls;
   const [idx, setIdx] = useState(0);
   return (
     <div className="relative overflow-hidden rounded-t-xl"
@@ -197,12 +176,6 @@ function CardImage({ apiUrl, p, faded, children }: {
   );
 }
 
-function productHref(apiUrl: string, seoUrl: string, productCode: string) {
-  const base = apiUrl.replace(/\/$/, '');
-  if (!seoUrl) return `${base}/urun-detay/${productCode}`;
-  return seoUrl.startsWith('http') ? seoUrl : `${base}/${seoUrl.replace(/^\//, '')}`;
-}
-
 function cardShellStyle(isPinned: boolean): React.CSSProperties {
   return {
     background: 'var(--panel)',
@@ -212,21 +185,20 @@ function cardShellStyle(isPinned: boolean): React.CSSProperties {
 }
 
 /* ─── Kart: Mevcut sıralama ─── */
-function CurrentCard({ p, apiUrl, onRankEdit, isPinned, onTogglePin }: {
+function CurrentCard({ p, onRankEdit, isPinned, onTogglePin }: {
   p: CurrentRankItem;
-  apiUrl: string;
   onRankEdit?: (newRank: number) => void;
   isPinned: boolean;
   onTogglePin: () => void;
 }) {
   return (
     <div className="group relative rounded-xl flex flex-col h-full" style={cardShellStyle(isPinned)}>
-      <CardImage apiUrl={apiUrl} p={p}>
+      <CardImage p={p}>
         <div className="absolute top-2 left-2"><RankBadge rank={p.currentRank} onRankEdit={onRankEdit} /></div>
         <div className="absolute top-2 right-2"><PinButton pinned={isPinned} onToggle={onTogglePin} /></div>
       </CardImage>
       <div className="p-2.5 flex flex-col gap-1.5 flex-1">
-        <a href={productHref(apiUrl, p.seoUrl, p.productCode)} target="_blank" rel="noopener noreferrer"
+        <a href={p.productUrl || undefined} target="_blank" rel="noopener noreferrer"
           title={p.productName || p.productCode}
           className="text-caption font-semibold truncate hover:underline" style={{ color: 'var(--tx1)' }}>
           {p.productName || p.productCode}
@@ -241,15 +213,15 @@ function CurrentCard({ p, apiUrl, onRankEdit, isPinned, onTogglePin }: {
 }
 
 /* ─── Sortable wrapper — the whole card is the drag target ─── */
-function SortableCurrentCard({ p, apiUrl, onRankEdit, isPinned, onTogglePin }: {
-  p: CurrentRankItem; apiUrl: string; onRankEdit: (code: string, newRank: number) => void;
+function SortableCurrentCard({ p, onRankEdit, isPinned, onTogglePin }: {
+  p: CurrentRankItem; onRankEdit: (code: string, newRank: number) => void;
   isPinned: boolean; onTogglePin: (code: string, rank: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.productCode, disabled: isPinned });
   return (
     <div ref={setNodeRef} {...attributes} {...(!isPinned ? listeners : {})}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.45 : 1, zIndex: isDragging ? 50 : undefined, touchAction: 'manipulation' }}>
-      <CurrentCard p={p} apiUrl={apiUrl}
+      <CurrentCard p={p}
         isPinned={isPinned}
         onTogglePin={() => onTogglePin(p.productCode, p.currentRank)}
         onRankEdit={newRank => onRankEdit(p.productCode, newRank)} />
@@ -324,11 +296,10 @@ function excludedLine(p: ProductPreviewItem) {
 }
 
 /* ─── Kart: Önizleme ─── */
-function PreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, onTogglePin }: {
+function PreviewCard({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePin }: {
   p: ProductPreviewItem;
   displayRank: number | null;   // null → excluded, no rank
   criteria: PreviewResponse['criteria'];
-  apiUrl: string;
   onRankEdit?: (newRank: number) => void;
   isPinned: boolean;
   onTogglePin: () => void;
@@ -336,7 +307,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, o
   const dq = p.isDisqualified;
   return (
     <div className="group relative rounded-xl flex flex-col h-full" style={cardShellStyle(isPinned)}>
-      <CardImage apiUrl={apiUrl} p={p} faded={isFaded(p)}>
+      <CardImage p={p} faded={isFaded(p)}>
         {displayRank !== null && (
           <div className="absolute top-2 left-2"><RankBadge rank={displayRank} onRankEdit={onRankEdit} /></div>
         )}
@@ -350,7 +321,7 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, o
           </p>
         )}
         <div className="flex flex-col gap-1.5 flex-1" style={isFaded(p) ? { opacity: 0.55 } : undefined}>
-          <a href={productHref(apiUrl, p.seoUrl, p.productCode)} target="_blank" rel="noopener noreferrer"
+          <a href={p.productUrl || undefined} target="_blank" rel="noopener noreferrer"
             title={p.productName || p.productCode}
             className="text-caption font-semibold leading-snug line-clamp-2 hover:underline" style={{ color: 'var(--tx1)' }}>
             {p.productName || p.productCode}
@@ -369,16 +340,15 @@ function PreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, o
 }
 
 /* ─── Liste satırı: Önizleme ─── */
-function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, onTogglePin }: {
+function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePin }: {
   p: ProductPreviewItem;
   displayRank: number | null;
   criteria: PreviewResponse['criteria'];
-  apiUrl: string;
   onRankEdit?: (newRank: number) => void;
   isPinned: boolean;
   onTogglePin: () => void;
 }) {
-  const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode, p.imageUrls);
+  const urls = p.imageUrls;
   const [idx, setIdx] = useState(0);
   return (
     <div className="flex items-center gap-3 px-2.5 py-2 rounded-lg" style={cardShellStyle(isPinned)}>
@@ -394,7 +364,7 @@ function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, on
           : null}
       </div>
       <div className="min-w-0 flex-1" style={isFaded(p) ? { opacity: 0.55 } : undefined}>
-        <a href={productHref(apiUrl, p.seoUrl, p.productCode)} target="_blank" rel="noopener noreferrer"
+        <a href={p.productUrl || undefined} target="_blank" rel="noopener noreferrer"
           onPointerDown={e => e.stopPropagation()}
           title={p.productName || p.productCode}
           className="block text-caption font-semibold truncate hover:underline" style={{ color: 'var(--tx1)' }}>
@@ -431,15 +401,15 @@ function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, on
 }
 
 /* ─── Sortable wrapper: Önizleme (kart veya satır) ─── */
-function SortablePreviewCard({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, onTogglePin, layout = 'grid' }: {
+function SortablePreviewCard({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePin, layout = 'grid' }: {
   p: ProductPreviewItem; displayRank: number | null; criteria: PreviewResponse['criteria'];
-  apiUrl: string; onRankEdit: (code: string, newRank: number) => void;
+  onRankEdit: (code: string, newRank: number) => void;
   isPinned: boolean; onTogglePin: (code: string, rank: number) => void;
   layout?: 'grid' | 'list';
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.productCode, disabled: isPinned });
   const shared = {
-    p, displayRank, criteria, apiUrl, isPinned,
+    p, displayRank, criteria, isPinned,
     onTogglePin: () => onTogglePin(p.productCode, displayRank ?? p.finalRank),
     onRankEdit: (newRank: number) => onRankEdit(p.productCode, newRank),
   };
@@ -812,7 +782,8 @@ export function Dashboard({ prefill }: Props) {
 
   function handleExportCsv() {
     const rows: [string, string, string, string][] = [];
-    const categoryWsCode = `T${categoryId}`;
+    // Category id in the store's sort-import format (provided by the platform adapter)
+    const categoryWsCode = previewResult?.categoryExportCode ?? currentResult?.categoryExportCode ?? categoryId;
     if (view === 'preview' && previewOrder.length > 0) {
       previewOrder.forEach(p => {
         rows.push([p.productCode, p.productName || '', categoryWsCode, String(p.finalRank)]);
@@ -945,17 +916,13 @@ export function Dashboard({ prefill }: Props) {
     if (!isValid || previewOrder.length === 0) return;
     setTriggerStatus('loading'); setMessage('');
     try {
-      // Sadece aktif ürünleri gönder — mağaza dışlananları zaten sona alır
-      const activeProducts = previewOrder.filter(p => !p.isDisqualified);
-      await applyManualRanking(
-        categoryId.trim(),
-        activeProducts.map((p, i) => ({ productCode: p.productCode, rank: i + 1 }))
-      );
+      // Tüm ürünlere sıra yaz (aktifler önce, dışlananlar sonra). Gönderilmeyen ürün
+      // mağazada eski sıra numarasını korur ve yeni sıralamanın arasına karışır.
+      await applyManualRanking(categoryId.trim(), fullStoreOrder(previewOrder));
       // Ek kategoriler için algoritmayı çalıştır ve uygula
       for (const { id } of selectedCategories.slice(1)) {
-        const result = await previewRanking({ categoryId: id, availabilityThreshold: threshold, criteria, smartMix });
-        const active = result.products.filter(p => !p.isDisqualified);
-        await applyManualRanking(id, active.map((p, i) => ({ productCode: p.productCode, rank: i + 1 })));
+        const result = await previewRanking({ categoryId: id, availabilityThreshold: threshold, criteria, smartMix, seasonPreFilter });
+        await applyManualRanking(id, fullStoreOrder(result.products));
       }
       setTriggerStatus('success');
       setMessage(selectedCategories.length > 1
@@ -978,7 +945,6 @@ export function Dashboard({ prefill }: Props) {
     : undefined;
 
   /* Filtreli liste */
-  const apiUrl = previewResult?.apiUrl ?? currentResult?.apiUrl ?? '';
 
   const filteredCurrent = manualOrder.filter(p =>
     !filter.trim() ||
@@ -1441,7 +1407,7 @@ export function Dashboard({ prefill }: Props) {
                   <SortableContext items={filteredCurrent.map(p => p.productCode)} strategy={rectSortingStrategy}>
                     <div className="grid gap-3 grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 @5xl:grid-cols-6">
                       {filteredCurrent.map(p => (
-                        <SortableCurrentCard key={p.productCode} p={p} apiUrl={apiUrl} onRankEdit={handleRankEdit}
+                        <SortableCurrentCard key={p.productCode} p={p} onRankEdit={handleRankEdit}
                           isPinned={pinnedPositions[p.productCode] !== undefined}
                           onTogglePin={togglePin} />
                       ))}
@@ -1457,7 +1423,7 @@ export function Dashboard({ prefill }: Props) {
                     <div className={layout === 'list' ? 'flex flex-col gap-1.5' : 'grid gap-3 grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 @5xl:grid-cols-6'}>
                       {filteredPreview.map(p => (
                         <SortablePreviewCard key={p.productCode} p={p} displayRank={activeRank.get(p.productCode) ?? null}
-                          criteria={previewResult!.criteria} apiUrl={apiUrl}
+                          criteria={previewResult!.criteria}
                           onRankEdit={handlePreviewRankEdit}
                           isPinned={pinnedPositions[p.productCode] !== undefined}
                           onTogglePin={togglePin} layout={layout} />

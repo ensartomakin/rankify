@@ -3,13 +3,15 @@ import { z } from 'zod';
 import { requireAuth, requireSuperAdmin } from './auth.middleware';
 import { runRankingPipeline, previewRanking, getCurrentRanking, applyManualRanking } from '../pipeline/orchestrator';
 import { getConfigByCategoryId } from '../db/config.repo';
-import { getClientForUser } from '../services/tsoft-client';
+import { tsoftRankingDebugRouter } from '../platform/tsoft/debug.routes';
 import { logger } from '../utils/logger';
 import { applyAdjustRules, type AdjustRule } from '../scoring/ai-adjust';
 import { parseInstructionToRules, AiInstructionError, adjustRuleSchema } from '../services/ai-instruction';
 
 export const rankingRouter = Router();
 rankingRouter.use(requireAuth);
+// Platforma özgü (T-Soft) hata ayıklama uçları — /debug-*
+rankingRouter.use(tsoftRankingDebugRouter);
 
 const criteriaSchema = z
   .array(z.object({
@@ -74,75 +76,7 @@ rankingRouter.get('/current', async (req: Request, res: Response) => {
   }
 });
 
-// Fotoğraf URL debug: ham ürün alanlarını döndürür — prod'da kapalı
-rankingRouter.get('/debug-product', requireSuperAdmin, async (req: Request, res: Response) => {
-  if (process.env.NODE_ENV === 'production') {
-    res.status(404).json({ error: 'Not found' }); return;
-  }
-  const { categoryId } = req.query;
-  if (!categoryId || typeof categoryId !== 'string') {
-    res.status(400).json({ error: 'categoryId query parametresi gerekli' });
-    return;
-  }
-  try {
-    const client = await getClientForUser(req.user!.userId, req.user!.tenantId);
-    const apiUrl  = client.getBaseUrl();
-    const rawProducts = await client.getCategoryProductsRawSample(categoryId, 3);
-    // Her üründen sadece ID ve görsel ile ilgili alanları al
-    const sample = rawProducts.map(p => {
-      const relevant: Record<string, unknown> = { apiUrl };
-      const imageKeys = ['ProductId','Id','id','productId','ProductCode','productCode',
-        'ImageCount','imageCount','ImageFilesCount','imageFilesCount',
-        'ImageUrl','imageUrl','ImagePath','imagePath','Image','image',
-        'Images','images','MediaFiles','mediaFiles','Photos','photos'];
-      for (const k of imageKeys) {
-        if (p[k] !== undefined) relevant[k] = p[k];
-      }
-      return relevant;
-    });
-    res.json({ apiUrl, sample });
-  } catch (err) {
-    logger.error(`debug-product hatası: ${err}`);
-    res.status(500).json({ error: 'Ürün debug verisi alınamadı' });
-  }
-});
 
-// Sıralama debug: ham T-Soft yanıtının tüm alanlarını döndürür — prod'da kapalı
-rankingRouter.get('/debug-sort', requireSuperAdmin, async (req: Request, res: Response) => {
-  if (process.env.NODE_ENV === 'production') {
-    res.status(404).json({ error: 'Not found' }); return;
-  }
-  const { categoryId, limit: limitStr } = req.query;
-  if (!categoryId || typeof categoryId !== 'string') {
-    res.status(400).json({ error: 'categoryId query parametresi gerekli' });
-    return;
-  }
-  const limit = Math.min(Number(limitStr) || 10, 50);
-  try {
-    const client = await getClientForUser(req.user!.userId, req.user!.tenantId);
-    const rawProducts = await client.getCategoryProductsRawSample(categoryId, limit);
-    // Sıralama ile ilgili olabilecek tüm alanları döndür
-    const sample = rawProducts.map((p, i) => {
-      const sortKeys = ['ListNo','listNo','SortOrder','sortOrder','Sequence','sequence',
-        'DisplayOrder','displayOrder','SortNo','sortNo','OrderNo','orderNo',
-        'Priority','priority','Rank','rank','Position','position',
-        'CategoryOrder','categoryOrder','CategorySort','categorySort'];
-      const result: Record<string, unknown> = {
-        _index: i,
-        ProductCode: p.ProductCode ?? p.productCode,
-        ProductName: String(p.ProductName ?? p.productName ?? '').slice(0, 50),
-      };
-      for (const k of sortKeys) {
-        if (p[k] !== undefined) result[k] = p[k];
-      }
-      return result;
-    });
-    res.json({ total: rawProducts.length, sample });
-  } catch (err) {
-    logger.error(`debug-sort hatası: ${err}`);
-    res.status(500).json({ error: 'Sıralama debug verisi alınamadı' });
-  }
-});
 
 const manualSchema = z.object({
   categoryId: z.string().min(1).max(100),

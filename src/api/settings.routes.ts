@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { requireAuth, requireSuperAdmin } from './auth.middleware';
 import { upsertCredentials, getCredentials, hasCredentials, setFieldMapping } from '../db/credentials.repo';
 import { getSchedule, setSchedule } from '../db/schedule.repo';
-import { testConnection, TSOFT_FIELD_OPTIONS, TSOFT_DEFAULT_SEASON_FIELD } from '../services/tsoft-client';
+import { platformInfoFor } from '../platform/registry';
 import { getSuperAdminId } from '../db/user.repo';
 
 export const settingsRouter = Router();
@@ -126,17 +126,18 @@ settingsRouter.get('/field-mapping', requireSuperAdmin, async (req: Request, res
   const creds = await getCredentials(ownerId);
   res.json({
     configured: Boolean(creds),
-    mapping:  { season: creds?.fieldMapping?.season ?? TSOFT_DEFAULT_SEASON_FIELD },
-    options:  { season: TSOFT_FIELD_OPTIONS },
+    mapping:  { season: creds?.fieldMapping?.season ?? platformInfoFor(ownerId).defaultFieldMapping.season },
+    options:  platformInfoFor(ownerId).fieldOptions,
   });
 });
 
 // PUT — ürün alanı eşlemesi (super_admin)
 settingsRouter.put('/field-mapping', requireSuperAdmin, async (req: Request, res: Response) => {
-  const schema = z.object({ season: z.string().refine(v => TSOFT_FIELD_OPTIONS.some(o => o.id === v), 'Geçersiz alan') });
+  const ownerId = await getCredentialsOwnerId(req.user!.userId, req.user!.tenantId);
+  const options = platformInfoFor(ownerId).fieldOptions.season;
+  const schema = z.object({ season: z.string().refine(v => options.some(o => o.id === v), 'Geçersiz alan') });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
-  const ownerId = await getCredentialsOwnerId(req.user!.userId, req.user!.tenantId);
   if (!(await hasCredentials(ownerId))) { res.status(400).json({ error: 'Önce mağaza bağlantısını kaydedin' }); return; }
   await setFieldMapping(ownerId, { season: parsed.data.season });
   res.json({ message: 'Alan eşlemesi kaydedildi' });
@@ -186,6 +187,6 @@ settingsRouter.post('/credentials/test', requireSuperAdmin, async (req: Request,
     if (!apiToken && stored.apiToken) apiToken = stored.apiToken;
   }
 
-  const result = await testConnection({ apiUrl, storeCode, apiUser, apiPass: apiPass!, apiToken });
+  const result = await platformInfoFor(req.user!.userId).testConnection({ apiUrl, storeCode, apiUser, apiPass: apiPass!, apiToken });
   res.status(result.ok ? 200 : 400).json(result);
 });

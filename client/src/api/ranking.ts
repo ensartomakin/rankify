@@ -7,16 +7,29 @@ export interface CurrentRankItem {
   productId:   string;
   productCode: string;
   productName: string;
-  imageUrl:    string;
-  imageUrls?:  string[];  // largest candidate first
+  productUrl:  string;     // absolute product page URL (from the platform adapter)
+  imageUrls:   string[];   // absolute, best first — tried in order
   totalStock:  number;
-  seoUrl:      string;
 }
 
 export interface CurrentRankingResponse {
   products: CurrentRankItem[];
   total:    number;
   apiUrl:   string;
+  categoryExportCode: string;   // category id in the store's sort-import format
+}
+
+/* Older API versions sent a single (maybe relative) imageUrl/seoUrl instead of
+   productUrl/imageUrls. Fill the new fields from those so the UI works against
+   either version. Platform-neutral: only joins relative paths to the store URL. */
+type LegacyItem = { productUrl?: string; imageUrls?: string[]; imageUrl?: string; seoUrl?: string };
+function withUrls<T extends LegacyItem>(item: T, storeUrl: string): T & { productUrl: string; imageUrls: string[] } {
+  const abs = (u: string) => (/^(https?:)?\/\//i.test(u) ? u : `${storeUrl.replace(/\/$/, '')}/${u.replace(/^\//, '')}`);
+  return {
+    ...item,
+    productUrl: item.productUrl ?? (item.seoUrl ? abs(item.seoUrl) : ''),
+    imageUrls:  item.imageUrls?.length ? item.imageUrls.map(abs) : item.imageUrl ? [abs(item.imageUrl)] : [],
+  };
 }
 
 export async function getCurrentRanking(categoryId: string): Promise<CurrentRankingResponse> {
@@ -25,7 +38,8 @@ export async function getCurrentRanking(categoryId: string): Promise<CurrentRank
     const err = await res.json().catch(() => ({}));
     throw new Error(err?.error ?? `Hata: ${res.status}`);
   }
-  return res.json();
+  const data = await res.json();
+  return { ...data, products: data.products.map((p: CurrentRankItem & LegacyItem) => withUrls(p, data.apiUrl ?? '')) };
 }
 
 /* ─── Önizleme ─── */
@@ -51,11 +65,9 @@ export interface ProductPreviewItem {
   salesQty:              number;
   reviewCount:           number;
   discountRate:          number;
-  seoUrl:                string;
+  productUrl:            string;
   registrationDate:      string;
-  imageCount:            number;
-  imageUrl:              string;
-  imageUrls?:            string[];
+  imageUrls:             string[];
   season:                string;
   ga4?: {
     views:          number;
@@ -71,6 +83,7 @@ export interface PreviewResponse {
   qualifiedCount:    number;
   disqualifiedCount: number;
   apiUrl:            string;
+  categoryExportCode: string;
   criteria:          WeightConfig['criteria'];
 }
 
@@ -95,7 +108,8 @@ export async function previewRanking(req: PreviewRequest): Promise<PreviewRespon
       : errVal?.formErrors?.[0] ?? JSON.stringify(errVal) ?? `Hata: ${res.status}`;
     throw new Error(msg);
   }
-  return res.json();
+  const data = await res.json();
+  return { ...data, products: data.products.map((p: ProductPreviewItem & LegacyItem) => withUrls(p, data.apiUrl ?? '')) };
 }
 
 /* ─── AI destekli sıralama düzenleme ─── */

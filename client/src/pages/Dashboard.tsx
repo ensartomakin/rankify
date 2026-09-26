@@ -1506,28 +1506,8 @@ export function Dashboard({ prefill }: Props) {
       {/* Sabit footer */}
       <div className="sticky bottom-0 z-30 shrink-0 min-w-0 flex items-center justify-between gap-3 flex-wrap"
         style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: 'var(--spacing-tight) max(16px, var(--spacing-card))' }}>
-        {/* Weight indicator + assistant */}
+        {/* Weight indicator */}
         <div className="flex items-center gap-2">
-          {previewResult && (
-            <button onClick={() => setChatOpen(v => !v)}
-              aria-label={chatOpen ? 'Asistanı kapat' : 'AI sıralama asistanı'} aria-expanded={chatOpen}
-              title="AI sıralama asistanı"
-              className="order-last relative w-9 h-9 flex items-center justify-center rounded-lg transition-all shrink-0"
-              style={chatOpen
-                ? { background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)', cursor: 'pointer' }
-                : btnOutline}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-5 h-5" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-              </svg>
-              {!chatOpen && aiRules.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-label font-bold flex items-center justify-center"
-                  style={{ background: 'var(--err-tx)', color: 'var(--on-fill)' }}>
-                  {aiRules.length}
-                </span>
-              )}
-            </button>
-          )}
-
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-label font-medium"
             style={total === 100
               ? { border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)', background: 'var(--ok-bg)' }
@@ -1545,6 +1525,32 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {previewResult && (
+            <>
+              <button onClick={() => setChatOpen(v => !v)}
+                aria-label="AI Sıralama Asistanı" aria-expanded={chatOpen}
+                title="AI Sıralama Asistanı"
+                className="relative h-9 px-2.5 lg:px-3 flex items-center gap-1.5 rounded-lg text-caption font-medium whitespace-nowrap transition-colors shrink-0"
+                style={{ background: chatOpen ? 'var(--ai-bg-hov)' : 'var(--ai-bg)', color: 'var(--ai-tx)', border: '1px solid var(--ai-bd)', cursor: 'pointer' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--ai-bg-hov)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = chatOpen ? 'var(--ai-bg-hov)' : 'var(--ai-bg)'; }}>
+                {/* sparkles */}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-4 h-4 shrink-0" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                </svg>
+                {/* label on wide screens; icon-only (title/aria-label) when narrow */}
+                <span className="hidden lg:inline">AI Sıralama Asistanı</span>
+                {!chatOpen && aiRules.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-label font-bold flex items-center justify-center"
+                    style={{ background: 'var(--err-tx)', color: 'var(--on-fill)' }}>
+                    {aiRules.length}
+                  </span>
+                )}
+              </button>
+              <span aria-hidden="true" className="w-px h-6 mx-1 shrink-0" style={{ background: 'var(--border-strong)' }} />
+            </>
+          )}
+
           <button onClick={() => setCriteria(DEFAULT_CRITERIA)}
             className={`${btnCls} font-medium`}
             style={{ background: 'transparent', border: '1px solid transparent', color: 'var(--tx2)', cursor: 'pointer' }}
@@ -1601,7 +1607,7 @@ export function Dashboard({ prefill }: Props) {
       {previewResult && (
         <>
           {chatOpen && (
-            <div className="absolute left-4 z-40 w-[380px] max-w-[calc(100%-2rem)] flex flex-col overflow-hidden"
+            <div className="absolute right-4 z-40 w-[380px] max-w-[calc(100%-2rem)] flex flex-col overflow-hidden"
               style={{
                 bottom: 'calc(100% + 8px)',
                 height: '540px', maxHeight: 'calc(100vh - 160px)',

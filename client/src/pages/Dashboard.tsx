@@ -30,7 +30,7 @@ import { fetchGa4Status } from '../api/ga4';
 import { getStoredThreshold } from '../utils/threshold';
 import { formatPercent, formatNumber, formatDate } from '../utils/format';
 import type { WeightCriterion, CriterionKey, SeasonPreFilter } from '../types';
-import { criteriaColor } from '../types';
+import { criteriaColor, CRITERION_LABELS } from '../types';
 import type { SavedConfig } from '../api/config';
 import { SCENARIOS } from '../data/scenarios';
 import type { Scenario } from '../data/scenarios';
@@ -113,7 +113,7 @@ function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void
 }
 
 /* ─── Sıra rozeti (düzenlenebilir) ─── */
-function RankBadge({ rank, onRankEdit }: { rank: number; onRankEdit?: (n: number) => void }) {
+function RankBadge({ rank, onRankEdit, plain }: { rank: number; onRankEdit?: (n: number) => void; plain?: boolean }) {
   const [editing, setEditing] = useState(false);
   const [rankInput, setRankInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -139,8 +139,11 @@ function RankBadge({ rank, onRankEdit }: { rank: number; onRankEdit?: (n: number
   ) : (
     <button onClick={e => { e.stopPropagation(); startEdit(); }}
       onPointerDown={e => e.stopPropagation()}
-      className="text-label font-bold px-2 py-0.5 rounded-full tabular-nums"
-      style={{ background: 'var(--scrim-strong)', color: 'var(--on-fill)', backdropFilter: 'blur(4px)', cursor: 'pointer', border: 'none' }}
+      className={plain ? 'text-caption font-bold tabular-nums px-1 rounded hover:underline' : 'text-label font-bold px-2 py-0.5 rounded-full tabular-nums'}
+      /* plain: table row (no photo underneath), so no dark chip */
+      style={plain
+        ? { background: 'transparent', color: 'var(--tx1)', cursor: 'pointer', border: 'none' }
+        : { background: 'var(--scrim-strong)', color: 'var(--on-fill)', backdropFilter: 'blur(4px)', cursor: 'pointer', border: 'none' }}
       title="Sıra numarasını düzenle">
       #{rank}
     </button>
@@ -341,7 +344,89 @@ function PreviewCard({ p, displayRank, criteria, onRankEdit, isPinned, onToggleP
   );
 }
 
-/* ─── Liste satırı: Önizleme ─── */
+/* ─── Liste görünümü: Önizleme tablosu ─── */
+/* Header and rows share one grid template, built from the active criteria:
+   [frozen: handle · rank · image · product] [one column per criterion] [total] [pin].
+   Numeric columns have fixed widths so values line up. */
+const CRIT_COL_PX  = 116;
+const TOTAL_COL_PX = 104;
+const PIN_COL_PX   = 48;
+const PRODUCT_MIN_PX = 340;
+function tableCols(n: number) {
+  return `minmax(${PRODUCT_MIN_PX}px, 1fr) repeat(${n}, ${CRIT_COL_PX}px) ${TOTAL_COL_PX}px ${PIN_COL_PX}px`;
+}
+const tableMinWidth = (n: number) => PRODUCT_MIN_PX + n * CRIT_COL_PX + TOTAL_COL_PX + PIN_COL_PX;
+
+/* 40×40 thumbnail; falls back through imageUrls, then a grey placeholder icon. */
+function TableThumb({ p, faded }: { p: ProductPreviewItem; faded: boolean }) {
+  const urls = p.imageUrls;
+  const [idx, setIdx] = useState(0);
+  return (
+    <div className="w-10 h-10 rounded-md overflow-hidden shrink-0 flex items-center justify-center"
+      style={{ background: 'var(--surface2)' }}>
+      {idx < urls.length
+        ? <img key={urls[idx]} src={urls[idx]} alt="" draggable={false} loading="lazy" decoding="async"
+            onError={() => setIdx(i => i + 1)} className="w-full h-full object-cover"
+            style={faded ? { filter: 'grayscale(1)' } : undefined} />
+        : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"
+            style={{ color: 'var(--tx3)' }} aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <path strokeLinecap="round" d="M21 15l-5-5L5 21" />
+          </svg>}
+    </div>
+  );
+}
+
+/* Column header row. Rendered outside the horizontal scroller so it can stick
+   to the page while scrolling; its scrollLeft is kept in sync with the body. */
+function PreviewTableHeader({ criteria, innerRef, top }: {
+  criteria: PreviewResponse['criteria'];
+  innerRef: React.Ref<HTMLDivElement>;
+  top: number;
+}) {
+  const th = 'text-label font-semibold uppercase tracking-wide';
+  return (
+    <div ref={innerRef} className="sticky z-20 overflow-hidden"
+      style={{ top, background: 'var(--panel)', borderBottom: '1px solid var(--border-strong)' }}>
+      <div className="grid items-center h-10"
+        style={{ gridTemplateColumns: tableCols(criteria.length), minWidth: tableMinWidth(criteria.length), color: 'var(--tx3)' }}>
+        <div className={`${th} sticky left-0 z-10 h-full flex items-center`}
+          style={{ background: 'var(--panel)', paddingLeft: 36 }}>
+          <span className="w-16 shrink-0">Sıra</span>
+          <span className="pl-3">Ürün</span>
+        </div>
+        {criteria.map((c, ci) => {
+          const key = c.key as CriterionKey;
+          const name = SCORE_NAMES[key] ?? key;
+          return (
+            <div key={key} className={`${th} px-3 flex items-center justify-end gap-1.5 min-w-0`}
+              title={`${CRITERION_LABELS[key] ?? name} — ağırlık ${formatPercent(c.weight)}`}>
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: criteriaColor(ci) }} />
+              <span className="truncate">{name}</span>
+            </div>
+          );
+        })}
+        <div className={`${th} px-3 text-right`}>Toplam</div>
+        <div />
+      </div>
+    </div>
+  );
+}
+
+/* Stacked bar of the criteria contributions (full width = score 100). */
+function ContributionBar({ p, criteria }: { p: ProductPreviewItem; criteria: PreviewResponse['criteria'] }) {
+  return (
+    <div className="flex h-1 w-16 rounded-full overflow-hidden ml-auto" style={{ background: 'var(--surface3)' }}
+      aria-hidden="true">
+      {criteria.map((c, ci) => {
+        const v = Math.max(0, p.criteriaContributions[c.key as CriterionKey] ?? 0);
+        return v > 0 ? <span key={c.key} style={{ width: `${Math.min(100, v)}%`, background: criteriaColor(ci) }} /> : null;
+      })}
+    </div>
+  );
+}
+
 function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePin }: {
   p: ProductPreviewItem;
   displayRank: number | null;
@@ -350,54 +435,83 @@ function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePi
   isPinned: boolean;
   onTogglePin: () => void;
 }) {
-  const urls = p.imageUrls;
-  const [idx, setIdx] = useState(0);
+  const dq = p.isDisqualified;
+  // Excluded rows read faded; the frozen cell keeps an opaque background so
+  // columns scrolling underneath never show through.
+  const fade = dq ? { opacity: 0.5 } : undefined;
+  const numCell = 'px-3 flex flex-col items-end justify-center text-right tabular-nums min-w-0';
   return (
-    <div className="flex items-center gap-3 px-2.5 py-2 rounded-lg" style={cardShellStyle(isPinned)}>
-      <span className="w-10 shrink-0">
-        {displayRank !== null
-          ? <RankBadge rank={displayRank} onRankEdit={onRankEdit} />
-          : <span className="text-label font-semibold" style={{ color: 'var(--err-tx)' }}>—</span>}
-      </span>
-      <div className="w-9 h-12 rounded overflow-hidden shrink-0" style={{ background: 'var(--media-bg)', border: '1px solid var(--border)' }}>
-        {idx < urls.length
-          ? <img src={urls[idx]} alt="" draggable={false} loading="lazy" decoding="async" onError={() => setIdx(i => i + 1)} className="w-full h-full object-contain"
-              style={isFaded(p) ? { filter: 'grayscale(1)', opacity: 0.55 } : undefined} />
-          : null}
-      </div>
-      <div className="min-w-0 flex-1" style={isFaded(p) ? { opacity: 0.55 } : undefined}>
-        <a href={p.productUrl || undefined} target="_blank" rel="noopener noreferrer"
-          onPointerDown={e => e.stopPropagation()}
-          title={p.productName || p.productCode}
-          className="block text-caption font-semibold truncate hover:underline" style={{ color: 'var(--tx1)' }}>
-          {p.productName || p.productCode}
-        </a>
-        <span className="text-label font-mono" style={{ color: 'var(--tx3)' }}>
-          #{p.productCode}
+    <div className="group grid items-stretch h-14 bg-[var(--panel)] hover:bg-[var(--surface2)] transition-colors"
+      style={{
+        gridTemplateColumns: tableCols(criteria.length), minWidth: tableMinWidth(criteria.length),
+        borderBottom: '1px solid var(--border)',
+        cursor: isPinned ? 'default' : 'grab',
+      }}>
+      {/* Frozen: handle · rank · image · product */}
+      <div className="sticky left-0 z-10 flex items-center gap-3 pl-2 pr-3 min-w-0 bg-[var(--panel)] group-hover:bg-[var(--surface2)] transition-colors"
+        style={isPinned ? { boxShadow: 'inset 3px 0 0 var(--acc)' } : undefined}>
+        {/* ⋮⋮ grip — the whole row drags, as before; pinned rows don't */}
+        <svg viewBox="0 0 10 16" fill="currentColor" aria-hidden="true" className="w-2.5 h-4 shrink-0 mx-[3px]"
+          style={{ color: isPinned ? 'var(--border-strong)' : 'var(--tx3)' }}>
+          <circle cx="2" cy="2" r="1.5" /><circle cx="8" cy="2" r="1.5" />
+          <circle cx="2" cy="8" r="1.5" /><circle cx="8" cy="8" r="1.5" />
+          <circle cx="2" cy="14" r="1.5" /><circle cx="8" cy="14" r="1.5" />
+        </svg>
+        <span className="w-16 shrink-0">
+          {displayRank !== null
+            ? <RankBadge rank={displayRank} onRankEdit={onRankEdit} plain />
+            : <span className="text-label font-semibold cursor-help" style={{ color: 'var(--err-tx)' }}
+                title={p.disqualifyReason ? `Dışlandı: ${p.disqualifyReason}` : 'Dışlandı'}>Dışlandı</span>}
         </span>
-        {p.isDisqualified && (
-          <span className="block text-label font-semibold truncate" style={{ color: 'var(--err-tx)' }}>{excludedLine(p)}</span>
-        )}
+        <div className="flex items-center gap-3 min-w-0 flex-1" style={fade}>
+          <TableThumb p={p} faded={dq} />
+          <div className="min-w-0 flex-1">
+            <a href={p.productUrl || undefined} target="_blank" rel="noopener noreferrer"
+              onPointerDown={e => e.stopPropagation()}
+              title={p.productName || p.productCode}
+              className="block text-caption font-semibold truncate hover:underline" style={{ color: 'var(--tx1)' }}>
+              {p.productName || p.productCode}
+            </a>
+            <div className="flex items-center gap-1.5 min-w-0 text-label" style={{ color: 'var(--tx3)' }}>
+              <span className="font-mono truncate">#{p.productCode}</span>
+              {p.season && (
+                <span className="shrink-0 px-1.5 rounded" style={{ background: 'var(--surface2)', color: 'var(--tx2)' }}>{p.season}</span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="hidden md:flex items-center gap-3 shrink-0">
-        {criteria.map((c, ci) => {
-          const key = c.key as CriterionKey;
-          const contrib = p.criteriaContributions[key] ?? 0;
-          const isZero = Math.round(contrib * 10) === 0;
-          return (
-            <span key={key} title={`${SCORE_NAMES[key] ?? key} · ${rawValue(p, key)} — ağırlık ${formatPercent(c.weight)}`}
-              className="flex items-center gap-1 text-label tabular-nums"
-              style={{ color: isZero ? 'var(--tx3)' : 'var(--tx1)', fontWeight: isZero ? 400 : 600 }}>
-              <span className="w-2 h-2 rounded-full" style={{ background: criteriaColor(ci) }} />
-              {SCORE_NAMES[key] ?? key} {fmtPct(contrib)}
+
+      {/* One column per active criterion: raw value over contribution */}
+      {criteria.map(c => {
+        const key = c.key as CriterionKey;
+        const contrib = p.criteriaContributions[key] ?? 0;
+        const isZero = Math.round(contrib * 10) === 0;
+        return (
+          <div key={key} className={`${numCell}`}
+            title={`${SCORE_NAMES[key] ?? key} · ${rawValue(p, key)} — katkı ${fmtPct(contrib)}`}>
+            <span style={fade}>
+              <span className="block text-caption font-medium whitespace-nowrap" style={{ color: 'var(--tx1)' }}>{rawValue(p, key)}</span>
+              <span className="block text-label"
+                style={isZero ? { color: 'var(--tx3)' } : { color: 'var(--acc-tx)', fontWeight: 600 }}>
+                {fmtPct(contrib)}
+              </span>
             </span>
-          );
-        })}
+          </div>
+        );
+      })}
+
+      {/* Toplam */}
+      <div className={`${numCell} gap-1`}>
+        <span className="flex flex-col gap-1 items-end" style={fade}>
+          <span className="text-caption font-bold" style={{ color: 'var(--acc-tx)' }}>{fmtPct(p.rankingScore)}</span>
+          <ContributionBar p={p} criteria={criteria} />
+        </span>
       </div>
-      <span className="text-caption font-bold tabular-nums shrink-0 w-14 text-right" style={{ color: 'var(--acc-tx)' }}>
-        {fmtPct(p.rankingScore)}
-      </span>
-      <PinButton pinned={isPinned} onToggle={onTogglePin} />
+
+      <div className="flex items-center justify-center">
+        <PinButton pinned={isPinned} onToggle={onTogglePin} />
+      </div>
     </div>
   );
 }
@@ -579,6 +693,18 @@ export function Dashboard({ prefill }: Props) {
   const [showDq,  setShowDq]  = useState(true);
   const [view,    setView]    = useState<'current' | 'preview'>('current');
   const [layout,  setLayout]  = useState<'grid' | 'list'>('grid');
+  // List table: its column header sticks just under the page header, and
+  // follows the body's horizontal scroll.
+  const pageHeaderRef = useRef<HTMLDivElement>(null);
+  const tableHeadRef  = useRef<HTMLDivElement>(null);
+  const [pageHeaderH, setPageHeaderH] = useState(0);
+  useEffect(() => {
+    const el = pageHeaderRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setPageHeaderH(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const total   = criteria.reduce((s, c) => s + c.weight, 0);
   const isValid = total === 100 && categoryId.trim().length > 0;
@@ -833,7 +959,7 @@ export function Dashboard({ prefill }: Props) {
     }
     if (rows.length === 0) return;
 
-    const header = ['Ürün Web Servis Kodu', 'Ürün Adı', 'Kategori Web Servis Kodu', 'Kategori Sıra No'];
+    const header = ['Ürün Web Servis Kodu', 'Ürün Adı', 'Kategori Web Servis Kodu', 'Sıra No'];
     const csvContent = [header, ...rows]
       .map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
       .join('\r\n');
@@ -1024,7 +1150,7 @@ export function Dashboard({ prefill }: Props) {
         onConfirm={() => { setCriteria(DEFAULT_CRITERIA); setConfirmDefault(false); }}
         onCancel={closeConfirmDefault} />
       {/* Başlık */}
-      <div className="sticky top-0 z-30 shrink-0 py-3 flex items-center justify-between gap-4 px-4 md:px-6"
+      <div ref={pageHeaderRef} className="sticky top-0 z-30 shrink-0 py-3 flex items-center justify-between gap-4 px-4 md:px-6"
         style={{ borderBottom: '1px solid var(--border)', background: 'var(--page-bg)' }}>
         <h1 className="font-serif" style={{ fontSize: 'var(--text-page-title)', fontWeight: 700, color: 'var(--tx1)', lineHeight: 1.2 }}>
           Sıralama Yöneticisi
@@ -1465,15 +1591,30 @@ export function Dashboard({ prefill }: Props) {
               {view === 'preview' && previewStatus !== 'loading' && filteredPreview.length > 0 && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePreviewDragEnd}>
                   <SortableContext items={filteredPreview.map(p => p.productCode)} strategy={rectSortingStrategy}>
-                    <div className={layout === 'list' ? 'flex flex-col gap-1.5' : 'grid gap-3 grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 @5xl:grid-cols-6'}>
-                      {filteredPreview.map(p => (
+                    {(() => {
+                      const items = filteredPreview.map(p => (
                         <SortablePreviewCard key={p.productCode} p={p} displayRank={activeRank.get(p.productCode) ?? null}
                           criteria={previewResult!.criteria}
                           onRankEdit={handlePreviewRankEdit}
                           isPinned={pinnedPositions[p.productCode] !== undefined}
                           onTogglePin={togglePin} layout={layout} />
-                      ))}
-                    </div>
+                      ));
+                      return layout === 'list' ? (
+                        /* Compact table. Only this box scrolls sideways; the
+                           product column stays frozen on the left. */
+                        <div className="rounded-lg" style={{ border: '1px solid var(--border)' }}>
+                          <PreviewTableHeader criteria={previewResult!.criteria} innerRef={tableHeadRef} top={pageHeaderH} />
+                          <div className="overflow-x-auto [&>div:last-child>div]:border-b-0"
+                            onScroll={e => { if (tableHeadRef.current) tableHeadRef.current.scrollLeft = e.currentTarget.scrollLeft; }}>
+                            {items}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid gap-3 grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 @5xl:grid-cols-6">
+                          {items}
+                        </div>
+                      );
+                    })()}
                   </SortableContext>
                 </DndContext>
               )}

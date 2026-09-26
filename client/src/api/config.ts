@@ -1,5 +1,6 @@
 import { apiFetch } from './http';
-import type { WeightCriterion } from '../types';
+import type { WeightCriterion, SeasonPreFilter } from '../types';
+import type { CategorySchedule } from '../utils/schedule';
 
 export interface SavedConfig {
   id: number;
@@ -8,10 +9,22 @@ export interface SavedConfig {
   availabilityThreshold: number;
   criteria: WeightCriterion[];
   isActive: boolean;
+  // Older API versions don't send these yet.
+  smartMix?: boolean;
+  seasonPreFilter?: SeasonPreFilter;
+  schedule?: CategorySchedule;
 }
 
 export async function fetchConfigs(): Promise<SavedConfig[]> {
   const res = await apiFetch('/api/configs');
+  if (!res.ok) throw new Error(`Hata: ${res.status}`);
+  return res.json();
+}
+
+/** Saved settings of one category, or null when it has none. */
+export async function fetchConfig(categoryId: string): Promise<SavedConfig | null> {
+  const res = await apiFetch(`/api/configs/${encodeURIComponent(categoryId)}`);
+  if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Hata: ${res.status}`);
   return res.json();
 }

@@ -3,7 +3,7 @@ import { promises as dns } from 'dns';
 import { z } from 'zod';
 import { requireAuth, requireSuperAdmin } from './auth.middleware';
 import { upsertCredentials, getCredentials, hasCredentials, setFieldMapping } from '../db/credentials.repo';
-import { getSchedule, setSchedule } from '../db/schedule.repo';
+import { hasLegacyScheduleNotice, dismissLegacyScheduleNotice } from '../db/schedule.repo';
 import { platformInfoFor } from '../platform/registry';
 import { getSuperAdminId } from '../db/user.repo';
 
@@ -143,28 +143,15 @@ settingsRouter.put('/field-mapping', requireSuperAdmin, async (req: Request, res
   res.json({ message: 'Alan eşlemesi kaydedildi' });
 });
 
-// GET — zamanlama ayarları (kullanıcıya özel)
-settingsRouter.get('/schedule', async (req: Request, res: Response) => {
-  const schedule = await getSchedule(req.user!.userId);
-  res.json(schedule);
+// Zamanlama kategori bazlı (/api/configs). Eski hesap geneli zamanlaması kapatılan
+// kullanıcıya bir kez gösterilen bildirim:
+settingsRouter.get('/legacy-schedule-notice', async (req: Request, res: Response) => {
+  res.json({ pending: await hasLegacyScheduleNotice(req.user!.userId) });
 });
 
-const scheduleSchema = z.object({
-  isEnabled: z.boolean(),
-  dayHours:  z.record(
-    z.string().regex(/^[0-6]$/),
-    z.array(z.number().int().min(0).max(23))
-  ),
-});
-
-// PUT — zamanlama ayarları (kullanıcıya özel)
-settingsRouter.put('/schedule', async (req: Request, res: Response) => {
-  const parsed = scheduleSchema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
-  const dayHours: Record<number, number[]> = {};
-  for (const [k, v] of Object.entries(parsed.data.dayHours)) dayHours[Number(k)] = v;
-  await setSchedule(req.user!.userId, { isEnabled: parsed.data.isEnabled, dayHours });
-  res.json({ message: 'Zamanlama kaydedildi' });
+settingsRouter.delete('/legacy-schedule-notice', async (req: Request, res: Response) => {
+  await dismissLegacyScheduleNotice(req.user!.userId);
+  res.status(204).end();
 });
 
 // POST — bağlantı testi (sadece super_admin)

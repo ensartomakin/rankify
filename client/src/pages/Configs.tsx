@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { fetchConfigs, deleteConfig, triggerSaved, type SavedConfig } from '../api/config';
 import { CRITERION_LABELS, criteriaColor } from '../types';
 import { formatPercent } from '../utils/format';
+import { nextRunLabel, toDraft } from '../utils/schedule';
 
 interface Props { onEdit: (config: SavedConfig) => void; }
 
@@ -104,6 +105,18 @@ export function Configs({ onEdit }: Props) {
                     <span className="font-bold text-base" style={{ color: 'var(--tx1)' }}>
                       {cfg.categoryName || cfg.categoryId}
                     </span>
+                    {cfg.schedule?.isEnabled && (() => {
+                      const next = nextRunLabel(toDraft(cfg.schedule));
+                      const text = `Otomatik zamanlama açık${next ? ` · Sonraki: ${next}` : ''}`;
+                      return (
+                        <span title={text} aria-label={text} role="img" className="inline-flex shrink-0"
+                          style={{ color: 'var(--acc-tx)' }}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 2" />
+                          </svg>
+                        </span>
+                      );
+                    })()}
                     {cfg.categoryName && (
                       <span className="text-xs font-mono px-2 py-0.5 rounded-md"
                         style={{ background: 'var(--surface2)', color: 'var(--tx3)' }}>

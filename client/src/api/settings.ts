@@ -48,26 +48,17 @@ export async function testCredentials(
   return data;
 }
 
-export interface ScheduleSettings {
-  isEnabled: boolean;
-  dayHours:  Record<number, number[]>;  // gün (0-6) → saat listesi (0-23)
+/* ── Eski hesap geneli zamanlama: geçiş bildirimi ──────────────────────
+   Zamanlama artık kategori bazlı (kayıtlı kategori ayarlarıyla birlikte). */
+export async function fetchLegacyScheduleNotice(): Promise<boolean> {
+  const res = await apiFetch('/api/settings/legacy-schedule-notice');
+  if (!res.ok) return false;   // older API: no notice
+  const data = await res.json().catch(() => ({}));
+  return Boolean(data?.pending);
 }
 
-export async function fetchSchedule(): Promise<ScheduleSettings> {
-  const res = await apiFetch('/api/settings/schedule');
-  if (!res.ok) throw new Error(`Hata: ${res.status}`);
-  return res.json();
-}
-
-export async function saveSchedule(payload: ScheduleSettings): Promise<void> {
-  const res = await apiFetch('/api/settings/schedule', {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.formErrors?.[0] ?? `Hata: ${res.status}`);
-  }
+export async function dismissLegacyScheduleNotice(): Promise<void> {
+  await apiFetch('/api/settings/legacy-schedule-notice', { method: 'DELETE' }).catch(() => {});
 }
 
 /* ── Ürün alanı eşlemesi ─────────────────────────────────────────────── */

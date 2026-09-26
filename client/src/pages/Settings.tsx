@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { fetchCredentials, saveCredentials, testCredentials, fetchSchedule, saveSchedule, fetchFieldMapping, saveFieldMapping, type CredentialsPayload, type ScheduleSettings, type FieldMappingInfo } from '../api/settings';
+import { fetchCredentials, saveCredentials, testCredentials, fetchFieldMapping, saveFieldMapping, type CredentialsPayload, type FieldMappingInfo } from '../api/settings';
 import { fetchGa4Status, fetchGa4AuthUrl, openGa4OAuthPopup, saveGa4PropertyId, deleteGa4Credentials, testGa4Connection, syncGa4Metrics, type Ga4Status } from '../api/ga4';
 import { formatDate } from '../utils/format';
 
@@ -31,11 +31,6 @@ export function Settings({ onSaved }: Props) {
   const [mapSaveStatus,  setMapSaveStatus]  = useState<'idle'|'saving'|'saved'|'error'>('idle');
   const [mapSaveMsg,     setMapSaveMsg]     = useState('');
 
-  const DEFAULT_SCHEDULE: ScheduleSettings = { isEnabled: false, dayHours: {} };
-  const [schedule,      setSchedule]      = useState<ScheduleSettings>(DEFAULT_SCHEDULE);
-  const [schedSaveStatus, setSchedSave]   = useState<'idle'|'saving'|'saved'|'error'>('idle');
-  const [schedSaveMsg,    setSchedMsg]    = useState('');
-
   // GA4 state
   const [ga4Status,     setGa4Status]     = useState<Ga4Status | null>(null);
   const [ga4PropertyId, setGa4PropertyId] = useState('');
@@ -58,7 +53,6 @@ export function Settings({ onSaved }: Props) {
           setTokenConfigured(data.apiToken === '••••••••');
         }
       }),
-      fetchSchedule().then(s => setSchedule(s)).catch(() => {}),
       fetchGa4Status().then(s => {
         setGa4Status(s);
         if (s.propertyId) setGa4PropertyId(s.propertyId);
@@ -113,42 +107,6 @@ export function Settings({ onSaved }: Props) {
     } catch (e) {
       setMapSaveStatus('error'); setMapSaveMsg(e instanceof Error ? e.message : 'Kaydedilemedi');
     }
-  }
-
-  async function handleSaveSchedule() {
-    setSchedSave('saving'); setSchedMsg('');
-    try {
-      await saveSchedule(schedule);
-      setSchedSave('saved'); setSchedMsg('Zamanlama kaydedildi.');
-    } catch (err) {
-      setSchedSave('error'); setSchedMsg(err instanceof Error ? err.message : 'Kayıt hatası');
-    }
-  }
-
-  function toggleHourForDay(day: number, hour: number) {
-    setSchedule(prev => {
-      const existing = prev.dayHours[day] ?? [];
-      const updated  = existing.includes(hour)
-        ? existing.filter(h => h !== hour)
-        : [...existing, hour].sort((a, b) => a - b);
-      const next = { ...prev, dayHours: { ...prev.dayHours, [day]: updated } };
-      if (updated.length === 0) delete next.dayHours[day];
-      return next;
-    });
-    setSchedSave('idle');
-  }
-
-  function setDayEnabled(day: number, enabled: boolean) {
-    setSchedule(prev => {
-      const next = { ...prev, dayHours: { ...prev.dayHours } };
-      if (!enabled) {
-        delete next.dayHours[day];
-      } else if (!next.dayHours[day] || next.dayHours[day].length === 0) {
-        next.dayHours[day] = [5];
-      }
-      return next;
-    });
-    setSchedSave('idle');
   }
 
   async function handleGa4Connect() {
@@ -409,118 +367,6 @@ export function Settings({ onSaved }: Props) {
               )}
             </div>
           )}
-        </div>
-
-        {/* Otomatik Zamanlama */}
-        <div className="rounded-[20px] p-6 space-y-5"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-
-          {/* Başlık + aktif/pasif toggle */}
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'var(--acc-bg)' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" strokeWidth="2" className="w-3.5 h-3.5">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                </svg>
-              </div>
-              <div>
-                <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--tx3)' }}>
-                  Otomatik Zamanlama
-                </span>
-                <p className="text-mini mt-0.5" style={{ color: 'var(--tx3)' }}>
-                  Seçili gün ve saatlerde tüm aktif kategori sıralamalarını otomatik çalıştırır
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs font-medium" style={{ color: schedule.isEnabled ? 'var(--ok-tx)' : 'var(--tx3)' }}>
-                {schedule.isEnabled ? 'Açık' : 'Kapalı'}
-              </span>
-              <button
-                onClick={() => { setSchedule(prev => ({ ...prev, isEnabled: !prev.isEnabled })); setSchedSave('idle'); }}
-                className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0"
-                style={{ background: schedule.isEnabled ? 'var(--ok-tx)' : 'var(--border)' }}>
-                <span className="inline-block h-4 w-4 rounded-full bg-[var(--knob)] transition-transform"
-                  style={{ transform: schedule.isEnabled ? 'translateX(22px)' : 'translateX(4px)' }} />
-              </button>
-            </div>
-          </div>
-
-          {/* Gün × saat grid — Pazartesi'den başlar */}
-          <div className="space-y-3">
-            {([
-              [1, 'Pazartesi'], [2, 'Salı'], [3, 'Çarşamba'], [4, 'Perşembe'],
-              [5, 'Cuma'], [6, 'Cumartesi'], [0, 'Pazar'],
-            ] as [number, string][]).map(([day, label]) => {
-              const hours   = schedule.dayHours[day] ?? [];
-              const enabled = hours.length > 0;
-              return (
-                <div key={day} className="rounded-lg overflow-hidden"
-                  style={{ border: `1px solid ${enabled ? 'var(--acc-bd)' : 'var(--border)'}`, background: enabled ? 'var(--acc-bg)' : 'var(--surface2)' }}>
-                  {/* Gün başlık satırı */}
-                  <div className="flex items-center justify-between px-4 py-2.5">
-                    <span className="text-sm font-semibold" style={{ color: enabled ? 'var(--acc-tx)' : 'var(--tx3)' }}>
-                      {label}
-                    </span>
-                    <div className="flex items-center gap-3">
-                      {enabled && (
-                        <span className="text-mini" style={{ color: 'var(--acc-tx)' }}>
-                          {hours.map(h => `${String(h).padStart(2,'0')}:00`).join(', ')}
-                        </span>
-                      )}
-                      <button
-                        onClick={() => setDayEnabled(day, !enabled)}
-                        className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-                        style={{ background: enabled ? 'var(--acc)' : 'var(--border)' }}>
-                        <span className="inline-block h-3.5 w-3.5 rounded-full bg-[var(--knob)] transition-transform"
-                          style={{ transform: enabled ? 'translateX(18px)' : 'translateX(3px)' }} />
-                      </button>
-                    </div>
-                  </div>
-                  {/* Saat seçici — sadece gün aktifse */}
-                  {enabled && (
-                    <div className="px-4 pb-3">
-                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
-                        {Array.from({ length: 24 }, (_, h) => {
-                          const sel = hours.includes(h);
-                          return (
-                            <button key={h} onClick={() => toggleHourForDay(day, h)}
-                              className="h-8 rounded-lg text-mini font-semibold tabular-nums transition-all"
-                              style={sel
-                                ? { background: 'var(--acc)', color: 'var(--cta-tx)', border: '1px solid var(--acc)' }
-                                : { background: 'var(--surface)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
-                              {String(h).padStart(2,'0')}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <p className="text-tiny mt-2" style={{ color: 'var(--acc-tx)' }}>
-                        {hours.length} saat seçili — {label} günü {hours.length} kez çalışır
-                      </p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Schedule save result */}
-          {schedSaveStatus !== 'idle' && schedSaveStatus !== 'saving' && (
-            <div className="rounded-lg px-4 py-3 text-sm font-medium"
-              style={schedSaveStatus === 'saved'
-                ? { background: 'var(--ok-bg)', border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)' }
-                : { background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
-              {schedSaveMsg}
-            </div>
-          )}
-
-          <button onClick={handleSaveSchedule} disabled={schedSaveStatus === 'saving'}
-            className="w-full py-3 rounded-lg text-sm font-semibold transition-all"
-            style={schedSaveStatus === 'saving'
-              ? { background: 'var(--surface2)', cursor: 'not-allowed', color: 'var(--tx3)', border: '1px solid var(--border)' }
-              : { background: 'var(--cta-bg)', color: 'var(--cta-tx)' }}>
-            {schedSaveStatus === 'saving' ? 'Kaydediliyor…' : 'Zamanlamayı Kaydet'}
-          </button>
         </div>
 
         {/* GA4 Entegrasyonu */}

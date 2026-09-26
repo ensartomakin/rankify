@@ -17,6 +17,9 @@ export interface DevConfig {
   availabilityThreshold: number;
   criteria: unknown[];
   isActive: boolean;
+  smartMix?: boolean;
+  seasonPreFilter?: string;
+  schedule?: { isEnabled: boolean; dayHours: Record<number, number[]> };
   createdAt: string;
   updatedAt: string;
 }
@@ -40,9 +43,11 @@ export interface DevCredentials {
   fieldMapping?: import('../types/field-mapping').FieldMapping;
 }
 
+/** Legacy account-wide schedule; only the migration notice flag is still used. */
 export interface DevSchedule {
   isEnabled: boolean;
   dayHours:  Record<number, number[]>;
+  legacyNotice?: boolean;
 }
 
 let userSeq   = 0;

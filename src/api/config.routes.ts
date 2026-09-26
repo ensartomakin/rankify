@@ -26,6 +26,16 @@ const configSchema = z.object({
       items => Math.abs(items.reduce((s, c) => s + c.weight, 0) - 100) < 0.001,
       { message: 'Ağırlık toplamı 100 olmalı' }
     ),
+  // Optional: omitted fields keep their stored value.
+  smartMix:        z.boolean().optional(),
+  seasonPreFilter: z.enum(['none', 'yaz-ilkbahar', 'kis-sonbahar']).optional(),
+  schedule: z.object({
+    isEnabled: z.boolean(),
+    dayHours:  z.record(
+      z.string().regex(/^[0-6]$/),
+      z.array(z.number().int().min(0).max(23)).max(24)
+    ),
+  }).optional(),
 });
 
 configRouter.get('/', async (req: Request, res: Response) => {
@@ -43,7 +53,18 @@ configRouter.put('/', async (req: Request, res: Response) => {
   const parsed = configSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
-  const saved = await upsertConfig(req.user!.userId, parsed.data as Parameters<typeof upsertConfig>[1]);
+  const { schedule, ...rest } = parsed.data;
+  const saved = await upsertConfig(req.user!.userId, {
+    ...rest,
+    ...(schedule && {
+      schedule: {
+        isEnabled: schedule.isEnabled,
+        dayHours: Object.fromEntries(
+          Object.entries(schedule.dayHours).map(([d, hs]) => [Number(d), [...new Set(hs)].sort((a, b) => a - b)])
+        ),
+      },
+    }),
+  } as Parameters<typeof upsertConfig>[1]);
   res.json(saved);
 });
 

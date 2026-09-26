@@ -63,7 +63,9 @@ CREATE TRIGGER trg_tsoft_credentials_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- ============================================================
--- 4. Otomatik sıralama zamanlaması (kullanıcı bazlı)
+-- 4. Otomatik sıralama zamanlaması (kullanıcı bazlı) — KULLANIM DIŞI:
+--    zamanlama artık ranking_configs üzerinde kategori bazlı. Tablo yalnızca
+--    geçiş bildirimi (legacy_notice) için tutulur.
 -- day_hours: { "1": [5,9], "5": [17] } — gün numarası → saat listesi
 -- ============================================================
 CREATE TABLE IF NOT EXISTS schedule_settings (
@@ -89,6 +91,19 @@ CREATE TABLE IF NOT EXISTS ranking_configs (
   updated_at             TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
   UNIQUE (user_id, category_id)
 );
+
+-- Kategori bazlı ek ayarlar + otomatik zamanlama (zamanlanmış çalışma bu satırdaki
+-- son kaydedilmiş ayarları kullanır). schedule_day_hours: { "1": [9,17] } — gün
+-- (0=Paz … 6=Cmt) → saat listesi, Europe/Istanbul saatiyle.
+ALTER TABLE ranking_configs ADD COLUMN IF NOT EXISTS smart_mix          BOOLEAN     NOT NULL DEFAULT TRUE;
+ALTER TABLE ranking_configs ADD COLUMN IF NOT EXISTS season_pre_filter  VARCHAR(32) NOT NULL DEFAULT 'none';
+ALTER TABLE ranking_configs ADD COLUMN IF NOT EXISTS schedule_enabled   BOOLEAN     NOT NULL DEFAULT FALSE;
+ALTER TABLE ranking_configs ADD COLUMN IF NOT EXISTS schedule_day_hours JSONB       NOT NULL DEFAULT '{}';
+
+-- Hesap geneli zamanlamadan kategori bazlıya geçiş: açık olan hesap zamanlamaları
+-- kapatılır ve kullanıcıya bir kez bildirilmek üzere işaretlenir. Tablo silinmez.
+ALTER TABLE schedule_settings ADD COLUMN IF NOT EXISTS legacy_notice BOOLEAN NOT NULL DEFAULT FALSE;
+UPDATE schedule_settings SET legacy_notice = TRUE, is_enabled = FALSE WHERE is_enabled = TRUE;
 
 DROP TRIGGER IF EXISTS trg_ranking_configs_updated_at ON ranking_configs;
 CREATE TRIGGER trg_ranking_configs_updated_at

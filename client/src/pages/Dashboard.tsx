@@ -25,7 +25,10 @@ import type {
   CurrentRankingResponse, CurrentRankItem,
   PreviewResponse, ProductPreviewItem, AdjustRule,
 } from '../api/ranking';
-import { saveConfig } from '../api/config';
+import { saveConfig, fetchConfig } from '../api/config';
+import { fetchLegacyScheduleNotice, dismissLegacyScheduleNotice } from '../api/settings';
+import { ScheduleEditor } from '../components/ScheduleEditor';
+import { toDraft, fromDraft, sameDraft, type ScheduleDraft } from '../utils/schedule';
 import { fetchGa4Status } from '../api/ga4';
 import { getStoredThreshold } from '../utils/threshold';
 import { formatPercent, formatNumber, formatDate } from '../utils/format';
@@ -661,8 +664,17 @@ export function Dashboard({ prefill }: Props) {
   const [criteria,     setCriteria]     = useState<WeightCriterion[]>(
     prefill?.criteria ?? DEFAULT_CRITERIA
   );
-  const [smartMix,        setSmartMix]        = useState(true);
-  const [seasonPreFilter, setSeasonPreFilter] = useState<SeasonPreFilter>('none');
+  const [smartMix,        setSmartMix]        = useState(prefill?.smartMix ?? true);
+  const [seasonPreFilter, setSeasonPreFilter] = useState<SeasonPreFilter>(prefill?.seasonPreFilter ?? 'none');
+
+  // Otomatik zamanlama — kategori bazlı, kayıtlı ayarlarla birlikte saklanır.
+  // `saved` = the first selected category's last saved settings (null: never saved).
+  const [schedule, setSchedule] = useState<ScheduleDraft>(() => toDraft(prefill?.schedule));
+  const [saved, setSaved] = useState<{
+    threshold: number; criteria: WeightCriterion[]; smartMix: boolean;
+    seasonPreFilter: SeasonPreFilter; schedule: ScheduleDraft;
+  } | null>(null);
+  const [legacyScheduleNotice, setLegacyScheduleNotice] = useState(false);
   const [ga4Connected,    setGa4Connected]    = useState(false);
   const [scenarioOpen,    setScenarioOpen]    = useState(false);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
@@ -752,6 +764,29 @@ export function Dashboard({ prefill }: Props) {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [scenarioOpen]);
+
+  // Eski hesap geneli zamanlaması kapatıldıysa bir kez bildir
+  useEffect(() => {
+    fetchLegacyScheduleNotice().then(setLegacyScheduleNotice).catch(() => {});
+  }, []);
+
+  // Kategori değişince o kategorinin kayıtlı ayarlarını oku: zamanlama kartını doldurur
+  // ve "kaydedilmemiş değişiklik" karşılaştırması için saklanır. Ekrandaki kriterlere
+  // dokunulmaz.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.resolve(categoryId ? fetchConfig(categoryId).catch(() => null) : null).then(cfg => {
+      if (cancelled) return;
+      const draft = toDraft(cfg?.schedule);
+      setSchedule(draft);
+      setSaved(cfg ? {
+        threshold: cfg.availabilityThreshold, criteria: cfg.criteria,
+        smartMix: cfg.smartMix ?? true, seasonPreFilter: cfg.seasonPreFilter ?? 'none',
+        schedule: draft,
+      } : null);
+    });
+    return () => { cancelled = true; };
+  }, [categoryId]);
 
   // Kategori değişince mevcut sıralamayı yükle
   useEffect(() => {
@@ -951,12 +986,16 @@ export function Dashboard({ prefill }: Props) {
     let done = 0; let fail = 0;
     for (const { id, name } of selectedCategories) {
       try {
-        await saveConfig({ categoryId: id, categoryName: name.trim() || undefined, availabilityThreshold: threshold, criteria });
+        await saveConfig({
+          categoryId: id, categoryName: name.trim() || undefined, availabilityThreshold: threshold, criteria,
+          smartMix, seasonPreFilter, schedule: fromDraft(schedule),
+        });
         done++;
       } catch { fail++; }
     }
     if (fail === 0) {
       setSaveStatus('success');
+      setSaved({ threshold, criteria, smartMix, seasonPreFilter, schedule });
       notify(selectedCategories.length > 1 ? `${done} kategori kaydedildi.` : 'Konfigürasyon kaydedildi.');
     } else {
       setSaveStatus('error');
@@ -1125,6 +1164,13 @@ export function Dashboard({ prefill }: Props) {
   const canApply   = canManual || canPreview;
   const isApplying = manualStatus === 'loading' || triggerStatus === 'loading';
   const applyLabel = isApplying ? null : (canManual ? '⇅ Sıralamayı Uygula' : '✓ Sıralamayı Uygula');
+  // The schedule runs with the last saved settings; warn while the screen differs from them.
+  const hasUnsavedChanges = !saved
+    || saved.threshold !== threshold || !sameCriteria(saved.criteria, criteria)
+    || saved.smartMix !== smartMix || saved.seasonPreFilter !== seasonPreFilter
+    || !sameDraft(saved.schedule, schedule);
+  const showScheduleWarning = Boolean(categoryId) && schedule.isEnabled && hasUnsavedChanges;
+
   // Why "Sıralamayı Uygula" is disabled — shown as its tooltip.
   const applyTooltip = isApplying ? undefined
     : !categoryId ? 'Önce bir kategori seçin'
@@ -1176,6 +1222,23 @@ export function Dashboard({ prefill }: Props) {
       {/* Kaydırılabilir içerik */}
       <div className="flex-1 space-y-section px-4 md:px-6 pt-section"
         style={{ paddingBottom: 'var(--spacing-section)' }}>
+
+        {/* Eski hesap geneli zamanlama kapatıldı — bir kez gösterilir */}
+        {legacyScheduleNotice && (
+          <div role="status" className="flex items-start gap-3 px-4 py-3 rounded-xl text-caption"
+            style={{ background: 'var(--warn-bg)', border: '1px solid var(--warn-bd)', color: 'var(--warn-tx)' }}>
+            <span className="flex-1">
+              <strong>Hesap geneli otomatik zamanlamanız kapatıldı.</strong> Zamanlama artık kategori bazlı:
+              bir kategori seçip aşağıdaki “Otomatik Zamanlama” kartından gün ve saatleri ayarlayın, ardından Kaydet'e basın.
+            </span>
+            <button type="button"
+              onClick={() => { setLegacyScheduleNotice(false); dismissLegacyScheduleNotice(); }}
+              className="shrink-0 h-7 px-3 rounded-md text-label font-semibold"
+              style={{ background: 'transparent', border: '1px solid var(--warn-bd)', color: 'var(--warn-tx)', cursor: 'pointer' }}>
+              Tamam
+            </button>
+          </div>
+        )}
 
         {/* Hero kategori arama alanı */}
         <div ref={heroSearchRef}>
@@ -1379,7 +1442,8 @@ export function Dashboard({ prefill }: Props) {
           </div>
         </div>
 
-        {/* Smart Mix | Sezon Ön-Sıralaması — side by side from lg, equal height */}
+        {/* Smart Mix | Sezon Ön-Sıralaması side by side from lg; Otomatik Zamanlama
+            takes the full row below (three columns would truncate the season options) */}
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-stretch gap-section">
           {/* Smart Mix toggle */}
           <div className={panelCls} style={cardSt}>
@@ -1448,6 +1512,17 @@ export function Dashboard({ prefill }: Props) {
                 );
               })}
             </div>
+          </div>
+
+          {/* Otomatik Zamanlama — bu kategori için; ana Kaydet ile birlikte kaydedilir */}
+          <div className={`${panelCls} lg:col-span-2`} style={cardSt}>
+            <PanelTitle action={
+              <Switch checked={schedule.isEnabled} label="Otomatik Zamanlama"
+                onChange={v => setSchedule(d => ({ ...d, isEnabled: v }))} />
+            }>
+              Otomatik Zamanlama
+            </PanelTitle>
+            {schedule.isEnabled && <ScheduleEditor draft={schedule} onChange={setSchedule} />}
           </div>
         </div>
 
@@ -1687,6 +1762,16 @@ export function Dashboard({ prefill }: Props) {
           {total !== 100 && (
             <span className="text-caption" style={{ color: 'var(--tx3)' }}>
               ({total > 100 ? `${total - 100} fazla` : `${100 - total} eksik`})
+            </span>
+          )}
+          {showScheduleWarning && (
+            <span role="status" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-label font-medium"
+              style={{ border: '1px solid var(--warn-bd)', color: 'var(--warn-tx)', background: 'var(--warn-bg)' }}
+              title="Otomatik çalışma, ekrandaki değişiklikleri değil bu kategori için en son kaydedilen ayarları kullanır. Kullanmak için Kaydet'e basın.">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 shrink-0" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" /><path strokeLinecap="round" d="M12 7v5l3 2" />
+              </svg>
+              Zamanlama son kaydedilen ayarları kullanır
             </span>
           )}
         </div>

@@ -113,12 +113,27 @@ export function Audit() {
                     <td className="px-4 py-3.5 whitespace-nowrap text-xs" style={{ color: 'var(--tx2)' }}>{fmt(log.ranAt)}</td>
                     <td className="px-4 py-3.5 font-mono text-xs" style={{ color: 'var(--tx1)' }}>{log.categoryId}</td>
                     <td className="px-4 py-3.5">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
+                      <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap"
                         style={log.triggeredBy === 'cron'
                           ? { background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)' }
                           : { background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }
                         }>
-                        {log.triggeredBy === 'cron' ? '⚡ Otomatik' : '👤 Manuel'}
+                        {log.triggeredBy === 'cron' ? (
+                          <span className="inline-flex items-center gap-1">
+                            {/* saat: zamanlanmış (otomatik) çalışma */}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5" aria-hidden="true">
+                              <circle cx="12" cy="12" r="9" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 2" />
+                            </svg>
+                            Otomatik
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5" aria-hidden="true">
+                              <circle cx="12" cy="8" r="4" /><path strokeLinecap="round" d="M4 21a8 8 0 0116 0" />
+                            </svg>
+                            Manuel
+                          </span>
+                        )}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 tabular-nums font-medium" style={{ color: 'var(--tx1)' }}>{log.totalProducts}</td>

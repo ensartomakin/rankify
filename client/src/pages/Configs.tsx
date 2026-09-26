@@ -212,6 +212,18 @@ export function Configs({ onEdit }: Props) {
                           Sezon: {SEASON_LABELS[cfg.seasonPreFilter] ?? cfg.seasonPreFilter}
                         </span>
                       )}
+                      {cfg.pins && Object.keys(cfg.pins).length > 0 && (
+                        <span className={tagCls} style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}
+                          title="Elle sabitlenmiş ürünler — her çalışmada kayıtlı sıralarına yerleştirilir">
+                          📌 {Object.keys(cfg.pins).length} sabitleme
+                        </span>
+                      )}
+                      {cfg.aiRules && cfg.aiRules.length > 0 && (
+                        <span className={tagCls} style={{ background: 'var(--ai-bg)', color: 'var(--ai-tx)', border: '1px solid var(--ai-bd)' }}
+                          title={cfg.aiRules.map(r => `• ${r.description}`).join('\n')}>
+                          ✨ {cfg.aiRules.length} AI kuralı
+                        </span>
+                      )}
                       <ScheduleTag cfg={cfg}
                         open={scheduleFor === cfg.categoryId}
                         onOpen={() => setScheduleFor(cfg.categoryId)}

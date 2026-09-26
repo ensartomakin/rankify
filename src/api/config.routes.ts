@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAuth } from './auth.middleware';
 import { getAllConfigs, getConfigByCategoryId, upsertConfig, deleteConfig } from '../db/config.repo';
 import { getLastRuns } from '../db/audit.repo';
+import { adjustRuleSchema } from '../services/ai-instruction';
 
 export const configRouter = Router();
 configRouter.use(requireAuth);
@@ -37,6 +38,11 @@ const configSchema = z.object({
       z.array(z.number().int().min(0).max(23)).max(24)
     ),
   }).optional(),
+  // AI talimatlarından üretilen kurallar ve manuel sabitlemeler (ürün kodu → sıra)
+  aiRules: z.array(adjustRuleSchema).max(20).optional(),
+  pins:    z.record(z.string().min(1).max(200), z.number().int().min(1).max(100000))
+    .refine(p => Object.keys(p).length <= 5000, { message: 'Çok fazla sabitleme' })
+    .optional(),
 });
 
 configRouter.get('/', async (req: Request, res: Response) => {

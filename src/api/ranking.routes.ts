@@ -40,12 +40,27 @@ const triggerSchema = z.object({
   seasonPreFilter:       seasonPreFilterSchema,
 });
 
+// Kategorinin kural olarak saklanan AI talimatları ve manuel sabitlemeleri
+const aiRulesSchema = z.array(adjustRuleSchema).max(20);
+const pinsSchema    = z.record(z.string().min(1).max(200), z.number().int().min(1).max(100000))
+  .refine(p => Object.keys(p).length <= 5000, { message: 'Çok fazla sabitleme' });
+
 const previewSchema = z.object({
   categoryId:            z.string().min(1),
   availabilityThreshold: z.number().min(0).max(1).optional(),
   criteria:              criteriaSchema.optional(),
   smartMix:              z.boolean().optional(),
   seasonPreFilter:       seasonPreFilterSchema,
+  aiRules:               aiRulesSchema.optional(),
+  pins:                  pinsSchema.optional(),
+});
+
+// Sıralama ekranındaki "Sıralamayı Uygula": ekrandaki ayarlarla ortak sıralama fonksiyonunu
+// çalıştırır ve bitene kadar bekler (uyarıları döner). pins verilmezse kategorinin kayıtlı
+// sabitlemeleri kullanılır (birden fazla kategori seçiliyken ek kategoriler için).
+const applySchema = triggerSchema.extend({
+  aiRules: aiRulesSchema.optional(),
+  pins:    pinsSchema.optional(),
 });
 
 const DEFAULT_CRITERIA = [
@@ -116,6 +131,23 @@ rankingRouter.post('/trigger', (req: Request, res: Response) => {
   res.status(202).json({ message: 'Sıralama başlatıldı', categoryId: config.categoryId });
 });
 
+rankingRouter.post('/apply', async (req: Request, res: Response) => {
+  const parsed = applySchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+
+  const userId   = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+  const { pins, aiRules, ...rest } = parsed.data;
+  const savedPins = pins ?? (await getConfigByCategoryId(userId, rest.categoryId))?.pins ?? {};
+  const config = { ...rest, aiRules: (aiRules ?? []) as AdjustRule[], pins: savedPins } as Parameters<typeof runRankingPipeline>[0];
+  try {
+    const result = await runRankingPipeline(config, 'manual', userId, tenantId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Sıralama uygulanamadı' });
+  }
+});
+
 rankingRouter.post('/trigger/:categoryId', async (req: Request, res: Response) => {
   const userId   = req.user!.userId;
   const tenantId = req.user!.tenantId;
@@ -132,7 +164,7 @@ rankingRouter.post('/preview', async (req: Request, res: Response) => {
   const parsed = previewSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
-  const { categoryId, availabilityThreshold, criteria, smartMix, seasonPreFilter } = parsed.data;
+  const { categoryId, availabilityThreshold, criteria, smartMix, seasonPreFilter, aiRules, pins } = parsed.data;
   const userId = req.user!.userId;
 
   try {
@@ -145,6 +177,8 @@ rankingRouter.post('/preview', async (req: Request, res: Response) => {
         criteria: criteria as typeof DEFAULT_CRITERIA,
         smartMix: smartMix ?? false,
         seasonPreFilter: seasonPreFilter ?? 'none',
+        aiRules: aiRules as AdjustRule[] | undefined,
+        pins,
       };
     } else {
       const saved = await getConfigByCategoryId(userId, categoryId);

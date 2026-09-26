@@ -38,7 +38,7 @@ export interface AdjustableProduct {
   finalRank: number;
 }
 
-function buildMatcher<T extends AdjustableProduct>(
+export function buildMatcher<T extends AdjustableProduct>(
   field: AdjustMatchField,
   value: string
 ): (p: T) => boolean {

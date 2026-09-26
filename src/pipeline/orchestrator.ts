@@ -72,6 +72,9 @@ import { isPreferredSeason } from '../scoring/season';
 import { logger } from '../utils/logger';
 import { sleep } from '../utils/helpers';
 import { insertAuditLog } from '../db/audit.repo';
+import { removePins } from '../db/config.repo';
+import { applyAdjustRules, buildMatcher, type AdjustRule } from '../scoring/ai-adjust';
+import { applyPins } from '../scoring/pins';
 import type { WeightConfig, NormalizedProduct, CriterionKey, SeasonPreFilter } from '../types/product';
 
 // ── Sezon ön-sıralama ────────────────────────────────────────────────────────
@@ -164,6 +167,11 @@ export interface ProductPreviewItem {
   imageUrls:            string[];
   season:               string;
   ga4?: NormalizedProduct['ga4'];
+  /** Position from the rules alone (score, exclusion, season, Smart Mix), before AI rules and pins. */
+  ruleRank:             number;
+  /** Position after the AI rules, before manual pins — the order a pin falls back to when removed. */
+  baseRank:             number;
+  isPinned:             boolean;
 }
 
 export interface PreviewResult {
@@ -174,6 +182,11 @@ export interface PreviewResult {
   apiUrl:            string;
   categoryExportCode: string;
   criteria:          WeightConfig['criteria'];
+  /** Rules applied on the server (AI rules and pins are included in the order). */
+  aiRules:           AdjustRule[];
+  pins:              Record<string, number>;
+  warnings:          string[];
+  aiWarnings:        string[];
 }
 
 /* ── Ortak adımlar: veri toplama + normalleştirme + sıralama ─────────────── */
@@ -237,12 +250,79 @@ export function fullStoreOrder<T extends { isDisqualified: boolean }>(ranked: T[
   return [...ranked.filter(p => !p.isDisqualified), ...ranked.filter(p => p.isDisqualified)];
 }
 
+export interface CategoryRanking {
+  /** Final store order: position i+1 is written for element i. */
+  order:       NormalizedProduct[];
+  ruleRank:    Map<string, number>;
+  baseRank:    Map<string, number>;
+  warnings:    string[];
+  /** The AI-rule part of `warnings` (pin warnings depend on the pins alone). */
+  aiWarnings:  string[];
+  /** Pinned product codes that are no longer in the category. */
+  missingPins: string[];
+}
+
+/**
+ * THE ranking of a category — used by the preview, the manual run ("Çalıştır" /
+ * "Sıralamayı Uygula") and the scheduled run, so all three always agree:
+ *   a) current products (fetched by the caller)
+ *   b) exclusion rules          ┐
+ *   c) scoring + sort, season,  ├ rankProducts → store order (excluded last)
+ *      Smart Mix                ┘
+ *   d) saved AI rules
+ *   e) manual pins (last: a hand-placed position always wins)
+ */
+export async function rankCategory(
+  adapter: PlatformAdapter,
+  products: PlatformProduct[],
+  config: WeightConfig,
+  userId: number,
+): Promise<CategoryRanking> {
+  const warnings: string[] = [];
+  const renumber = <T extends NormalizedProduct>(list: T[]) => list.map((p, i) => ({ ...p, finalRank: i + 1 }));
+
+  // b + c
+  const ruleOrder = renumber(fullStoreOrder(rankProducts(await loadAndScore(adapter, products, config, userId), config)));
+  const ruleRank  = new Map(ruleOrder.map(p => [p.productCode, p.finalRank]));
+
+  // d) AI rules (kept as rules, so they adapt to the current products)
+  const aiRules = config.aiRules ?? [];
+  for (const r of aiRules) {
+    if (r.type === 'pin_product') {
+      if (!ruleRank.has(r.productCode)) warnings.push(`AI kuralı uygulanamadı, ürün kategoride yok: "${r.description}"`);
+    } else {
+      const matches = buildMatcher<NormalizedProduct>(r.matchField, r.matchValue);
+      if (!ruleOrder.some(p => !p.isDisqualified && matches(p))) warnings.push(`AI kuralı hiçbir ürüne uymadı: "${r.description}"`);
+    }
+  }
+  const baseOrder = aiRules.length > 0
+    ? applyAdjustRules(ruleOrder, aiRules, { respaceSameProduct: config.smartMix, seasonPreFilter: config.seasonPreFilter })
+    : ruleOrder;
+  const baseRank = new Map(baseOrder.map((p, i) => [p.productCode, i + 1]));
+
+  const aiWarnings = [...warnings];
+
+  // e) manual pins
+  const pinned = applyPins(baseOrder, config.pins ?? {});
+  for (const m of pinned.missing)  warnings.push(`Sabitlenmiş ürün kategoride yok: ${m.code} (#${m.position})`);
+  for (const o of pinned.overflow) warnings.push(`${o.code} #${o.position}'e sabitli ama kategoride ${o.total} ürün var; en sona kondu`);
+  for (const p of pinned.pinnedExcluded) {
+    warnings.push(`${p.productCode} dışlama kuralına takılıyor (${p.disqualifyReason ?? 'dışlandı'}) ama sabitlendiği için #${config.pins![p.productCode]} sırasında`);
+  }
+
+  return {
+    order: renumber(pinned.order),
+    ruleRank, baseRank, warnings, aiWarnings,
+    missingPins: pinned.missing.map(m => m.code),
+  };
+}
+
 export async function runRankingPipeline(
   config: WeightConfig,
   triggeredBy: 'cron' | 'manual' = 'manual',
   userId = 0,
   tenantId?: number
-): Promise<void> {
+): Promise<{ warnings: string[]; count: number }> {
   const { categoryId } = config;
   const startedAt = Date.now();
   logger.info(`Pipeline başladı — kategori: ${categoryId} [${triggeredBy}]`);
@@ -254,25 +334,22 @@ export async function runRankingPipeline(
 
     if (products.length === 0) {
       logger.warn(`Kategoride ürün bulunamadı: ${categoryId}`);
-      return;
+      return { warnings: ['Kategoride ürün bulunamadı'], count: 0 };
     }
 
     logger.info(`${products.length} ürün bulundu, satış verileri çekiliyor… (ilk: ${products[0]?.code})`);
     const emptyCode = products.filter(p => !p.code).length;
     if (emptyCode > 0) logger.warn(`${emptyCode} üründe productCode boş`);
 
-    // Phase 2: Normalleştirme + puanlama
-    const normalized = await loadAndScore(adapter, products, config, userId);
-
-    // Phase 3: Sıralama ve yazma
-    const ranked = rankProducts(normalized, config);
+    // Phase 2-3: dışlama, puanlama, sıralama, AI kuralları, sabitlemeler (ortak fonksiyon)
+    const { order: toRank, warnings, missingPins } = await rankCategory(adapter, products, config, userId);
+    const ranked = toRank;
     const disqualifiedCount = ranked.filter(p => p.isDisqualified).length;
     const qualifiedCount    = ranked.length - disqualifiedCount;
 
-    // Kategorideki TÜM ürünlere sıra numarası yaz: aktifler 1..N, dışlananlar N+1'den
-    // itibaren. Mağaza dışlananları kendiliğinden sona almaz — gönderilmeyen ürün eski
-    // sıra numarasını korur ve yeni numaralarla çakışarak aktif ürünlerin arasına girer.
-    const toRank = fullStoreOrder(ranked);
+    // Kategorideki TÜM ürünlere sıra numarası yaz (dışlananlar dahil). Mağaza dışlananları
+    // kendiliğinden sona almaz — gönderilmeyen ürün eski sıra numarasını korur ve yeni
+    // numaralarla çakışarak aktif ürünlerin arasına girer.
     const { ok, fail } = await adapter.applySorting(
       categoryId, toRank.map((p, i) => ({ code: p.productCode, position: i + 1 }))
     );
@@ -280,8 +357,14 @@ export async function runRankingPipeline(
       throw new Error(`Mağaza ${fail} üründe sıralama güncellemesini reddetti (${ok} başarılı, toplam ${toRank.length})`);
     }
 
+    // Kategoride artık olmayan ürünlerin sabitlemeleri kayıttan silinir
+    if (missingPins.length > 0) {
+      await removePins(userId, categoryId, missingPins).catch(e => logger.warn(`Sabitleme silinemedi [${categoryId}]: ${e}`));
+      warnings.push(`${missingPins.length} sabitleme kategoride olmayan ürünlere aitti ve silindi`);
+    }
+
     const durationMs = Date.now() - startedAt;
-    logger.info(`Pipeline bitti — ${qualifiedCount} aktif, ${disqualifiedCount} disqualified (${durationMs}ms)`);
+    logger.info(`Pipeline bitti — ${qualifiedCount} aktif, ${disqualifiedCount} disqualified (${durationMs}ms)${warnings.length ? ` — ${warnings.length} uyarı` : ''}`);
 
     await insertAuditLog({
       userId,
@@ -292,7 +375,10 @@ export async function runRankingPipeline(
       disqualifiedCount,
       durationMs,
       status: 'success',
+      warnings,
     });
+
+    return { warnings, count: ranked.length };
 
   } catch (err) {
     const durationMs = Date.now() - startedAt;
@@ -327,12 +413,14 @@ export async function previewRanking(
   const apiUrl   = adapter.storeUrl;
   const products = await adapter.getProducts(categoryId);
 
+  const aiRules = config.aiRules ?? [];
+  const pins    = config.pins ?? {};
   if (products.length === 0) {
-    return { products: [], total: 0, qualifiedCount: 0, disqualifiedCount: 0, apiUrl, categoryExportCode: adapter.exportCategoryCode(categoryId), criteria: config.criteria };
+    return { products: [], total: 0, qualifiedCount: 0, disqualifiedCount: 0, apiUrl, categoryExportCode: adapter.exportCategoryCode(categoryId), criteria: config.criteria, aiRules, pins, warnings: [], aiWarnings: [] };
   }
 
   const byCode = new Map<string, PlatformProduct>(products.map(p => [p.code, p]));
-  const ranked = rankProducts(await loadAndScore(adapter, products, config, userId), config);
+  const { order: ranked, ruleRank, baseRank, warnings, aiWarnings } = await rankCategory(adapter, products, config, userId);
   const qualifiedCount    = ranked.filter(p => !p.isDisqualified).length;
   const disqualifiedCount = ranked.length - qualifiedCount;
 
@@ -367,11 +455,14 @@ export async function previewRanking(
       imageUrls:             src?.imageUrls ?? [],
       season:                p.season,
       ga4:                   p.ga4,
+      ruleRank:              ruleRank.get(p.productCode) ?? p.finalRank,
+      baseRank:              baseRank.get(p.productCode) ?? p.finalRank,
+      isPinned:              pins[p.productCode] !== undefined,
     };
   });
 
   logger.info(`Preview bitti — ${qualifiedCount} aktif, ${disqualifiedCount} disqualified`);
-  return { products: items, total: ranked.length, qualifiedCount, disqualifiedCount, apiUrl, categoryExportCode: adapter.exportCategoryCode(categoryId), criteria: config.criteria };
+  return { products: items, total: ranked.length, qualifiedCount, disqualifiedCount, apiUrl, categoryExportCode: adapter.exportCategoryCode(categoryId), criteria: config.criteria, aiRules, pins, warnings, aiWarnings };
 }
 
 export async function applyManualRanking(

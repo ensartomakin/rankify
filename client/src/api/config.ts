@@ -1,6 +1,7 @@
 import { apiFetch } from './http';
 import type { WeightCriterion, SeasonPreFilter } from '../types';
 import type { CategorySchedule } from '../utils/schedule';
+import type { AdjustRule } from './ranking';
 
 export interface SavedConfig {
   id: number;
@@ -14,6 +15,9 @@ export interface SavedConfig {
   seasonPreFilter?: SeasonPreFilter;
   schedule?: CategorySchedule;
   updatedAt?: string;
+  /** Saved AI instructions (structured rules) and manual pins (product code → position). */
+  aiRules?: AdjustRule[];
+  pins?: Record<string, number>;
   /** Latest run of the category; null = never run. Absent on older API versions. */
   lastRun?: { ranAt: string; status: 'success' | 'error'; triggeredBy: string } | null;
 }

@@ -10,6 +10,7 @@ export interface AuditLog {
   durationMs: number;
   status: 'success' | 'error';
   errorMessage?: string;
+  warnings?: string[];
   ranAt: string;
 }
 

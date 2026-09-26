@@ -233,18 +233,15 @@ function SortableCurrentCard({ p, onRankEdit, isPinned, onTogglePin }: {
 }
 
 /* ─── Önizleme puan yardımcıları ─── */
-/* Preview cards show no stock information: the stock criterion still counts
-   towards the ranking score, but its row is left out of the cards. */
-const HIDDEN_IN_PREVIEW: ReadonlySet<string> = new Set(['stockScore']);
-
 const SCORE_NAMES: Partial<Record<CriterionKey, string>> = {
-  bestSeller: 'Satış', newness: 'Yenilik', reviewScore: 'Yorum',
+  bestSeller: 'Satış', stockScore: 'Stok', newness: 'Yenilik', reviewScore: 'Yorum',
   availabilityScore: 'Bulunurluk', discountRate: 'İndirim',
   ga4Views: 'GA4 Görüntülenme', ga4CartAdds: 'GA4 Sepete Ekleme', ga4ConversionRate: 'GA4 Dönüşüm',
 };
 
 function rawValue(p: ProductPreviewItem, key: CriterionKey): string {
   switch (key) {
+    case 'stockScore':        return formatNumber(p.totalStock);
     case 'bestSeller':        return formatNumber(p.salesQty);
     case 'newness':           return formatDate(p.registrationDate, 'long');
     case 'reviewScore':       return formatNumber(p.reviewCount);
@@ -260,7 +257,7 @@ function rawValue(p: ProductPreviewItem, key: CriterionKey): string {
 function ScoreBreakdown({ p, criteria }: { p: ProductPreviewItem; criteria: PreviewResponse['criteria'] }) {
   return (
     <div>
-      {criteria.filter(c => !HIDDEN_IN_PREVIEW.has(c.key)).map((c, ci) => {
+      {criteria.map((c, ci) => {
         const key = c.key as CriterionKey;
         const contrib = p.criteriaContributions[key] ?? 0;
         const name = SCORE_NAMES[key] ?? key;
@@ -385,7 +382,6 @@ function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePi
       </div>
       <div className="hidden md:flex items-center gap-3 shrink-0">
         {criteria.map((c, ci) => {
-          if (HIDDEN_IN_PREVIEW.has(c.key)) return null;
           const key = c.key as CriterionKey;
           const contrib = p.criteriaContributions[key] ?? 0;
           const isZero = Math.round(contrib * 10) === 0;

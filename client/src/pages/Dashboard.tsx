@@ -14,6 +14,7 @@ import { CriterionCard } from '../components/CriterionCard';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { SearchIcon } from '../components/SearchIcon';
 import { EmptyState } from '../components/EmptyState';
+import { Switch } from '../components/Switch';
 import {
   getCurrentRanking, previewRanking, applyManualRanking, aiAdjustRanking,
 } from '../api/ranking';
@@ -121,8 +122,10 @@ function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void
       onPointerDown={e => e.stopPropagation()}
       aria-pressed={pinned} aria-label={label} title={label}
       className="w-7 h-7 flex items-center justify-center rounded-full transition-all shrink-0"
-      /* Same chip on every card; pinned state = filled icon. */
-      style={{ background: 'var(--scrim-pin)', color: 'var(--on-fill)', backdropFilter: 'blur(4px)' }}>
+      /* Light chip reads on any photo; pinned = teal chip, white filled icon. */
+      style={pinned
+        ? { background: 'var(--acc)', color: 'var(--on-fill)', boxShadow: 'var(--shadow-chip)' }
+        : { background: 'var(--pin-bg)', color: 'var(--on-light)', boxShadow: 'var(--shadow-chip)' }}>
       <PinIcon pinned={pinned} />
     </button>
   );
@@ -563,17 +566,6 @@ export function Dashboard({ prefill }: Props) {
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     el?.querySelector<HTMLButtonElement>('button')?.click();
   }
-  // Footer height drives the chat button's offset so it always sits above the
-  // footer (which can wrap to two rows on narrow screens).
-  const footerRef = useRef<HTMLDivElement>(null);
-  const [footerH, setFooterH] = useState(0);
-  useEffect(() => {
-    const el = footerRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setFooterH(entry.borderBoxSize?.[0]?.blockSize ?? el.offsetHeight));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
   const [aiInstruction, setAiInstruction] = useState('');
   const [aiLoading,    setAiLoading]    = useState(false);
 
@@ -1012,18 +1004,21 @@ export function Dashboard({ prefill }: Props) {
   const hasProducts = currentResult !== null || previewResult !== null;
 
   return (
-    <div className="relative h-full flex flex-col"
-      style={{ background: 'var(--page-bg)', '--footer-h': `${footerH}px` } as React.CSSProperties}>
+    /* No scroll container of its own: App's <main> is the only one. Header and
+       footer stick to its top/bottom; overflow-x: clip keeps wide content from
+       adding a horizontal bar without creating a second scroller. */
+    <div className="relative min-h-full flex flex-col"
+      style={{ background: 'var(--page-bg)', overflowX: 'clip' }}>
       {/* Başlık */}
-      <div className="shrink-0 py-3 flex items-center justify-between gap-4 px-4 md:px-6"
-        style={{ borderBottom: '1px solid var(--border)' }}>
+      <div className="sticky top-0 z-30 shrink-0 py-3 flex items-center justify-between gap-4 px-4 md:px-6"
+        style={{ borderBottom: '1px solid var(--border)', background: 'var(--page-bg)' }}>
         <h1 className="font-serif" style={{ fontSize: 'var(--text-page-title)', fontWeight: 700, color: 'var(--tx1)', lineHeight: 1.2 }}>
           Sıralama Yöneticisi
         </h1>
       </div>
 
       {/* Kaydırılabilir içerik */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-section px-4 md:px-6 pt-section"
+      <div className="flex-1 space-y-section px-4 md:px-6 pt-section"
         style={{ paddingBottom: 'var(--spacing-section)' }}>
 
         {/* Hero kategori arama alanı */}
@@ -1224,15 +1219,7 @@ export function Dashboard({ prefill }: Props) {
               <p className="text-sm" style={{ color: 'var(--tx2)', maxWidth: '520px' }}>
                 Aynı ürünün farklı renklerini ürün adına göre tespit eder, yan yana gelmelerini engeller
               </p>
-              <button onClick={() => setSmartMix(v => !v)}
-                className="relative shrink-0"
-                style={{ width: 48, height: 26, borderRadius: 13, background: smartMix ? 'var(--acc)' : 'var(--border)', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}>
-                <span style={{
-                  position: 'absolute', top: 4, left: smartMix ? 26 : 4,
-                  width: 18, height: 18, borderRadius: '50%', background: 'var(--knob)',
-                  transition: 'left 0.2s',
-                }} />
-              </button>
+              <Switch checked={smartMix} onChange={setSmartMix} label="Smart Mix" />
             </div>
           </div>
 
@@ -1372,17 +1359,11 @@ export function Dashboard({ prefill }: Props) {
                     </button>
                   )}
                   {view === 'preview' && previewResult && previewResult.disqualifiedCount > 0 && (
-                    <button onClick={() => setShowDq(v => !v)}
-                      role="switch" aria-checked={showDq}
-                      className="flex items-center gap-2 h-8 px-2.5 rounded-lg text-caption font-medium whitespace-nowrap"
-                      style={{ background: 'transparent', border: '1px solid var(--border-strong)', color: 'var(--tx2)', cursor: 'pointer' }}>
-                      <span className="relative inline-block shrink-0 rounded-full transition-colors"
-                        style={{ width: 28, height: 16, background: showDq ? 'var(--tx2)' : 'var(--border-strong)' }}>
-                        <span className="absolute top-0.5 rounded-full transition-all"
-                          style={{ width: 12, height: 12, left: showDq ? 14 : 2, background: 'var(--panel)' }} />
-                      </span>
+                    <label className="flex items-center gap-2 h-8 px-2.5 rounded-lg text-caption font-medium whitespace-nowrap cursor-pointer"
+                      style={{ border: '1px solid var(--border-strong)', color: 'var(--tx2)' }}>
+                      <Switch size="sm" checked={showDq} onChange={setShowDq} label="Dışlananları göster" />
                       Dışlananları göster
-                    </button>
+                    </label>
                   )}
                   {view === 'preview' && previewResult && (
                     <div role="radiogroup" aria-label="Görünüm" className="flex h-8 p-0.5 rounded-lg"
@@ -1523,10 +1504,30 @@ export function Dashboard({ prefill }: Props) {
       </div>
 
       {/* Sabit footer */}
-      <div ref={footerRef} className="shrink-0 min-w-0 flex items-center justify-between gap-3 flex-wrap overflow-x-hidden"
+      <div className="sticky bottom-0 z-30 shrink-0 min-w-0 flex items-center justify-between gap-3 flex-wrap"
         style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: 'var(--spacing-tight) max(16px, var(--spacing-card))' }}>
-        {/* Weight indicator */}
+        {/* Weight indicator + assistant */}
         <div className="flex items-center gap-2">
+          {previewResult && (
+            <button onClick={() => setChatOpen(v => !v)}
+              aria-label={chatOpen ? 'Asistanı kapat' : 'AI sıralama asistanı'} aria-expanded={chatOpen}
+              title="AI sıralama asistanı"
+              className="order-last relative w-9 h-9 flex items-center justify-center rounded-lg transition-all shrink-0"
+              style={chatOpen
+                ? { background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)', cursor: 'pointer' }
+                : btnOutline}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-5 h-5" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+              </svg>
+              {!chatOpen && aiRules.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-label font-bold flex items-center justify-center"
+                  style={{ background: 'var(--err-tx)', color: 'var(--on-fill)' }}>
+                  {aiRules.length}
+                </span>
+              )}
+            </button>
+          )}
+
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-label font-medium"
             style={total === 100
               ? { border: '1px solid var(--ok-bd)', color: 'var(--ok-tx)', background: 'var(--ok-bg)' }
@@ -1544,26 +1545,6 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {previewResult && (
-            <button onClick={() => setChatOpen(v => !v)}
-              aria-label={chatOpen ? 'Asistanı kapat' : 'AI sıralama asistanı'} aria-expanded={chatOpen}
-              title="AI sıralama asistanı"
-              className="relative w-9 h-9 flex items-center justify-center rounded-lg transition-all shrink-0"
-              style={chatOpen
-                ? { background: 'var(--acc-bg)', color: 'var(--acc-tx)', border: '1px solid var(--acc-bd)', cursor: 'pointer' }
-                : btnOutline}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-5 h-5" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-              </svg>
-              {!chatOpen && aiRules.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-label font-bold flex items-center justify-center"
-                  style={{ background: 'var(--err-tx)', color: 'var(--on-fill)' }}>
-                  {aiRules.length}
-                </span>
-              )}
-            </button>
-          )}
-
           <button onClick={() => setCriteria(DEFAULT_CRITERIA)}
             className={`${btnCls} font-medium`}
             style={{ background: 'transparent', border: '1px solid transparent', color: 'var(--tx2)', cursor: 'pointer' }}
@@ -1615,16 +1596,15 @@ export function Dashboard({ prefill }: Props) {
             ) : applyLabel}
           </button>
         </div>
-      </div>
 
       {/* AI sohbet paneli — açma düğmesi alt barda */}
       {previewResult && (
         <>
           {chatOpen && (
-            <div className="absolute right-4 z-40 w-[380px] max-w-[calc(100%-2rem)] flex flex-col overflow-hidden"
+            <div className="absolute left-4 z-40 w-[380px] max-w-[calc(100%-2rem)] flex flex-col overflow-hidden"
               style={{
-                bottom: 'calc(var(--footer-h) + 8px)',
-                height: '540px', maxHeight: 'calc(100% - var(--footer-h) - 24px)',
+                bottom: 'calc(100% + 8px)',
+                height: '540px', maxHeight: 'calc(100vh - 160px)',
                 background: 'var(--surface)', border: '1.5px solid var(--border-strong)',
                 borderRadius: '20px',
               }}>
@@ -1717,6 +1697,7 @@ export function Dashboard({ prefill }: Props) {
           )}
         </>
       )}
+      </div>
 
     </div>
   );

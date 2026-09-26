@@ -232,6 +232,11 @@ function rankProducts(normalized: NormalizedProduct[], config: WeightConfig): No
   return ranked;
 }
 
+/** Order written to the store: active products in rank order, then the excluded ones. */
+export function fullStoreOrder<T extends { isDisqualified: boolean }>(ranked: T[]): T[] {
+  return [...ranked.filter(p => !p.isDisqualified), ...ranked.filter(p => p.isDisqualified)];
+}
+
 export async function runRankingPipeline(
   config: WeightConfig,
   triggeredBy: 'cron' | 'manual' = 'manual',
@@ -264,8 +269,10 @@ export async function runRankingPipeline(
     const disqualifiedCount = ranked.filter(p => p.isDisqualified).length;
     const qualifiedCount    = ranked.length - disqualifiedCount;
 
-    // Sadece aktif ürünleri gönder — mağaza dışlananları zaten sona alır
-    const toRank = ranked.filter(p => !p.isDisqualified);
+    // Kategorideki TÜM ürünlere sıra numarası yaz: aktifler 1..N, dışlananlar N+1'den
+    // itibaren. Mağaza dışlananları kendiliğinden sona almaz — gönderilmeyen ürün eski
+    // sıra numarasını korur ve yeni numaralarla çakışarak aktif ürünlerin arasına girer.
+    const toRank = fullStoreOrder(ranked);
     const { ok, fail } = await adapter.applySorting(
       categoryId, toRank.map((p, i) => ({ code: p.productCode, position: i + 1 }))
     );

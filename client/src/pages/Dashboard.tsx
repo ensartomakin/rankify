@@ -40,6 +40,13 @@ const DEFAULT_CRITERIA: WeightCriterion[] = [
 
 const fmtPct = (n: number) => formatPercent(n, 1);
 
+/** Positions written to the store: active products in the shown order (1..N),
+ *  then the excluded ones — the same order the preview displays. */
+function fullStoreOrder(items: ProductPreviewItem[]): { productCode: string; rank: number }[] {
+  const ordered = [...items.filter(p => !p.isDisqualified), ...items.filter(p => p.isDisqualified)];
+  return ordered.map((p, i) => ({ productCode: p.productCode, rank: i + 1 }));
+}
+
 
 /* ─── Boş durum ikonları ─── */
 function GridIcon() {
@@ -909,17 +916,13 @@ export function Dashboard({ prefill }: Props) {
     if (!isValid || previewOrder.length === 0) return;
     setTriggerStatus('loading'); setMessage('');
     try {
-      // Sadece aktif ürünleri gönder — mağaza dışlananları zaten sona alır
-      const activeProducts = previewOrder.filter(p => !p.isDisqualified);
-      await applyManualRanking(
-        categoryId.trim(),
-        activeProducts.map((p, i) => ({ productCode: p.productCode, rank: i + 1 }))
-      );
+      // Tüm ürünlere sıra yaz (aktifler önce, dışlananlar sonra). Gönderilmeyen ürün
+      // mağazada eski sıra numarasını korur ve yeni sıralamanın arasına karışır.
+      await applyManualRanking(categoryId.trim(), fullStoreOrder(previewOrder));
       // Ek kategoriler için algoritmayı çalıştır ve uygula
       for (const { id } of selectedCategories.slice(1)) {
-        const result = await previewRanking({ categoryId: id, availabilityThreshold: threshold, criteria, smartMix });
-        const active = result.products.filter(p => !p.isDisqualified);
-        await applyManualRanking(id, active.map((p, i) => ({ productCode: p.productCode, rank: i + 1 })));
+        const result = await previewRanking({ categoryId: id, availabilityThreshold: threshold, criteria, smartMix, seasonPreFilter });
+        await applyManualRanking(id, fullStoreOrder(result.products));
       }
       setTriggerStatus('success');
       setMessage(selectedCategories.length > 1

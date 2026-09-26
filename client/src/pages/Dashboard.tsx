@@ -208,7 +208,6 @@ function CurrentCard({ p, onRankEdit, isPinned, onTogglePin }: {
         </a>
         <div className="mt-auto flex items-center justify-between gap-2 text-label" style={{ color: 'var(--tx3)' }}>
           <span className="font-mono truncate min-w-0">#{p.productCode}</span>
-          <span className="shrink-0">Stok {formatNumber(p.totalStock)}</span>
         </div>
       </div>
     </div>

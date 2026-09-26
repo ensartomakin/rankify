@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { requireAuth } from './auth.middleware';
 import { getAllConfigs, getConfigByCategoryId, upsertConfig, deleteConfig } from '../db/config.repo';
+import { getLastRuns } from '../db/audit.repo';
 
 export const configRouter = Router();
 configRouter.use(requireAuth);
@@ -39,8 +40,12 @@ const configSchema = z.object({
 });
 
 configRouter.get('/', async (req: Request, res: Response) => {
-  const configs = await getAllConfigs(req.user!.userId);
-  res.json(configs);
+  const [configs, lastRuns] = await Promise.all([
+    getAllConfigs(req.user!.userId),
+    getLastRuns(req.user!.userId),
+  ]);
+  // lastRun: null = never run
+  res.json(configs.map(c => ({ ...c, lastRun: lastRuns[c.categoryId] ?? null })));
 });
 
 configRouter.get('/:categoryId', async (req: Request, res: Response) => {

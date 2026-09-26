@@ -60,3 +60,12 @@ export function nextRunLabel(d: ScheduleDraft, now = new Date()): string | null 
   }
   return null;
 }
+
+/* "Pzt, Çar · 09:00, 17:00" (Monday-first), "Her gün · 09:00", or null when incomplete. */
+export function scheduleSummary(d: ScheduleDraft): string | null {
+  if (d.days.length === 0 || d.hours.length === 0) return null;
+  const days = d.days.length === 7
+    ? 'Her gün'
+    : WEEK_DAYS.filter(([day]) => d.days.includes(day)).map(([day]) => DAY_SHORT[day]).join(', ');
+  return `${days} · ${[...d.hours].sort((a, b) => a - b).map(hourLabel).join(', ')}`;
+}

@@ -82,3 +82,26 @@ export async function getAuditLogs(userId: number, categoryId?: string, limit = 
     .slice(0, limit)
     .map(devRowToLog);
 }
+
+/** Latest run per category for a user: { categoryId → { ranAt, status, triggeredBy } }. */
+export async function getLastRuns(userId: number): Promise<Record<string, { ranAt: string; status: 'success' | 'error'; triggeredBy: string }>> {
+  const out: Record<string, { ranAt: string; status: 'success' | 'error'; triggeredBy: string }> = {};
+  if (usePg()) {
+    const rows = await query<{ category_id: string; ran_at: string | Date; status: string; triggered_by: string }>(
+      `SELECT DISTINCT ON (category_id) category_id, ran_at, status, triggered_by
+       FROM audit_logs WHERE user_id = $1
+       ORDER BY category_id, ran_at DESC`,
+      [userId]
+    );
+    for (const r of rows) {
+      out[r.category_id] = { ranAt: new Date(r.ran_at).toISOString(), status: r.status as 'success' | 'error', triggeredBy: r.triggered_by };
+    }
+    return out;
+  }
+  for (const r of store.audits.values()) {
+    if (r.userId !== userId) continue;
+    const prev = out[r.categoryId];
+    if (!prev || r.ranAt > prev.ranAt) out[r.categoryId] = { ranAt: r.ranAt, status: r.status as 'success' | 'error', triggeredBy: r.triggeredBy };
+  }
+  return out;
+}

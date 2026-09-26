@@ -78,11 +78,14 @@ export function WeightDonut({ criteria }: Props) {
         {data.map((d, i) => (
           <div key={i} tabIndex={0}
             onMouseEnter={() => setActive(i)} onFocus={() => setActive(i)} onBlur={() => setActive(null)}
-            className="flex items-center justify-between gap-3 rounded-lg px-4 py-2.5 outline-none transition-opacity"
+            className="flex items-center justify-between gap-3 rounded-lg px-4 py-2.5 outline-none transition-shadow"
             style={{
               background: d.color + '1A',
-              boxShadow: `inset 3px 0 0 ${d.color}`,
-              opacity: active === null || active === i ? 1 : 0.6,
+              // Every card keeps full opacity and the same text colours; the
+              // hovered/focused one is only outlined in its own colour.
+              boxShadow: active === i
+                ? `inset 3px 0 0 ${d.color}, inset 0 0 0 1.5px ${d.color}`
+                : `inset 3px 0 0 ${d.color}`,
             }}>
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -15,6 +15,9 @@ import { CategoryPicker } from '../components/CategoryPicker';
 import { SearchIcon } from '../components/SearchIcon';
 import { EmptyState } from '../components/EmptyState';
 import { Switch } from '../components/Switch';
+import { ToastStack } from '../components/Toast';
+import { useToasts } from '../components/useToasts';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import {
   getCurrentRanking, previewRanking, applyManualRanking, aiAdjustRanking,
 } from '../api/ranking';
@@ -230,15 +233,18 @@ function SortableCurrentCard({ p, onRankEdit, isPinned, onTogglePin }: {
 }
 
 /* ─── Önizleme puan yardımcıları ─── */
+/* Preview cards show no stock information: the stock criterion still counts
+   towards the ranking score, but its row is left out of the cards. */
+const HIDDEN_IN_PREVIEW: ReadonlySet<string> = new Set(['stockScore']);
+
 const SCORE_NAMES: Partial<Record<CriterionKey, string>> = {
-  bestSeller: 'Satış', stockScore: 'Stok', newness: 'Yenilik', reviewScore: 'Yorum',
+  bestSeller: 'Satış', newness: 'Yenilik', reviewScore: 'Yorum',
   availabilityScore: 'Bulunurluk', discountRate: 'İndirim',
   ga4Views: 'GA4 Görüntülenme', ga4CartAdds: 'GA4 Sepete Ekleme', ga4ConversionRate: 'GA4 Dönüşüm',
 };
 
 function rawValue(p: ProductPreviewItem, key: CriterionKey): string {
   switch (key) {
-    case 'stockScore':        return formatNumber(p.totalStock);
     case 'bestSeller':        return formatNumber(p.salesQty);
     case 'newness':           return formatDate(p.registrationDate, 'long');
     case 'reviewScore':       return formatNumber(p.reviewCount);
@@ -254,7 +260,7 @@ function rawValue(p: ProductPreviewItem, key: CriterionKey): string {
 function ScoreBreakdown({ p, criteria }: { p: ProductPreviewItem; criteria: PreviewResponse['criteria'] }) {
   return (
     <div>
-      {criteria.map((c, ci) => {
+      {criteria.filter(c => !HIDDEN_IN_PREVIEW.has(c.key)).map((c, ci) => {
         const key = c.key as CriterionKey;
         const contrib = p.criteriaContributions[key] ?? 0;
         const name = SCORE_NAMES[key] ?? key;
@@ -379,6 +385,7 @@ function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePi
       </div>
       <div className="hidden md:flex items-center gap-3 shrink-0">
         {criteria.map((c, ci) => {
+          if (HIDDEN_IN_PREVIEW.has(c.key)) return null;
           const key = c.key as CriterionKey;
           const contrib = p.criteriaContributions[key] ?? 0;
           const isZero = Math.round(contrib * 10) === 0;
@@ -468,6 +475,40 @@ const btnOutline  = { background: 'transparent', color: 'var(--tx1)', border: '1
 const btnDisabled = { background: 'transparent', color: 'var(--tx3)', border: '1px solid var(--border)', cursor: 'not-allowed' };
 const panelCls = 'min-w-0 max-w-full rounded-2xl p-card flex flex-col gap-stack';
 
+/* Hover/focus tooltip that also works on disabled buttons (they get no
+   native title tooltip in every browser). Without text it renders the child as is. */
+function Tip({ text, side = 'top', align = 'end', children }: {
+  text?: string; side?: 'top' | 'bottom'; align?: 'start' | 'end'; children: React.ReactNode;
+}) {
+  if (!text) return <>{children}</>;
+  return (
+    <span className="relative group inline-flex shrink-0">
+      {children}
+      <span role="tooltip"
+        className={`pointer-events-none invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute z-50 w-max max-w-[260px] px-2.5 py-1.5 rounded-md text-label font-medium leading-snug ${side === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'} ${align === 'end' ? 'right-0' : 'left-0'}`}
+        style={{ background: 'var(--tx1)', color: 'var(--bg)', boxShadow: 'var(--shadow-tooltip)' }}>
+        {text}
+      </span>
+    </span>
+  );
+}
+
+/* Criteria compared field by field, so a template counts as edited only
+   when a weight, criterion, direction or period really differs. */
+function sameCriteria(a: WeightCriterion[], b: WeightCriterion[]) {
+  const norm = (l: WeightCriterion[]) => JSON.stringify(l.map(c => [c.key, c.weight, c.direction, c.salesPeriod ?? null]));
+  return norm(a) === norm(b);
+}
+
+function EditedBadge() {
+  return (
+    <span className="text-label font-semibold px-1.5 py-px rounded-full whitespace-nowrap"
+      style={{ background: 'var(--warn-bg)', color: 'var(--warn-tx)', border: '1px solid var(--warn-bd)' }}>
+      Düzenlendi
+    </span>
+  );
+}
+
 function PanelTitle({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-tight">
@@ -497,16 +538,17 @@ export function Dashboard({ prefill }: Props) {
   const [scenarioOpen,    setScenarioOpen]    = useState(false);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const scenarioRef = useRef<HTMLDivElement>(null);
+  const scenarioEdited = selectedScenario !== null && !sameCriteria(criteria, selectedScenario.criteria);
+  const [confirmDefault, setConfirmDefault] = useState(false);
+  const closeConfirmDefault = useCallback(() => setConfirmDefault(false), []);
 
   const [saveStatus,    setSaveStatus]    = useState<Status>('idle');
   const [triggerStatus, setTriggerStatus] = useState<Status>('idle');
-  const [message,       setMessage]       = useState('');
-  const isConfigError = triggerStatus === 'error' || saveStatus === 'error';
+  const { toasts, notify, dismiss: dismissToast } = useToasts();
 
   // Mevcut sıralama
   const [currentResult, setCurrentResult] = useState<CurrentRankingResponse | null>(null);
   const [currentStatus, setCurrentStatus] = useState<Status>('idle');
-  const [currentError,  setCurrentError]  = useState('');
 
   // Manuel sıralama — mevcut görünüm
   const [manualOrder,  setManualOrder]  = useState<CurrentRankItem[]>([]);
@@ -516,7 +558,6 @@ export function Dashboard({ prefill }: Props) {
   // Önizleme
   const [previewResult, setPreviewResult] = useState<PreviewResponse | null>(null);
   const [previewStatus, setPreviewStatus] = useState<Status>('idle');
-  const [previewError,  setPreviewError]  = useState('');
 
   // Manuel sıralama — önizleme görünümü
   const [previewOrder, setPreviewOrder] = useState<ProductPreviewItem[]>([]);
@@ -575,7 +616,6 @@ export function Dashboard({ prefill }: Props) {
   useEffect(() => {
     setPreviewResult(null);
     setPreviewStatus('idle');
-    setPreviewError('');
     setView('current');
     setManualDirty(false);
     setAiRules([]);
@@ -587,7 +627,6 @@ export function Dashboard({ prefill }: Props) {
 
     let cancelled = false;
     setCurrentStatus('loading');
-    setCurrentError('');
     setCurrentResult(null);
     setManualOrder([]);
     getCurrentRanking(categoryId)
@@ -598,15 +637,19 @@ export function Dashboard({ prefill }: Props) {
           setCurrentStatus('idle');
         }
       })
-      .catch(e => { if (!cancelled) { setCurrentError(e instanceof Error ? e.message : 'Yükleme hatası'); setCurrentStatus('error'); } });
+      .catch(e => {
+        if (cancelled) return;
+        const msg = e instanceof Error ? e.message : 'Yükleme hatası';
+        setCurrentStatus('error');
+        notify(`Yükleme hatası: ${msg}`, 'error');
+      });
     return () => { cancelled = true; };
-  }, [categoryId]);
+  }, [categoryId, notify]);
 
   // Kriter/eşik/sezon değişince önizlemeyi sıfırla
   useEffect(() => {
     setPreviewResult(null);
     setPreviewStatus('idle');
-    setPreviewError('');
     setAiRules([]);
     setMessages([]);
     if (view === 'preview') setView('current');
@@ -740,15 +783,15 @@ export function Dashboard({ prefill }: Props) {
 
   async function handleApplyManual() {
     if (!categoryId || manualOrder.length === 0) return;
-    setManualStatus('loading'); setMessage('');
+    setManualStatus('loading');
     try {
       await applyManualRanking(categoryId, manualOrder.map(p => ({ productCode: p.productCode, rank: p.currentRank })));
       setManualStatus('idle');
       setManualDirty(false);
-      setMessage('Manuel sıralama mağazaya uygulandı.');
+      notify('Manuel sıralama mağazaya uygulandı.');
     } catch (err) {
       setManualStatus('idle');
-      setMessage(err instanceof Error ? err.message : 'Hata');
+      notify(err instanceof Error ? err.message : 'Hata', 'error');
     }
   }
 
@@ -763,7 +806,7 @@ export function Dashboard({ prefill }: Props) {
 
   async function handleSave() {
     if (!isValid) return;
-    setSaveStatus('loading'); setMessage('');
+    setSaveStatus('loading');
     let done = 0; let fail = 0;
     for (const { id, name } of selectedCategories) {
       try {
@@ -773,10 +816,10 @@ export function Dashboard({ prefill }: Props) {
     }
     if (fail === 0) {
       setSaveStatus('success');
-      setMessage(selectedCategories.length > 1 ? `${done} kategori kaydedildi.` : 'Konfigürasyon kaydedildi.');
+      notify(selectedCategories.length > 1 ? `${done} kategori kaydedildi.` : 'Konfigürasyon kaydedildi.');
     } else {
       setSaveStatus('error');
-      setMessage(`${done} başarılı, ${fail} başarısız.`);
+      notify(`${done} başarılı, ${fail} başarısız.`, 'error');
     }
   }
 
@@ -812,7 +855,7 @@ export function Dashboard({ prefill }: Props) {
 
   async function handlePreview() {
     if (!isValid) return;
-    setPreviewStatus('loading'); setPreviewError(''); setPreviewResult(null);
+    setPreviewStatus('loading'); setPreviewResult(null);
     try {
       const result = await previewRanking({ categoryId: categoryId.trim(), availabilityThreshold: threshold, criteria, smartMix, seasonPreFilter });
       setPreviewResult(result);
@@ -831,8 +874,9 @@ export function Dashboard({ prefill }: Props) {
       setPreviewStatus('idle');
       setView('preview');
     } catch (err) {
-      setPreviewError(err instanceof Error ? err.message : 'Önizleme hatası');
+      const msg = err instanceof Error ? err.message : 'Önizleme hatası';
       setPreviewStatus('error');
+      notify(`Önizleme hatası: ${msg}`, 'error');
     }
   }
 
@@ -914,7 +958,7 @@ export function Dashboard({ prefill }: Props) {
 
   async function handleTrigger() {
     if (!isValid || previewOrder.length === 0) return;
-    setTriggerStatus('loading'); setMessage('');
+    setTriggerStatus('loading');
     try {
       // Tüm ürünlere sıra yaz (aktifler önce, dışlananlar sonra). Gönderilmeyen ürün
       // mağazada eski sıra numarasını korur ve yeni sıralamanın arasına karışır.
@@ -925,12 +969,12 @@ export function Dashboard({ prefill }: Props) {
         await applyManualRanking(id, fullStoreOrder(result.products));
       }
       setTriggerStatus('success');
-      setMessage(selectedCategories.length > 1
+      notify(selectedCategories.length > 1
         ? `${selectedCategories.length} kategoriye sıralama uygulandı.`
         : 'Sıralama başarıyla uygulandı.'
       );
     } catch (err) {
-      setTriggerStatus('error'); setMessage(err instanceof Error ? err.message : 'Hata');
+      setTriggerStatus('error'); notify(err instanceof Error ? err.message : 'Hata', 'error');
     }
   }
 
@@ -940,9 +984,12 @@ export function Dashboard({ prefill }: Props) {
   const canApply   = canManual || canPreview;
   const isApplying = manualStatus === 'loading' || triggerStatus === 'loading';
   const applyLabel = isApplying ? null : (canManual ? '⇅ Sıralamayı Uygula' : '✓ Sıralamayı Uygula');
-  const applyTooltip = !canApply
-    ? (view === 'current' ? 'Sıralamayı değiştirin veya Önizle\'ye basın' : 'Önce Önizle\'ye basın')
-    : undefined;
+  // Why "Sıralamayı Uygula" is disabled — shown as its tooltip.
+  const applyTooltip = isApplying ? undefined
+    : !categoryId ? 'Önce bir kategori seçin'
+    : canApply ? undefined
+    : view === 'preview' ? 'Önizlemede uygulanacak ürün yok'
+    : 'Uygulanacak değişiklik yok — ürünleri sürükleyerek sıralayın veya Önizle\'ye basın';
 
   /* Filtreli liste */
 
@@ -974,6 +1021,13 @@ export function Dashboard({ prefill }: Props) {
        adding a horizontal bar without creating a second scroller. */
     <div className="relative min-h-full flex flex-col"
       style={{ background: 'var(--page-bg)', overflowX: 'clip' }}>
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
+      <ConfirmDialog open={confirmDefault}
+        title="Varsayılan ayarlara dönülsün mü?"
+        description="Kriterler ve ağırlıklar varsayılan değerlere sıfırlanır. Kaydedilmemiş değişiklikleriniz kaybolur."
+        confirmLabel="Varsayılana dön"
+        onConfirm={() => { setCriteria(DEFAULT_CRITERIA); setConfirmDefault(false); }}
+        onCancel={closeConfirmDefault} />
       {/* Başlık */}
       <div className="sticky top-0 z-30 shrink-0 py-3 flex items-center justify-between gap-4 px-4 md:px-6"
         style={{ borderBottom: '1px solid var(--border)', background: 'var(--page-bg)' }}>
@@ -1073,7 +1127,10 @@ export function Dashboard({ prefill }: Props) {
                   }}
                   onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface3)'; }}
                   onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; }}>
-                  <span style={{ fontSize: 'var(--text-emoji)', lineHeight: 1 }}>{s.emoji}</span>
+                  <span className="flex items-start justify-between gap-1 self-stretch">
+                    <span style={{ fontSize: 'var(--text-emoji)', lineHeight: 1 }}>{s.emoji}</span>
+                    {isSelected && scenarioEdited && <EditedBadge />}
+                  </span>
                   <div className="text-label font-bold leading-tight mt-0.5 break-words max-w-full" style={{ color: isSelected ? 'var(--acc-tx)' : 'var(--tx1)' }}>{s.name}</div>
                   <div className="text-caption leading-tight" style={{ color: 'var(--tx3)' }}>{s.tagline}</div>
                 </button>
@@ -1089,7 +1146,13 @@ export function Dashboard({ prefill }: Props) {
                 <div style={{ fontSize: 'var(--text-caption)', fontWeight: 700, color: 'var(--acc-tx)' }}>
                   {selectedScenario.name}
                   <span style={{ fontWeight: 400, marginLeft: 'var(--spacing-inline)', color: 'var(--tx3)' }}>· {selectedScenario.tagline}</span>
+                  {scenarioEdited && <span className="ml-2 align-middle"><EditedBadge /></span>}
                 </div>
+                {scenarioEdited && (
+                  <div className="text-label" style={{ color: 'var(--tx3)', marginTop: 'var(--spacing-hair)' }}>
+                    Ağırlıklar veya kriterler şablondan farklı.
+                  </div>
+                )}
                 <div style={{ fontSize: 'var(--text-caption)', color: 'var(--tx2)', marginTop: 'var(--spacing-hair)', lineHeight: 1.6 }}>
                   {selectedScenario.description}
                 </div>
@@ -1115,9 +1178,13 @@ export function Dashboard({ prefill }: Props) {
             </div>
 
             {/* Beden Bulunurluk Eşiği */}
-            <div className={`${panelCls} flex-1`} style={cardSt}>
+            {/* flex-auto (not flex-1/0% basis): the card never sizes below its
+                content. Content sits right under the title; when the criteria
+                column is taller the extra height stays empty at the bottom
+                instead of pushing the slider into the middle of a tall card. */}
+            <div className={`${panelCls} flex-auto`} style={cardSt}>
               <PanelTitle>Beden Bulunurluk Eşiği</PanelTitle>
-              <div className="flex-1 flex flex-col justify-center gap-stack">
+              <div className="flex flex-col gap-stack">
                 <div className="flex items-center justify-between gap-stack">
                   <p className="text-caption truncate min-w-0" style={{ color: 'var(--tx2)' }}
                     title="Bu eşiğin altındaki beden oranına sahip çok bedenli ürünler sıralamadan dışlanır">
@@ -1247,29 +1314,6 @@ export function Dashboard({ prefill }: Props) {
           </div>
         </div>
 
-        {/* Mesajlar */}
-        {previewError && previewStatus === 'error' && (
-          <div className="px-5 py-3.5 rounded-lg text-sm font-medium"
-            style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
-            ✕ Önizleme hatası: {previewError}
-          </div>
-        )}
-        {currentError && currentStatus === 'error' && (
-          <div className="px-5 py-3.5 rounded-lg text-sm font-medium"
-            style={{ background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }}>
-            ✕ Yükleme hatası: {currentError}
-          </div>
-        )}
-        {message && (
-          <div className="px-5 py-3.5 rounded-lg text-sm font-medium flex items-center gap-3"
-            style={isConfigError
-              ? { background: 'var(--err-bg)', border: '1px solid var(--err-bd)', color: 'var(--err-tx)' }
-              : { background: 'var(--ok-bg)',  border: '1px solid var(--ok-bd)',  color: 'var(--ok-tx)'  }
-            }>
-            {isConfigError ? '✕' : '✓'} {message}
-          </div>
-        )}
-
         {/* Ürün listesi alanı */}
         {categoryId && (
           <div style={{ ...cardSt, borderRadius: '16px' }}>
@@ -1280,23 +1324,29 @@ export function Dashboard({ prefill }: Props) {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 {/* Sol: görünüm sekmeleri */}
                 <div className="flex items-center gap-2">
-                  {previewResult ? (
-                    <div className="flex rounded-lg overflow-hidden"
-                      style={{ border: '1px solid var(--border)' }}>
-                      {(['current', 'preview'] as const).map(v => (
-                        <button key={v} onClick={() => setView(v)}
-                          className="px-4 py-2 text-caption font-semibold transition-colors whitespace-nowrap"
-                          style={view === v
-                            ? { background: 'var(--acc-bg)', color: 'var(--acc-tx)' }
-                            : { background: 'var(--surface)', color: 'var(--tx3)' }
-                          }>
-                          {v === 'current' ? 'Mevcut Sıralama' : 'Önizleme'}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-caption font-semibold" style={{ color: 'var(--tx2)' }}>Mevcut Sıralama</span>
-                  )}
+                  {/* Both tabs are always shown; Önizleme stays disabled until a preview exists. */}
+                  <div className="flex rounded-lg" role="tablist"
+                    style={{ border: '1px solid var(--border)' }}>
+                    {(['current', 'preview'] as const).map(v => {
+                      const disabled = v === 'preview' && !previewResult;
+                      const isActive = view === v && !disabled;
+                      return (
+                        <Tip key={v} side="bottom" align="start"
+                          text={disabled ? 'Önizleme yok — kriterleri ayarlayıp Önizle\'ye basın' : undefined}>
+                          <button role="tab" aria-selected={isActive} onClick={() => setView(v)} disabled={disabled}
+                            className={`px-4 py-2 text-caption font-semibold transition-colors whitespace-nowrap ${v === 'current' ? 'rounded-l-lg' : 'rounded-r-lg'}`}
+                            style={isActive
+                              ? { background: 'var(--acc-bg)', color: 'var(--acc-tx)' }
+                              : disabled
+                                ? { background: 'var(--surface2)', color: 'var(--tx3)', cursor: 'not-allowed' }
+                                : { background: 'var(--surface)', color: 'var(--tx3)' }
+                            }>
+                            {v === 'current' ? 'Mevcut Sıralama' : 'Önizleme'}
+                          </button>
+                        </Tip>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Sağ: export + toggle + arama */}
@@ -1490,33 +1540,31 @@ export function Dashboard({ prefill }: Props) {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {previewResult && (
-            <>
-              <button onClick={() => setChatOpen(v => !v)}
-                aria-label="AI Sıralama Asistanı" aria-expanded={chatOpen}
-                title="AI Sıralama Asistanı"
-                className="relative h-9 px-2.5 lg:px-3 flex items-center gap-1.5 rounded-lg text-caption font-medium whitespace-nowrap transition-colors shrink-0"
-                style={{ background: chatOpen ? 'var(--ai-bg-hov)' : 'var(--ai-bg)', color: 'var(--ai-tx)', border: '1px solid var(--ai-bd)', cursor: 'pointer' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--ai-bg-hov)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = chatOpen ? 'var(--ai-bg-hov)' : 'var(--ai-bg)'; }}>
-                {/* sparkles */}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-4 h-4 shrink-0" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-                </svg>
-                {/* label on wide screens; icon-only (title/aria-label) when narrow */}
-                <span className="hidden lg:inline">AI Sıralama Asistanı</span>
-                {!chatOpen && aiRules.length > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-label font-bold flex items-center justify-center"
-                    style={{ background: 'var(--err-tx)', color: 'var(--on-fill)' }}>
-                    {aiRules.length}
-                  </span>
-                )}
-              </button>
-              <span aria-hidden="true" className="w-px h-6 mx-1 shrink-0" style={{ background: 'var(--border-strong)' }} />
-            </>
-          )}
+          {/* AI asistanı her zaman aynı yerde; önizleme yokken pasif */}
+          <Tip text={previewResult ? 'AI Sıralama Asistanı' : 'AI asistanı önizleme üzerinde çalışır — önce Önizle\'ye basın'}>
+                <button onClick={() => setChatOpen(v => !v)} disabled={!previewResult}
+                  aria-label="AI Sıralama Asistanı" aria-expanded={chatOpen && !!previewResult}
+                  className="relative h-9 px-2.5 lg:px-3 flex items-center gap-1.5 rounded-lg text-caption font-medium whitespace-nowrap transition-colors shrink-0"
+                  style={{ background: chatOpen && previewResult ? 'var(--ai-bg-hov)' : 'var(--ai-bg)', color: 'var(--ai-tx)', border: '1px solid var(--ai-bd)', cursor: previewResult ? 'pointer' : 'not-allowed', opacity: previewResult ? 1 : 0.55 }}
+                  onMouseEnter={e => { if (previewResult) (e.currentTarget as HTMLElement).style.background = 'var(--ai-bg-hov)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = chatOpen && previewResult ? 'var(--ai-bg-hov)' : 'var(--ai-bg)'; }}>
+                  {/* sparkles */}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="w-4 h-4 shrink-0" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                  </svg>
+                  {/* label on wide screens; icon-only (title/aria-label) when narrow */}
+                  <span className="hidden lg:inline">AI Sıralama Asistanı</span>
+                  {!chatOpen && aiRules.length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-label font-bold flex items-center justify-center"
+                      style={{ background: 'var(--err-tx)', color: 'var(--on-fill)' }}>
+                      {aiRules.length}
+                    </span>
+                  )}
+                </button>
+          </Tip>
+          <span aria-hidden="true" className="w-px h-6 mx-1 shrink-0" style={{ background: 'var(--border-strong)' }} />
 
-          <button onClick={() => setCriteria(DEFAULT_CRITERIA)}
+          <button onClick={() => setConfirmDefault(true)}
             className={`${btnCls} font-medium`}
             style={{ background: 'transparent', border: '1px solid transparent', color: 'var(--tx2)', cursor: 'pointer' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--surface2)'; (e.currentTarget as HTMLElement).style.color = 'var(--tx1)'; }}
@@ -1547,10 +1595,10 @@ export function Dashboard({ prefill }: Props) {
           </button>
 
           {/* Sıralamayı Uygula — manuel ise manuel, önizleme ise skorlu yazar */}
+          <Tip text={applyTooltip}>
           <button
             onClick={canManual ? handleApplyManual : handleTrigger}
             disabled={!canApply || isApplying}
-            title={applyTooltip}
             className={`${btnCls} px-5 font-bold`}
             style={!canApply || isApplying
               ? { background: 'var(--cta-bg)', color: 'var(--cta-tx)', opacity: 0.55, cursor: 'not-allowed', border: '1px solid transparent' }
@@ -1566,6 +1614,7 @@ export function Dashboard({ prefill }: Props) {
               </span>
             ) : applyLabel}
           </button>
+          </Tip>
         </div>
 
       {/* AI sohbet paneli — açma düğmesi alt barda */}

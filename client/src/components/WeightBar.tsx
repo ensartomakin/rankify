@@ -8,16 +8,35 @@ interface Props {
 }
 
 const MIN_WEIGHT = 5;
-/* A segment at least this wide shows the criterion name instead of K1/K2… */
-const NAME_LABEL_MIN_PX = 120;
+/* The visible knob is 6px wide and centred on a boundary (3px into each
+   segment); labels keep this much clearance from the boundary, i.e. at
+   least 6px of gap next to the knob. */
+const HANDLE_CLEAR_PX = 9;
+const EDGE_PAD_PX = 8;
+
+/* Label text width at the bar's font (12px semibold), plus a little slack. */
+const measureCanvas = typeof document !== 'undefined' ? document.createElement('canvas') : null;
+function textWidth(text: string, fontFamily: string): number {
+  const ctx = measureCanvas?.getContext('2d');
+  if (!ctx) return text.length * 7;
+  ctx.font = `600 12px ${fontFamily}`;
+  return Math.ceil(ctx.measureText(text).width) + 2;
+}
 
 export function WeightBar({ criteria, onChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [barWidth, setBarWidth] = useState(0);
+  const [fontFamily, setFontFamily] = useState('sans-serif');
+  const [, setFontsLoaded] = useState(false);
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setBarWidth(entry.contentRect.width));
+    // Re-measure once web fonts are in (the first pass may use a fallback font).
+    document.fonts?.ready.then(() => setFontsLoaded(true));
+    const ro = new ResizeObserver(([entry]) => {
+      setBarWidth(entry.contentRect.width);
+      setFontFamily(getComputedStyle(el).fontFamily || 'sans-serif');
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -100,18 +119,26 @@ export function WeightBar({ criteria, onChange }: Props) {
         className="relative h-11 rounded-lg overflow-hidden flex select-none"
         style={{ border: '1px solid var(--border)' }}>
         {criteria.map((c, i) => {
-          const name  = CRITERION_LABELS[c.key];
-          const wide  = barWidth * c.weight / 100 >= NAME_LABEL_MIN_PX;
+          const name = CRITERION_LABELS[c.key];
+          const pct  = formatPercent(c.weight);
+          // Space left for the label once the handles on either side are cleared.
+          const padL = i > 0 ? HANDLE_CLEAR_PX : EDGE_PAD_PX;
+          const padR = i < criteria.length - 1 ? HANDLE_CLEAR_PX : EDGE_PAD_PX;
+          const room = barWidth * c.weight / 100 - padL - padR;
+          // Longest label that fits: name · % → K1 · % → % → none. Never truncated.
+          const label = [`${name} · ${pct}`, `K${i + 1} · ${pct}`, pct]
+            .find(t => textWidth(t, fontFamily) <= room) ?? '';
           return (
-            <div key={i} title={`${name} · ${formatPercent(c.weight)}`}
-              className="flex items-center justify-center px-1.5 text-label font-semibold overflow-hidden whitespace-nowrap"
+            <div key={i} title={`${name} · ${pct}`}
+              className="flex items-center justify-center text-label font-semibold overflow-hidden whitespace-nowrap"
               style={{
                 width: `${c.weight}%`,
+                paddingLeft: padL, paddingRight: padR,
                 background: criteriaColor(i),
                 color: 'var(--on-fill)',
                 textShadow: 'var(--text-shadow-on-fill)',
               }}>
-              <span className="truncate">{wide ? name : `K${i + 1}`} · {formatPercent(c.weight)}</span>
+              {label && <span>{label}</span>}
             </div>
           );
         })}
@@ -135,9 +162,18 @@ export function WeightBar({ criteria, onChange }: Props) {
         <div className="flex-1 grid gap-3"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))' }}>
           {criteria.map((c, i) => (
-            <label key={i} title={CRITERION_LABELS[c.key]} className="flex items-center justify-center gap-1.5 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: criteriaColor(i) }} />
-              <span className="text-label font-semibold shrink-0 cursor-help" style={{ color: 'var(--tx2)' }}>K{i + 1}</span>
+            <label key={i} className="flex items-center justify-center gap-1.5 min-w-0">
+              {/* K1…K5 with the full criterion name as a tooltip */}
+              <span className="relative group/k inline-flex items-center gap-1.5 shrink-0 cursor-help" tabIndex={0}
+                aria-label={`K${i + 1}: ${CRITERION_LABELS[c.key]}`}>
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: criteriaColor(i) }} />
+                <span className="text-label font-semibold" style={{ color: 'var(--tx2)' }}>K{i + 1}</span>
+                <span role="tooltip"
+                  className="pointer-events-none invisible opacity-0 group-hover/k:visible group-hover/k:opacity-100 group-focus/k:visible group-focus/k:opacity-100 transition-opacity absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20 w-max max-w-[200px] px-2.5 py-1.5 rounded-md text-label font-medium"
+                  style={{ background: 'var(--tx1)', color: 'var(--bg)', boxShadow: 'var(--shadow-tooltip)' }}>
+                  {CRITERION_LABELS[c.key]}
+                </span>
+              </span>
               <span className="relative min-w-0 w-full max-w-[72px]">
                 <input
                   type="text"

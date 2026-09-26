@@ -102,6 +102,7 @@ export interface CurrentRankItem {
   productCode: string;
   productName: string;
   imageUrl:    string;
+  imageUrls?:  string[];
   totalStock:  number;
   seoUrl:      string;
 }
@@ -130,6 +131,7 @@ export async function getCurrentRanking(
     productCode: p.productCode,
     productName: p.productName,
     imageUrl:    p.imageUrl,
+    imageUrls:   p.imageUrls,
     totalStock:  p.variants.reduce((s, v) => s + v.stock, 0),
     seoUrl:      p.seoUrl,
   }));
@@ -157,6 +159,7 @@ export interface ProductPreviewItem {
   registrationDate:     string;
   imageCount:           number;
   imageUrl:             string;
+  imageUrls?:            string[];
   season:               string;
   ga4?: NormalizedProduct['ga4'];
 }
@@ -320,6 +323,7 @@ export async function previewRanking(
   // imageCount is stored per-product alongside normalized data
   const imageCountMap = new Map<string, number>(products.map(p => [p.productCode, p.imageCount]));
   const imageUrlMap   = new Map<string, string>(products.map(p => [p.productCode, p.imageUrl]));
+  const imageUrlsMap  = new Map<string, string[] | undefined>(products.map(p => [p.productCode, p.imageUrls]));
   const productIdMap  = new Map<string, string>(products.map(p => [p.productCode, p.productId]));
   const seoUrlMap     = new Map<string, string>(products.map(p => [p.productCode, p.seoUrl]));
 
@@ -386,6 +390,7 @@ export async function previewRanking(
       registrationDate:      p.registrationDate.toISOString(),
       imageCount:            imageCountMap.get(p.productCode) ?? 0,
       imageUrl:              imageUrlMap.get(p.productCode) ?? '',
+      imageUrls:             imageUrlsMap.get(p.productCode),
       season:                p.season,
       ga4:                   p.ga4,
     };

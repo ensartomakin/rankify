@@ -15,6 +15,7 @@ export interface TSoftProduct {
   registrationDate: string;
   imageCount:       number;
   imageUrl:         string;   // direct image URL if T-Soft returns it
+  imageUrls?:       string[]; // same image, largest candidate first (original last)
   sortOrder:        number;   // current category display order (ListNo / SortOrder)
   reviewCount:      number;
   variants:         TSoftVariant[];

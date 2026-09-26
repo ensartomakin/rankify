@@ -181,6 +181,64 @@ function extraFieldIndex(sourceId: string | undefined): number {
   return m ? Number(m[1]) : 6;
 }
 
+/* ── Görsel çözünürlüğü ───────────────────────────────────────────────────
+ * Ürün listesi yanıtındaki ana görsel çoğunlukla küçük boyutlu kopyadır.
+ * Daha büyük adayları sırayla üretir; tarayıcı yüklenemeyeni atlayıp bir
+ * sonrakine geçer, en sonda her zaman orijinal URL kalır.                  */
+const BIG_KEY = /(original|orjinal|large|big|buyuk|büyük|zoom|full|hd)/i;
+const URL_LIKE = /^(https?:)?\/\/|^\/|\.(jpe?g|png|webp|gif|avif)(\?|$)/i;
+
+function stripSizeParams(url: string): string {
+  const q = url.indexOf('?');
+  if (q === -1) return url;
+  const params = new URLSearchParams(url.slice(q + 1));
+  for (const k of [...params.keys()]) if (/^(w|h|width|height|size)$/i.test(k)) params.delete(k);
+  const rest = params.toString();
+  return url.slice(0, q) + (rest ? `?${rest}` : '');
+}
+
+export function tsoftImageCandidates(p: Record<string, unknown>, primary: string): string[] {
+  const out: string[] = [];
+  const add = (u: unknown) => { if (typeof u === 'string' && u && URL_LIKE.test(u) && !out.includes(u)) out.push(u); };
+
+  // 1. Çoklu görsel dizileri — ilk görselin "büyük/orijinal" alanları önce
+  const arrays = [p.Images, p.images, p.MediaFiles, p.mediaFiles, p.Photos, p.photos, p.ImageFiles, p.imageFiles];
+  for (const arr of arrays) {
+    if (!Array.isArray(arr) || arr.length === 0) continue;
+    const first = arr[0];
+    if (typeof first === 'string') { add(first); continue; }
+    if (first && typeof first === 'object') {
+      const entries = Object.entries(first as Record<string, unknown>);
+      entries.filter(([k]) => BIG_KEY.test(k)).forEach(([, v]) => add(v));
+    }
+  }
+
+  // 2. Ana URL'nin büyük boyut karşılıkları
+  if (primary) {
+    // T-Soft boyut klasörleri: /Data/K/ (küçük), /Data/O/ (orta), /Data/B/ (büyük)
+    if (/\/Data\/[KO]\//i.test(primary)) {
+      add(primary.replace(/\/Data\/[KO]\//i, '/Data/B/'));
+      if (/\/Data\/K\//i.test(primary)) add(primary.replace(/\/Data\/K\//i, '/Data/O/'));
+    }
+    // Genel küçük görsel klasör/son ekleri
+    add(primary.replace(/\/(thumbs?|small|thumbnail)\//i, '/large/'));
+    add(primary.replace(/\/(s|k)\/([^/]+)$/i, '/b/$2'));
+    add(primary.replace(/[_-](thumb|small|s|k)(\.(?:jpe?g|png|webp|gif))/i, '_b$2'));
+    // Boyut parametreleri (?w=150&h=150) — kaldır
+    add(stripSizeParams(primary));
+    // 3. Orijinal her zaman son aday
+    const i = out.indexOf(primary); if (i !== -1) out.splice(i, 1);
+    out.push(primary);
+  }
+
+  // 1. adımdaki diğer (boyutu belirtilmemiş) URL'ler en sona
+  for (const arr of arrays) {
+    if (!Array.isArray(arr) || !arr[0] || typeof arr[0] !== 'object') continue;
+    Object.values(arr[0] as Record<string, unknown>).forEach(add);
+  }
+  return out;
+}
+
 export class TSoftClient {
   private http:     AxiosInstance;
   private cacheKey: string;
@@ -506,6 +564,7 @@ export class TSoftClient {
       registrationDate: String(p.CreateDate ?? p.RegistrationDate ?? p.registrationDate ?? new Date().toISOString()),
       imageCount:       Number(p.ImageCount ?? p.imageCount ?? p.ImageFilesCount ?? p.imageFilesCount ?? 0),
       imageUrl:         rawImageUrl,
+      imageUrls:        tsoftImageCandidates(p, rawImageUrl),
       sortOrder:        Number(p.SortOrder ?? p.sortOrder ?? p.ListNo ?? p.listNo ??
                                p.Sequence ?? p.sequence ?? p.DisplayOrder ?? p.displayOrder ??
                                p.SortNo ?? p.sortNo ?? 0),

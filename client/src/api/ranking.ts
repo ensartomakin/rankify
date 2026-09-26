@@ -8,6 +8,7 @@ export interface CurrentRankItem {
   productCode: string;
   productName: string;
   imageUrl:    string;
+  imageUrls?:  string[];  // largest candidate first
   totalStock:  number;
   seoUrl:      string;
 }
@@ -54,6 +55,7 @@ export interface ProductPreviewItem {
   registrationDate:      string;
   imageCount:            number;
   imageUrl:              string;
+  imageUrls?:            string[];
   season:                string;
   ga4?: {
     views:          number;

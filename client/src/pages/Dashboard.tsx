@@ -56,13 +56,12 @@ function buildFallbackUrls(apiUrl: string, productId: string, productCode: strin
   return urls;
 }
 
-function getImageUrls(apiUrl: string, imageUrl: string, productId: string, productCode: string): string[] {
+function getImageUrls(apiUrl: string, imageUrl: string, productId: string, productCode: string, imageUrls: string[] = []): string[] {
+  const abs = (u: string) => (/^(https?:)?\/\//.test(u) ? u : `${apiUrl.replace(/\/$/, '')}${u.startsWith('/') ? '' : '/'}${u}`);
   const urls: string[] = [];
-  if (imageUrl) {
-    // Mutlak URL mu?
-    if (imageUrl.startsWith('http')) urls.push(imageUrl);
-    else urls.push(`${apiUrl.replace(/\/$/, '')}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`);
-  }
+  // Adapter's candidates come largest-first; the listed image is the last of them.
+  for (const u of imageUrls) if (u) urls.push(abs(u));
+  if (imageUrl) urls.push(abs(imageUrl));
   urls.push(...buildFallbackUrls(apiUrl, productId, productCode));
   return [...new Set(urls)];
 }
@@ -168,11 +167,11 @@ function RankBadge({ rank, onRankEdit }: { rank: number; onRankEdit?: (n: number
 
 /* ─── Ortak kart görseli: 3:4, en fazla 240px, cover ─── */
 function CardImage({ apiUrl, p, faded, children }: {
-  apiUrl: string; p: { imageUrl: string; productId: string; productCode: string; productName: string };
+  apiUrl: string; p: { imageUrl: string; imageUrls?: string[]; productId: string; productCode: string; productName: string };
   faded?: boolean;
   children?: React.ReactNode;
 }) {
-  const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode);
+  const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode, p.imageUrls);
   const [idx, setIdx] = useState(0);
   return (
     <div className="relative overflow-hidden rounded-t-xl"
@@ -379,7 +378,7 @@ function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, on
   isPinned: boolean;
   onTogglePin: () => void;
 }) {
-  const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode);
+  const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode, p.imageUrls);
   const [idx, setIdx] = useState(0);
   return (
     <div className="flex items-center gap-3 px-2.5 py-2 rounded-lg" style={cardShellStyle(isPinned)}>

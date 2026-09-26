@@ -348,16 +348,24 @@ function PreviewCard({ p, displayRank, criteria, onRankEdit, isPinned, onToggleP
 /* Header and rows share one grid template, built from the active criteria:
    [frozen: handle · rank · image · product] [one column per criterion] [total] [pin].
    Numeric columns have fixed widths so values line up. */
-const CRIT_COL_PX  = 116;
-const TOTAL_COL_PX = 104;
-const PIN_COL_PX   = 48;
-const PRODUCT_MIN_PX = 340;
-const PRODUCT_MAX_PX = 420;
+/* Fixed widths whatever the number of criteria; only the product column flexes. */
+const HANDLE_COL_PX  = 32;
+const RANK_COL_PX    = 56;
+const PRODUCT_MIN_PX = 280;
+const CRIT_COL_PX    = 140;
+const TOTAL_COL_PX   = 120;
+const PIN_COL_PX     = 56;
+const COL_GAP_PX     = 24;   // before each criterion column and before Toplam
+const FROZEN_MIN_PX  = HANDLE_COL_PX + RANK_COL_PX + PRODUCT_MIN_PX;
 function tableCols(n: number) {
-  // Product column is capped; any extra width is shared equally by the criteria.
-  return `minmax(${PRODUCT_MIN_PX}px, ${PRODUCT_MAX_PX}px) repeat(${n}, minmax(${CRIT_COL_PX}px, 1fr)) ${TOTAL_COL_PX}px ${PIN_COL_PX}px`;
+  // Each criterion / total track = leading gap (as left padding) + fixed content width.
+  return `minmax(${FROZEN_MIN_PX}px, 1fr) repeat(${n}, ${COL_GAP_PX + CRIT_COL_PX}px) ${COL_GAP_PX + TOTAL_COL_PX}px ${PIN_COL_PX}px`;
 }
-const tableMinWidth = (n: number) => PRODUCT_MIN_PX + n * CRIT_COL_PX + TOTAL_COL_PX + PIN_COL_PX;
+const tableMinWidth = (n: number) =>
+  FROZEN_MIN_PX + n * (COL_GAP_PX + CRIT_COL_PX) + COL_GAP_PX + TOTAL_COL_PX + PIN_COL_PX;
+/* Leading gap for criterion/total cells; Toplam also gets a thin divider centred in its gap. */
+const gapCell = { paddingLeft: COL_GAP_PX } as const;
+const TOTAL_DIVIDER = 'relative before:absolute before:top-2 before:bottom-2 before:left-3 before:w-px before:bg-[var(--border-strong)]';
 
 /* 40×40 thumbnail; falls back through imageUrls, then a grey placeholder icon. */
 function TableThumb({ p, faded }: { p: ProductPreviewItem; faded: boolean }) {
@@ -391,25 +399,28 @@ function PreviewTableHeader({ criteria, innerRef, top }: {
   return (
     <div ref={innerRef} className="sticky z-20 overflow-hidden"
       style={{ top, background: 'var(--panel)', borderBottom: '1px solid var(--border-strong)' }}>
-      <div className="grid items-center h-10"
+      <div className="grid items-stretch min-h-10"
         style={{ gridTemplateColumns: tableCols(criteria.length), minWidth: tableMinWidth(criteria.length), color: 'var(--tx3)' }}>
-        <div className={`${th} sticky left-0 z-10 h-full flex items-center`}
-          style={{ background: 'var(--panel)', paddingLeft: 36 }}>
-          <span className="w-16 shrink-0">Sıra</span>
-          <span className="pl-3">Ürün</span>
+        <div className={`${th} sticky left-0 z-10 flex items-center`}
+          style={{ background: 'var(--panel)', paddingLeft: HANDLE_COL_PX }}>
+          <span className="shrink-0" style={{ width: RANK_COL_PX }}>Sıra</span>
+          <span>Ürün</span>
         </div>
         {criteria.map((c, ci) => {
           const key = c.key as CriterionKey;
           const name = SCORE_NAMES[key] ?? key;
           return (
-            <div key={key} className={`${th} px-3 flex items-center justify-end gap-1.5 min-w-0`}
+            <div key={key} className={`${th} py-1.5 flex items-center justify-end min-w-0`} style={gapCell}
               title={`${CRITERION_LABELS[key] ?? name} — ağırlık ${formatPercent(c.weight)}`}>
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: criteriaColor(ci) }} />
-              <span className="truncate">{name}</span>
+              {/* wraps to at most two lines, right-aligned like the values */}
+              <span className="text-right line-clamp-2 break-words">
+                <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-[1px]" style={{ background: criteriaColor(ci) }} />
+                {name}
+              </span>
             </div>
           );
         })}
-        <div className={`${th} px-3 text-right`}>Toplam</div>
+        <div className={`${th} ${TOTAL_DIVIDER} flex items-center justify-end`} style={gapCell}>Toplam</div>
         <div />
       </div>
     </div>
@@ -441,7 +452,7 @@ function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePi
   // Excluded rows read faded; the frozen cell keeps an opaque background so
   // columns scrolling underneath never show through.
   const fade = dq ? { opacity: 0.5 } : undefined;
-  const numCell = 'px-3 flex flex-col items-end justify-center text-right tabular-nums min-w-0';
+  const numCell = 'flex flex-col items-end justify-center text-right tabular-nums min-w-0';
   return (
     <div className="group grid items-stretch h-14 bg-[var(--panel)] hover:bg-[var(--surface2)] transition-colors"
       style={{
@@ -450,22 +461,24 @@ function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePi
         cursor: isPinned ? 'default' : 'grab',
       }}>
       {/* Frozen: handle · rank · image · product */}
-      <div className="sticky left-0 z-10 flex items-center gap-3 pl-2 pr-3 min-w-0 bg-[var(--panel)] group-hover:bg-[var(--surface2)] transition-colors"
+      <div className="sticky left-0 z-10 flex items-center min-w-0 bg-[var(--panel)] group-hover:bg-[var(--surface2)] transition-colors"
         style={isPinned ? { boxShadow: 'inset 3px 0 0 var(--acc)' } : undefined}>
         {/* ⋮⋮ grip — the whole row drags, as before; pinned rows don't */}
-        <svg viewBox="0 0 10 16" fill="currentColor" aria-hidden="true" className="w-2.5 h-4 shrink-0 mx-[3px]"
-          style={{ color: isPinned ? 'var(--border-strong)' : 'var(--tx3)' }}>
-          <circle cx="2" cy="2" r="1.5" /><circle cx="8" cy="2" r="1.5" />
-          <circle cx="2" cy="8" r="1.5" /><circle cx="8" cy="8" r="1.5" />
-          <circle cx="2" cy="14" r="1.5" /><circle cx="8" cy="14" r="1.5" />
-        </svg>
-        <span className="w-16 shrink-0">
+        <span className="shrink-0 flex justify-center" style={{ width: HANDLE_COL_PX }}>
+          <svg viewBox="0 0 10 16" fill="currentColor" aria-hidden="true" className="w-2.5 h-4"
+            style={{ color: isPinned ? 'var(--border-strong)' : 'var(--tx3)' }}>
+            <circle cx="2" cy="2" r="1.5" /><circle cx="8" cy="2" r="1.5" />
+            <circle cx="2" cy="8" r="1.5" /><circle cx="8" cy="8" r="1.5" />
+            <circle cx="2" cy="14" r="1.5" /><circle cx="8" cy="14" r="1.5" />
+          </svg>
+        </span>
+        <span className="shrink-0" style={{ width: RANK_COL_PX }}>
           {displayRank !== null
             ? <RankBadge rank={displayRank} onRankEdit={onRankEdit} plain />
             : <span className="text-label font-semibold cursor-help" style={{ color: 'var(--err-tx)' }}
                 title={p.disqualifyReason ? `Dışlandı: ${p.disqualifyReason}` : 'Dışlandı'}>Dışlandı</span>}
         </span>
-        <div className="flex items-center gap-3 min-w-0 flex-1" style={fade}>
+        <div className="flex items-center gap-3 min-w-0 flex-1 pr-3" style={fade}>
           <TableThumb p={p} faded={dq} />
           <div className="min-w-0 flex-1">
             <a href={p.productUrl || undefined} target="_blank" rel="noopener noreferrer"
@@ -490,7 +503,7 @@ function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePi
         const contrib = p.criteriaContributions[key] ?? 0;
         const isZero = Math.round(contrib * 10) === 0;
         return (
-          <div key={key} className={`${numCell}`}
+          <div key={key} className={numCell} style={gapCell}
             title={`${SCORE_NAMES[key] ?? key} · ${rawValue(p, key)} — katkı ${fmtPct(contrib)}`}>
             <span style={fade}>
               <span className="block text-caption font-medium whitespace-nowrap" style={{ color: 'var(--tx1)' }}>{rawValue(p, key)}</span>
@@ -505,7 +518,7 @@ function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePi
       })}
 
       {/* Toplam */}
-      <div className={`${numCell} gap-1`}>
+      <div className={`${numCell} gap-1 ${TOTAL_DIVIDER}`} style={gapCell}>
         <span className="flex flex-col gap-1 items-end" style={fade}>
           <span className="text-caption font-bold" style={{ color: 'var(--acc-tx)' }}>{fmtPct(p.rankingScore)}</span>
           <ContributionBar p={p} criteria={criteria} />

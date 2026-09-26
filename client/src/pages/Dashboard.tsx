@@ -352,8 +352,10 @@ const CRIT_COL_PX  = 116;
 const TOTAL_COL_PX = 104;
 const PIN_COL_PX   = 48;
 const PRODUCT_MIN_PX = 340;
+const PRODUCT_MAX_PX = 420;
 function tableCols(n: number) {
-  return `minmax(${PRODUCT_MIN_PX}px, 1fr) repeat(${n}, ${CRIT_COL_PX}px) ${TOTAL_COL_PX}px ${PIN_COL_PX}px`;
+  // Product column is capped; any extra width is shared equally by the criteria.
+  return `minmax(${PRODUCT_MIN_PX}px, ${PRODUCT_MAX_PX}px) repeat(${n}, minmax(${CRIT_COL_PX}px, 1fr)) ${TOTAL_COL_PX}px ${PIN_COL_PX}px`;
 }
 const tableMinWidth = (n: number) => PRODUCT_MIN_PX + n * CRIT_COL_PX + TOTAL_COL_PX + PIN_COL_PX;
 
@@ -492,8 +494,9 @@ function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePi
             title={`${SCORE_NAMES[key] ?? key} · ${rawValue(p, key)} — katkı ${fmtPct(contrib)}`}>
             <span style={fade}>
               <span className="block text-caption font-medium whitespace-nowrap" style={{ color: 'var(--tx1)' }}>{rawValue(p, key)}</span>
+              {/* neutral grey; colour lives only in the header dot and the total bar */}
               <span className="block text-label"
-                style={isZero ? { color: 'var(--tx3)' } : { color: 'var(--acc-tx)', fontWeight: 600 }}>
+                style={{ color: isZero ? 'var(--tx3)' : 'var(--tx2)' }}>
                 {fmtPct(contrib)}
               </span>
             </span>

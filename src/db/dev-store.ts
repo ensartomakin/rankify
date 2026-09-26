@@ -37,6 +37,7 @@ export interface DevAuditLog {
 
 export interface DevCredentials {
   apiUrl: string; storeCode: string; apiUser: string; apiPassEnc: string; apiToken?: string;
+  fieldMapping?: import('../types/field-mapping').FieldMapping;
 }
 
 export interface DevSchedule {

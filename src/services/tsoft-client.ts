@@ -7,6 +7,7 @@ import { getTenantById } from '../db/tenant.repo';
 import type { TSoftProduct, TSoftSalesData, TSoftRankPayload } from '../types/tsoft';
 import type { TSoftClientApi } from './tsoft-client-api';
 import { createDemoTSoftClient } from './demo-tsoft-client';
+import type { FieldOption } from '../types/field-mapping';
 
 const BATCH_SIZE       = 50;
 const RATE_DELAY       = 500;
@@ -170,14 +171,26 @@ export async function testConnection(creds: TsoftCredentials): Promise<{ ok: boo
   }
 }
 
+/* ── Alan eşlemesi: T-Soft "Ek Bilgi N" alanları ───────────────────────── */
+export const TSOFT_DEFAULT_SEASON_FIELD = 'extra:6';   // mevcut davranış
+export const TSOFT_FIELD_OPTIONS: FieldOption[] =
+  Array.from({ length: 10 }, (_, i) => ({ id: `extra:${i + 1}`, label: `Ek Bilgi ${i + 1}` }));
+
+function extraFieldIndex(sourceId: string | undefined): number {
+  const m = /^extra:(\d+)$/.exec(sourceId ?? TSOFT_DEFAULT_SEASON_FIELD);
+  return m ? Number(m[1]) : 6;
+}
+
 export class TSoftClient {
   private http:     AxiosInstance;
   private cacheKey: string;
   private creds:    TsoftCredentials;
+  private seasonField: number;   // Ek Bilgi no. that holds the season tag
 
   constructor(creds: TsoftCredentials) {
     const baseUrl = normalizeBaseUrl(creds.apiUrl);
     this.creds    = { ...creds, apiUrl: baseUrl };
+    this.seasonField = extraFieldIndex(creds.fieldMapping?.season);
     this.cacheKey = `${baseUrl}::${creds.apiUser}`;
 
     this.http = axios.create({ baseURL: baseUrl, timeout: 15_000, maxRedirects: 5 });
@@ -321,7 +334,8 @@ export class TSoftClient {
   }
 
   async getCategoryProductsFull(categoryId: string): Promise<TSoftProduct[]> {
-    const key = `${this.cacheKey}::cat::${categoryId}`;
+    // season field is part of the key so a mapping change is picked up at once
+    const key = `${this.cacheKey}::cat::${categoryId}::s${this.seasonField}`;
     const cached = categoryProductsCache.get(key);
     if (cached && cached.expiresAt > Date.now()) {
       logger.info(`[getCategoryProductsFull] önbellekten döndü — kategori=${categoryId} toplam=${cached.data.length}`);
@@ -480,8 +494,8 @@ export class TSoftClient {
         ? rawActive
         : rawActive === 1 || rawActive === '1' || String(rawActive).toLowerCase() === 'true';
 
-    // Ek Bilgi 6 — sezon etiketi
-    const season = this.extractExtraField(p, 6);
+    // Sezon etiketi — Ayarlar'daki alan eşlemesinden (varsayılan Ek Bilgi 6)
+    const season = this.extractExtraField(p, this.seasonField);
 
     return {
       productId:        String(p.ProductId ?? p.productId ?? p.Id ?? p.id ?? ''),
@@ -716,6 +730,6 @@ export async function getClientForUser(userId: number, tenantId?: number): Promi
   const superAdminId = await getSuperAdminId(tenantId);
   const ownerId = superAdminId ?? userId;
   const creds = await getCredentials(ownerId);
-  if (!creds) throw new Error('T-Soft bağlantı bilgileri tanımlı değil. Lütfen Ayarlar sayfasından ekleyin.');
+  if (!creds) throw new Error('Mağaza bağlantı bilgileri tanımlı değil. Lütfen Ayarlar sayfasından ekleyin.');
   return new TSoftClient(creds);
 }

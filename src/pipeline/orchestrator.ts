@@ -254,7 +254,7 @@ export async function runRankingPipeline(
       toRank.map((p, i) => ({ productCode: p.productCode, categoryId, sortOrder: i + 1 }))
     );
     if (fail > 0) {
-      throw new Error(`T-Soft ${fail} üründe sıralama güncellemesini reddetti (${ok} başarılı, toplam ${toRank.length})`);
+      throw new Error(`Mağaza ${fail} üründe sıralama güncellemesini reddetti (${ok} başarılı, toplam ${toRank.length})`);
     }
 
     const durationMs = Date.now() - startedAt;
@@ -407,7 +407,7 @@ export async function applyManualRanking(
   );
 
   if (fail > 0) {
-    const errorMessage = `T-Soft ${fail} üründe sıralama güncellemesini reddetti (${ok} başarılı, toplam ${items.length})`;
+    const errorMessage = `Mağaza ${fail} üründe sıralama güncellemesini reddetti (${ok} başarılı, toplam ${items.length})`;
     await insertAuditLog({
       userId, categoryId, triggeredBy: 'manual',
       totalProducts: items.length, qualifiedCount: ok, disqualifiedCount: 0,

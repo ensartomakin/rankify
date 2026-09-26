@@ -9,6 +9,7 @@ interface Props {
   onChange: (p: Page) => void;
   credentialsConfigured?: boolean;
   isSuperAdmin?: boolean;
+  storeName?: string;
 }
 
 const NAV: { key: Page; label: string; icon: React.ReactNode; adminOnly?: boolean }[] = [
@@ -102,7 +103,7 @@ function LogoutButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin }: Props) {
+export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin, storeName }: Props) {
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
@@ -180,9 +181,12 @@ export function Sidebar({ current, onChange, credentialsConfigured, isSuperAdmin
               <div className="text-lg font-bold tracking-tight leading-none font-serif" style={{ color: 'var(--sb-tx-act)' }}>
                 Rankify
               </div>
-              <div className="text-micro font-semibold mt-0.5 tracking-widest uppercase" style={{ color: 'var(--sb-tx)' }}>
-                T-Soft
-              </div>
+              {storeName && (
+                <div className="text-micro font-semibold mt-0.5 tracking-widest uppercase truncate" style={{ color: 'var(--sb-tx)' }}
+                  title={storeName}>
+                  {storeName}
+                </div>
+              )}
             </div>
           </div>
         )}

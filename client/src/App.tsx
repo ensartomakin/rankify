@@ -20,13 +20,14 @@ function AppShell() {
   const [page,       setPage]       = useState<Page>('dashboard');
   const [prefill,    setPrefill]    = useState<SavedConfig | undefined>();
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [storeName,  setStoreName]  = useState('');
 
   const isSuperAdmin = user?.role === 'super_admin';
 
   useEffect(() => {
     if (!user || user.role === 'producer') return;
     fetchCredentials()
-      .then(d => setConfigured(d.configured))
+      .then(d => { setConfigured(d.configured); setStoreName(d.storeName ?? ''); })
       .catch(() => setConfigured(false));
   }, [user]);
 
@@ -53,6 +54,7 @@ function AppShell() {
         onChange={handlePageChange}
         credentialsConfigured={configured ?? true}
         isSuperAdmin={isSuperAdmin}
+        storeName={storeName}
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden pb-[60px] md:pb-0"
@@ -60,7 +62,7 @@ function AppShell() {
         {configured === false && page !== 'settings' && (
           <div className="shrink-0 flex items-center justify-between px-6 py-2.5 text-sm"
             style={{ background: 'var(--warn-bg)', borderBottom: '1px solid var(--warn-bd)', color: 'var(--warn-tx)' }}>
-            <span>⚠️ T-Soft bağlantı bilgileri tanımlı değil — sıralama çalışmaz.</span>
+            <span>⚠️ Mağaza bağlantı bilgileri tanımlı değil — sıralama çalışmaz.</span>
             {isSuperAdmin && (
               <button
                 onClick={() => handlePageChange('settings')}

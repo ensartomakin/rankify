@@ -67,4 +67,15 @@ export interface PlatformInfo {
   label:        string;
   fieldOptions: { season: FieldOption[] };
   defaultFieldMapping: Required<FieldMapping>;
+  /** Checks connection settings before they are saved. */
+  testConnection(creds: ConnectionSettings): Promise<{ ok: boolean; message: string; debug?: string }>;
+}
+
+/** Connection settings as entered in Settings (platform-specific meaning). */
+export interface ConnectionSettings {
+  apiUrl:    string;
+  storeCode: string;
+  apiUser:   string;
+  apiPass:   string;
+  apiToken?: string;
 }

@@ -6,13 +6,14 @@
 import type { TSoftClientApi } from '../../services/tsoft-client-api';
 import type { TSoftProduct } from '../../types/tsoft';
 import type { PlatformAdapter, PlatformCategory, PlatformProduct, SalesStat, SortEntry, ApplyResult, PlatformInfo } from '../types';
-import { TSOFT_FIELD_OPTIONS, TSOFT_DEFAULT_SEASON_FIELD } from '../../services/tsoft-client';
+import { TSOFT_FIELD_OPTIONS, TSOFT_DEFAULT_SEASON_FIELD, testConnection } from '../../services/tsoft-client';
 
 export const TSOFT_PLATFORM: PlatformInfo = {
   id: 'tsoft',
   label: 'T-Soft',
   fieldOptions: { season: TSOFT_FIELD_OPTIONS },
   defaultFieldMapping: { season: TSOFT_DEFAULT_SEASON_FIELD },
+  testConnection,
 };
 
 const trimSlash = (u: string) => u.replace(/\/$/, '');

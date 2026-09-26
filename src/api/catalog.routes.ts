@@ -1,15 +1,19 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, requireSuperAdmin } from './auth.middleware';
-import { getClientForUser } from '../services/tsoft-client';
+import { requireAuth } from './auth.middleware';
+import { getAdapterForUser } from '../platform/registry';
+import { tsoftCatalogDebugRouter } from '../platform/tsoft/debug.routes';
 import { logger } from '../utils/logger';
 
 export const catalogRouter = Router();
 catalogRouter.use(requireAuth);
+// Platforma özgü (T-Soft) hata ayıklama uçları — /debug/*
+catalogRouter.use(tsoftCatalogDebugRouter);
 
 catalogRouter.get('/categories', async (req: Request, res: Response) => {
   try {
-    const client     = await getClientForUser(req.user!.userId, req.user!.tenantId);
-    const categories = await client.getCategories();
+    const adapter    = await getAdapterForUser(req.user!.userId, req.user!.tenantId);
+    const categories = (await adapter.getCategories())
+      .map(c => ({ categoryId: c.id, name: c.name, parentCategoryId: c.parentId }));
     logger.info(`[catalog] Kategori sayısı: ${categories.length}`);
     if (categories.length > 0) logger.info(`[catalog] İlk kategori: ${JSON.stringify(categories[0])}`);
     if (categories.length === 0) logger.warn('[catalog] Kategori listesi boş döndü');
@@ -20,86 +24,14 @@ catalogRouter.get('/categories', async (req: Request, res: Response) => {
   }
 });
 
-// Ham T-Soft yanıtını döndüren debug endpoint — prod'da kapalı
-catalogRouter.get('/debug/categories', requireSuperAdmin, async (req: Request, res: Response) => {
-  if (process.env.NODE_ENV === 'production') {
-    res.status(404).json({ error: 'Not found' }); return;
-  }
-  const client = await getClientForUser(req.user!.userId, req.user!.tenantId);
-  const c      = client as unknown as { post: (ep: string, p: Record<string,unknown>) => Promise<unknown>; creds: { storeCode: string } };
-  const results: Record<string, unknown> = {};
-  for (const ep of ['Category/getCategories', 'category/getCategories', 'Category/getCategoryTree', 'category/tree/0']) {
-    try {
-      results[ep] = await c.post(ep, { storeCode: c.creds.storeCode, depth: 5 });
-    } catch (err) {
-      const e = err as import('axios').AxiosError;
-      results[ep] = { error: String(err), status: e.response?.status };
-    }
-  }
-  res.json(results);
-});
 
-// Tek ürün ham verisini döndüren debug endpoint
-catalogRouter.get('/debug/product-by-code/:productCode', requireSuperAdmin, async (req: Request, res: Response) => {
-  try {
-    const client = await getClientForUser(req.user!.userId, req.user!.tenantId);
-    const raw = await (client as unknown as {
-      post: (ep: string, p: Record<string, unknown>) => Promise<{ data: Record<string, unknown>[] }>
-    }).post('product/get', {
-      ProductCode:  req.params.productCode,
-      FetchDetails: 'true',
-      StockFields:  'true',
-      limit:        '1',
-    });
-    const p = raw?.data?.[0] ?? {};
-    const labelFields: Record<string, unknown> = {};
-    const additionalFields: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(p)) {
-      if (/^Label\d+$/i.test(k)) labelFields[k] = v;
-      if (/^Additional\d+$/i.test(k)) additionalFields[k] = v;
-    }
-    res.json({
-      labelFields,
-      additionalFields,
-      Details: p.Details,
-      allKeys: Object.keys(p),
-    });
-  } catch (err) {
-    res.status(502).json({ error: String(err) });
-  }
-});
 
-// Ham ürün alanlarını döndüren debug endpoint — sezon alanını bulmak için
-catalogRouter.get('/debug/product-fields/:categoryId', requireSuperAdmin, async (req: Request, res: Response) => {
-  try {
-    const client = await getClientForUser(req.user!.userId, req.user!.tenantId);
-    const raw = await (client as unknown as { getCategoryProductsRawSample: (id: string, n: number) => Promise<Record<string, unknown>[]> })
-      .getCategoryProductsRawSample(req.params.categoryId, 3);
-    // Her üründen anahtar listesi + "bilgi/extra/ek/field/info" içeren tüm alanlar
-    const result = raw.map(p => {
-      const allKeys = Object.keys(p);
-      const extraLike: Record<string, unknown> = {};
-      for (const k of allKeys) {
-        if (/extra|field|bilgi|detail|spec|custom|add|prop|attr|value|info|ek/i.test(k)) {
-          extraLike[k] = p[k];
-        }
-      }
-      return { allKeys, extraLike };
-    });
-    res.json(result);
-  } catch (err) {
-    res.status(502).json({ error: String(err) });
-  }
-});
 
 catalogRouter.get('/categories/:categoryId/products', async (req: Request, res: Response) => {
   try {
-    const client       = await getClientForUser(req.user!.userId, req.user!.tenantId);
-    const productCodes = await client.getCategoryProducts(req.params.categoryId);
-    if (!productCodes.length) { res.json({ products: [] }); return; }
-    const codes    = productCodes.map(p => p.productCode);
-    const products = await client.getProductDetails(codes.slice(0, 50));
-    res.json({ products, total: productCodes.length });
+    const adapter  = await getAdapterForUser(req.user!.userId, req.user!.tenantId);
+    const all      = await adapter.getProducts(req.params.categoryId);
+    res.json({ products: all.slice(0, 50), total: all.length });
   } catch (err) {
     logger.error(`Kategori ürünleri hatası: ${err}`);
     res.status(502).json({ error: 'Mağazadan ürün listesi alınamadı' });

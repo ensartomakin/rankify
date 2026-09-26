@@ -51,6 +51,13 @@ function fullStoreOrder(items: ProductPreviewItem[]): { productCode: string; ran
 }
 
 
+/** Preview order is always: active products, then the excluded ones. Keeps each
+ *  group's own order (so manual moves within a group stick) and renumbers 1..N. */
+function groupExcludedLast(items: ProductPreviewItem[]): ProductPreviewItem[] {
+  const ordered = [...items.filter(p => !p.isDisqualified), ...items.filter(p => p.isDisqualified)];
+  return ordered.map((p, i) => (p.finalRank === i + 1 ? p : { ...p, finalRank: i + 1 }));
+}
+
 /* ─── Boş durum ikonları ─── */
 function GridIcon() {
   return (
@@ -303,7 +310,7 @@ function excludedLine(p: ProductPreviewItem) {
 /* ─── Kart: Önizleme ─── */
 function PreviewCard({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePin }: {
   p: ProductPreviewItem;
-  displayRank: number | null;   // null → excluded, no rank
+  displayRank: number;
   criteria: PreviewResponse['criteria'];
   onRankEdit?: (newRank: number) => void;
   isPinned: boolean;
@@ -313,9 +320,7 @@ function PreviewCard({ p, displayRank, criteria, onRankEdit, isPinned, onToggleP
   return (
     <div className="group relative rounded-xl flex flex-col h-full" style={cardShellStyle(isPinned)}>
       <CardImage p={p} faded={isFaded(p)}>
-        {displayRank !== null && (
-          <div className="absolute top-2 left-2"><RankBadge rank={displayRank} onRankEdit={onRankEdit} /></div>
-        )}
+        <div className="absolute top-2 left-2"><RankBadge rank={displayRank} onRankEdit={onRankEdit} /></div>
         <div className="absolute top-2 right-2"><PinButton pinned={isPinned} onToggle={onTogglePin} /></div>
       </CardImage>
 
@@ -442,7 +447,7 @@ function ContributionBar({ p, criteria }: { p: ProductPreviewItem; criteria: Pre
 
 function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePin }: {
   p: ProductPreviewItem;
-  displayRank: number | null;
+  displayRank: number;
   criteria: PreviewResponse['criteria'];
   onRankEdit?: (newRank: number) => void;
   isPinned: boolean;
@@ -473,24 +478,29 @@ function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePi
           </svg>
         </span>
         <span className="shrink-0" style={{ width: RANK_COL_PX }}>
-          {displayRank !== null
-            ? <RankBadge rank={displayRank} onRankEdit={onRankEdit} plain />
-            : <span className="text-label font-semibold cursor-help" style={{ color: 'var(--err-tx)' }}
-                title={p.disqualifyReason ? `Dışlandı: ${p.disqualifyReason}` : 'Dışlandı'}>Dışlandı</span>}
+          <RankBadge rank={displayRank} onRankEdit={onRankEdit} plain />
         </span>
-        <div className="flex items-center gap-3 min-w-0 flex-1 pr-3" style={fade}>
-          <TableThumb p={p} faded={dq} />
+        <div className="flex items-center gap-3 min-w-0 flex-1 pr-3">
+          <span style={fade}><TableThumb p={p} faded={dq} /></span>
           <div className="min-w-0 flex-1">
             <a href={p.productUrl || undefined} target="_blank" rel="noopener noreferrer"
               onPointerDown={e => e.stopPropagation()}
               title={p.productName || p.productCode}
-              className="block text-caption font-semibold truncate hover:underline" style={{ color: 'var(--tx1)' }}>
+              className="block text-caption font-semibold truncate hover:underline" style={{ color: 'var(--tx1)', ...fade }}>
               {p.productName || p.productCode}
             </a>
             <div className="flex items-center gap-1.5 min-w-0 text-label" style={{ color: 'var(--tx3)' }}>
-              <span className="font-mono truncate">#{p.productCode}</span>
+              {/* excluded: red tag (not faded), reason in the tooltip */}
+              {dq && (
+                <span className="shrink-0 px-1.5 rounded font-semibold cursor-help"
+                  style={{ background: 'var(--err-bg)', color: 'var(--err-tx)' }}
+                  title={p.disqualifyReason ? `Dışlandı: ${p.disqualifyReason}` : 'Dışlandı'}>
+                  Dışlandı
+                </span>
+              )}
+              <span className="font-mono truncate" style={fade}>#{p.productCode}</span>
               {p.season && (
-                <span className="shrink-0 px-1.5 rounded" style={{ background: 'var(--surface2)', color: 'var(--tx2)' }}>{p.season}</span>
+                <span className="shrink-0 px-1.5 rounded" style={{ background: 'var(--surface2)', color: 'var(--tx2)', ...fade }}>{p.season}</span>
               )}
             </div>
           </div>
@@ -534,7 +544,7 @@ function PreviewRow({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePi
 
 /* ─── Sortable wrapper: Önizleme (kart veya satır) ─── */
 function SortablePreviewCard({ p, displayRank, criteria, onRankEdit, isPinned, onTogglePin, layout = 'grid' }: {
-  p: ProductPreviewItem; displayRank: number | null; criteria: PreviewResponse['criteria'];
+  p: ProductPreviewItem; displayRank: number; criteria: PreviewResponse['criteria'];
   onRankEdit: (code: string, newRank: number) => void;
   isPinned: boolean; onTogglePin: (code: string, rank: number) => void;
   layout?: 'grid' | 'list';
@@ -542,7 +552,7 @@ function SortablePreviewCard({ p, displayRank, criteria, onRankEdit, isPinned, o
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.productCode, disabled: isPinned });
   const shared = {
     p, displayRank, criteria, isPinned,
-    onTogglePin: () => onTogglePin(p.productCode, displayRank ?? p.finalRank),
+    onTogglePin: () => onTogglePin(p.productCode, displayRank),
     onRankEdit: (newRank: number) => onRankEdit(p.productCode, newRank),
   };
   return (
@@ -685,7 +695,8 @@ export function Dashboard({ prefill }: Props) {
   const [previewStatus, setPreviewStatus] = useState<Status>('idle');
 
   // Manuel sıralama — önizleme görünümü
-  const [previewOrder, setPreviewOrder] = useState<ProductPreviewItem[]>([]);
+  const [previewOrder, setPreviewOrderRaw] = useState<ProductPreviewItem[]>([]);
+  const setPreviewOrder = (items: ProductPreviewItem[]) => setPreviewOrderRaw(groupExcludedLast(items));
 
   // Sabitleme
   const [pinnedPositions, setPinnedPositions] = useState<Record<string, number>>({});
@@ -1136,10 +1147,8 @@ export function Dashboard({ prefill }: Props) {
     p.productCode.toLowerCase().includes(filter.toLowerCase())
   );
 
-  // Rank numbers count active products only; excluded ones get none.
-  const activeRank = new Map(
-    previewOrder.filter(p => !p.isDisqualified).map((p, i) => [p.productCode, i + 1] as const)
-  );
+  // Every product is numbered: active ones 1..N, then the excluded ones continue.
+  const activeRank = new Map(previewOrder.map((p, i) => [p.productCode, i + 1] as const));
   const matchesFilter = (p: ProductPreviewItem) =>
     !filter.trim() ||
     p.productName.toLowerCase().includes(filter.toLowerCase()) ||
@@ -1609,7 +1618,7 @@ export function Dashboard({ prefill }: Props) {
                   <SortableContext items={filteredPreview.map(p => p.productCode)} strategy={rectSortingStrategy}>
                     {(() => {
                       const items = filteredPreview.map(p => (
-                        <SortablePreviewCard key={p.productCode} p={p} displayRank={activeRank.get(p.productCode) ?? null}
+                        <SortablePreviewCard key={p.productCode} p={p} displayRank={activeRank.get(p.productCode) ?? p.finalRank}
                           criteria={previewResult!.criteria}
                           onRankEdit={handlePreviewRankEdit}
                           isPinned={pinnedPositions[p.productCode] !== undefined}

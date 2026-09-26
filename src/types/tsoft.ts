@@ -15,6 +15,7 @@ export interface TSoftProduct {
   registrationDate: string;
   imageCount:       number;
   imageUrl:         string;   // direct image URL if T-Soft returns it
+  imageUrls?:       string[]; // same image, largest candidate first (original last)
   sortOrder:        number;   // current category display order (ListNo / SortOrder)
   reviewCount:      number;
   variants:         TSoftVariant[];
@@ -23,7 +24,7 @@ export interface TSoftProduct {
   isActive:         boolean;  // T-Soft görünürlük durumu — false ise sıralamadan dışlanır
   statViews:        number;   // product/get StatViews — toplam görüntülenme
   countTotalSales:  number;   // product/get CountTotalSales — toplam satış adedi
-  season:           string;   // Ek Bilgi 7 — sezon etiketi (örn: "2026 Yaz")
+  season:           string;   // sezon etiketi (örn: "2026 Yaz") — alan eşlemesinden
 }
 
 export interface TSoftSalesData {

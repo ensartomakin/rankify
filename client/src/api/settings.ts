@@ -10,6 +10,7 @@ export interface CredentialsPayload {
 
 export interface CredentialsSummary extends Omit<CredentialsPayload, 'apiPass' | 'apiToken'> {
   configured: boolean;
+  storeName?: string;  // connected store's domain, for display
   apiPass: string;   // '••••••••' (sunucu her zaman maskeler)
   apiToken: string;  // '••••••••' ayarlıysa, '' ayarlanmamışsa
 }
@@ -66,5 +67,27 @@ export async function saveSchedule(payload: ScheduleSettings): Promise<void> {
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err?.error?.formErrors?.[0] ?? `Hata: ${res.status}`);
+  }
+}
+
+/* ── Ürün alanı eşlemesi ─────────────────────────────────────────────── */
+export interface FieldOption { id: string; label: string }
+export interface FieldMappingInfo {
+  configured: boolean;
+  mapping: { season: string };
+  options: { season: FieldOption[] };   // labels come from the connected platform
+}
+
+export async function fetchFieldMapping(): Promise<FieldMappingInfo> {
+  const res = await apiFetch('/api/settings/field-mapping');
+  if (!res.ok) throw new Error(`Hata: ${res.status}`);
+  return res.json();
+}
+
+export async function saveFieldMapping(mapping: { season: string }): Promise<void> {
+  const res = await apiFetch('/api/settings/field-mapping', { method: 'PUT', body: JSON.stringify(mapping) });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(typeof err?.error === 'string' ? err.error : `Hata: ${res.status}`);
   }
 }

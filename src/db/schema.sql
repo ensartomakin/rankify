@@ -54,6 +54,8 @@ BEGIN
   END IF;
 END $$;
 ALTER TABLE tsoft_credentials ADD COLUMN IF NOT EXISTS api_token_enc TEXT;
+-- Ürün alanı eşlemesi (ör. {"season":"extra:6"}) — NULL ise adaptör varsayılanı
+ALTER TABLE tsoft_credentials ADD COLUMN IF NOT EXISTS field_mapping JSONB;
 
 DROP TRIGGER IF EXISTS trg_tsoft_credentials_updated_at ON tsoft_credentials;
 CREATE TRIGGER trg_tsoft_credentials_updated_at

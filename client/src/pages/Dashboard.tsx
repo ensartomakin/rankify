@@ -56,13 +56,12 @@ function buildFallbackUrls(apiUrl: string, productId: string, productCode: strin
   return urls;
 }
 
-function getImageUrls(apiUrl: string, imageUrl: string, productId: string, productCode: string): string[] {
+function getImageUrls(apiUrl: string, imageUrl: string, productId: string, productCode: string, imageUrls: string[] = []): string[] {
+  const abs = (u: string) => (/^(https?:)?\/\//.test(u) ? u : `${apiUrl.replace(/\/$/, '')}${u.startsWith('/') ? '' : '/'}${u}`);
   const urls: string[] = [];
-  if (imageUrl) {
-    // Mutlak URL mu?
-    if (imageUrl.startsWith('http')) urls.push(imageUrl);
-    else urls.push(`${apiUrl.replace(/\/$/, '')}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`);
-  }
+  // Adapter's candidates come largest-first; the listed image is the last of them.
+  for (const u of imageUrls) if (u) urls.push(abs(u));
+  if (imageUrl) urls.push(abs(imageUrl));
   urls.push(...buildFallbackUrls(apiUrl, productId, productCode));
   return [...new Set(urls)];
 }
@@ -168,11 +167,11 @@ function RankBadge({ rank, onRankEdit }: { rank: number; onRankEdit?: (n: number
 
 /* ─── Ortak kart görseli: 3:4, en fazla 240px, cover ─── */
 function CardImage({ apiUrl, p, faded, children }: {
-  apiUrl: string; p: { imageUrl: string; productId: string; productCode: string; productName: string };
+  apiUrl: string; p: { imageUrl: string; imageUrls?: string[]; productId: string; productCode: string; productName: string };
   faded?: boolean;
   children?: React.ReactNode;
 }) {
-  const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode);
+  const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode, p.imageUrls);
   const [idx, setIdx] = useState(0);
   return (
     <div className="relative overflow-hidden rounded-t-xl"
@@ -379,7 +378,7 @@ function PreviewRow({ p, displayRank, criteria, apiUrl, onRankEdit, isPinned, on
   isPinned: boolean;
   onTogglePin: () => void;
 }) {
-  const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode);
+  const urls = getImageUrls(apiUrl, p.imageUrl, p.productId, p.productCode, p.imageUrls);
   const [idx, setIdx] = useState(0);
   return (
     <div className="flex items-center gap-3 px-2.5 py-2 rounded-lg" style={cardShellStyle(isPinned)}>
@@ -776,7 +775,7 @@ export function Dashboard({ prefill }: Props) {
       await applyManualRanking(categoryId, manualOrder.map(p => ({ productCode: p.productCode, rank: p.currentRank })));
       setManualStatus('idle');
       setManualDirty(false);
-      setMessage('Manuel sıralama T-Soft\'a uygulandı.');
+      setMessage('Manuel sıralama mağazaya uygulandı.');
     } catch (err) {
       setManualStatus('idle');
       setMessage(err instanceof Error ? err.message : 'Hata');
@@ -946,7 +945,7 @@ export function Dashboard({ prefill }: Props) {
     if (!isValid || previewOrder.length === 0) return;
     setTriggerStatus('loading'); setMessage('');
     try {
-      // Sadece aktif ürünleri gönder — T-Soft dışlananları zaten sona alır
+      // Sadece aktif ürünleri gönder — mağaza dışlananları zaten sona alır
       const activeProducts = previewOrder.filter(p => !p.isDisqualified);
       await applyManualRanking(
         categoryId.trim(),
@@ -1240,7 +1239,7 @@ export function Dashboard({ prefill }: Props) {
                 <span id="season-info" role="tooltip"
                   className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-opacity absolute left-1/2 -translate-x-1/2 top-6 z-20 w-64 p-3 rounded-lg text-caption"
                   style={{ background: 'var(--tx1)', color: 'var(--bg)', boxShadow: 'var(--shadow-tooltip)' }}>
-                  Ürünler sıralama öncesinde sezon etiketine (Ek Bilgi 7) göre gruplanır. Seçilen sezonun ürünleri kendi sıralarını (puan, stok, bulunurluk) koruyarak öne alınır, ardından diğer sezon gelir. Dışlanan ürünler bundan etkilenmez.
+                  Ürünler sıralama öncesinde sezon etiketine göre gruplanır (etiketin okunacağı alan Ayarlar'dan seçilir). Seçilen sezonun ürünleri kendi sıralarını (puan, stok, bulunurluk) koruyarak öne alınır, ardından diğer sezon gelir. Dışlanan ürünler bundan etkilenmez.
                 </span>
               </span>
               {seasonPreFilter !== 'none' && (
@@ -1408,7 +1407,7 @@ export function Dashboard({ prefill }: Props) {
                       <span className="text-label font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5"
                         style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--tx3)' }}>
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'var(--tx3)' }} />
-                        T-Soft sıralaması · Puanlama uygulanmıyor
+                        Mağazadaki mevcut sıralama · Puanlama uygulanmıyor
                       </span>
                     </>
                   )}
@@ -1433,7 +1432,7 @@ export function Dashboard({ prefill }: Props) {
               {(currentStatus === 'loading' || previewStatus === 'loading') && (
                 <EmptyState loading
                   title={currentStatus === 'loading' ? 'Mevcut sıralama yükleniyor…' : 'Önizleme hesaplanıyor…'}
-                  description="Ürünler T-Soft'tan alınıyor; bu birkaç saniye sürebilir." />
+                  description="Ürünler mağazanızdan alınıyor; bu birkaç saniye sürebilir." />
               )}
 
               {/* Mevcut sıralama kartları — drag-drop */}
@@ -1475,7 +1474,7 @@ export function Dashboard({ prefill }: Props) {
                       description={`"${filter.trim()}" için sonuç bulunamadı.`}
                       action={{ label: 'Aramayı temizle', onClick: () => setFilter('') }} />
                   : <EmptyState icon={<BoxIcon />} title="Bu kategoride ürün yok"
-                      description="T-Soft'ta bu kategoriye bağlı ürün bulunamadı." />
+                      description="Mağazanızda bu kategoriye bağlı ürün bulunamadı." />
               )}
               {!isBusy && previewResult && filteredPreview.length === 0 && view === 'preview' && (
                 filter.trim()

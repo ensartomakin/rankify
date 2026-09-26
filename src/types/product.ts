@@ -65,7 +65,7 @@ export interface NormalizedProduct {
   salesQty: number; // seçilen salesPeriod'a göre çekilen satış adedi
   discountRate: number;
   isActive: boolean;
-  season: string;   // Ek Bilgi 7 — sezon etiketi
+  season: string;   // sezon etiketi (alan eşlemesine göre okunur)
   sizeAvailability: SizeAvailability;
   ga4?: Ga4RawMetrics;
   scores: ProductScores;

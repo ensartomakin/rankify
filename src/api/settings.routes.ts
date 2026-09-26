@@ -2,9 +2,9 @@ import { Router, Request, Response } from 'express';
 import { promises as dns } from 'dns';
 import { z } from 'zod';
 import { requireAuth, requireSuperAdmin } from './auth.middleware';
-import { upsertCredentials, getCredentials, hasCredentials } from '../db/credentials.repo';
+import { upsertCredentials, getCredentials, hasCredentials, setFieldMapping } from '../db/credentials.repo';
 import { getSchedule, setSchedule } from '../db/schedule.repo';
-import { testConnection } from '../services/tsoft-client';
+import { testConnection, TSOFT_FIELD_OPTIONS, TSOFT_DEFAULT_SEASON_FIELD } from '../services/tsoft-client';
 import { getSuperAdminId } from '../db/user.repo';
 
 export const settingsRouter = Router();
@@ -62,21 +62,28 @@ async function getCredentialsOwnerId(requestingUserId: number, tenantId?: number
   return superAdminId ?? requestingUserId;
 }
 
-// GET — super_admin tam özet alır; diğer roller sadece configured:boolean
+function storeNameFromUrl(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
+}
+
+// GET — super_admin tam özet alır; diğer roller configured + storeName
 settingsRouter.get('/credentials', async (req: Request, res: Response) => {
   const ownerId = await getCredentialsOwnerId(req.user!.userId, req.user!.tenantId);
   const configured = await hasCredentials(ownerId);
-
-  if (req.user!.role !== 'super_admin') {
-    res.json({ configured }); return;
-  }
-
   if (!configured) { res.json({ configured: false }); return; }
   const creds = await getCredentials(ownerId);
   if (!creds) { res.json({ configured: false }); return; }
 
+  // Display name for the connected store (its domain) — safe for every role.
+  const storeName = storeNameFromUrl(creds.apiUrl);
+
+  if (req.user!.role !== 'super_admin') {
+    res.json({ configured, storeName }); return;
+  }
+
   res.json({
     configured: true,
+    storeName,
     apiUrl:    creds.apiUrl,
     storeCode: creds.storeCode,
     apiUser:   creds.apiUser,
@@ -111,6 +118,28 @@ settingsRouter.put('/credentials', requireSuperAdmin, async (req: Request, res: 
 
   await upsertCredentials(req.user!.userId, { ...parsed.data, apiPass: apiPass!, apiToken });
   res.json({ message: 'Bağlantı bilgileri kaydedildi' });
+});
+
+// GET — ürün alanı eşlemesi + bağlı platformun seçenekleri (super_admin)
+settingsRouter.get('/field-mapping', requireSuperAdmin, async (req: Request, res: Response) => {
+  const ownerId = await getCredentialsOwnerId(req.user!.userId, req.user!.tenantId);
+  const creds = await getCredentials(ownerId);
+  res.json({
+    configured: Boolean(creds),
+    mapping:  { season: creds?.fieldMapping?.season ?? TSOFT_DEFAULT_SEASON_FIELD },
+    options:  { season: TSOFT_FIELD_OPTIONS },
+  });
+});
+
+// PUT — ürün alanı eşlemesi (super_admin)
+settingsRouter.put('/field-mapping', requireSuperAdmin, async (req: Request, res: Response) => {
+  const schema = z.object({ season: z.string().refine(v => TSOFT_FIELD_OPTIONS.some(o => o.id === v), 'Geçersiz alan') });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+  const ownerId = await getCredentialsOwnerId(req.user!.userId, req.user!.tenantId);
+  if (!(await hasCredentials(ownerId))) { res.status(400).json({ error: 'Önce mağaza bağlantısını kaydedin' }); return; }
+  await setFieldMapping(ownerId, { season: parsed.data.season });
+  res.json({ message: 'Alan eşlemesi kaydedildi' });
 });
 
 // GET — zamanlama ayarları (kullanıcıya özel)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { fetchCredentials, saveCredentials, testCredentials, fetchSchedule, saveSchedule, type CredentialsPayload, type ScheduleSettings } from '../api/settings';
+import { fetchCredentials, saveCredentials, testCredentials, fetchSchedule, saveSchedule, fetchFieldMapping, saveFieldMapping, type CredentialsPayload, type ScheduleSettings, type FieldMappingInfo } from '../api/settings';
 import { fetchGa4Status, fetchGa4AuthUrl, openGa4OAuthPopup, saveGa4PropertyId, deleteGa4Credentials, testGa4Connection, syncGa4Metrics, type Ga4Status } from '../api/ga4';
 import { formatDate } from '../utils/format';
 
@@ -25,6 +25,11 @@ export function Settings({ onSaved }: Props) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [saveMsg,    setSaveMsg]    = useState('');
   const [showPass,   setShowPass]   = useState(false);
+  // Ürün alanı eşlemesi (sezon etiketi hangi alandan okunur)
+  const [fieldMap,       setFieldMap]       = useState<FieldMappingInfo | null>(null);
+  const [seasonField,    setSeasonField]    = useState('');
+  const [mapSaveStatus,  setMapSaveStatus]  = useState<'idle'|'saving'|'saved'|'error'>('idle');
+  const [mapSaveMsg,     setMapSaveMsg]     = useState('');
 
   const DEFAULT_SCHEDULE: ScheduleSettings = { isEnabled: false, dayHours: {} };
   const [schedule,      setSchedule]      = useState<ScheduleSettings>(DEFAULT_SCHEDULE);
@@ -89,6 +94,24 @@ export function Settings({ onSaved }: Props) {
       if (form.apiPass) setForm(prev => ({ ...prev, apiPass: '' }));
     } catch (err) {
       setSaveStatus('error'); setSaveMsg(err instanceof Error ? err.message : 'Kayıt hatası');
+    }
+  }
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    fetchFieldMapping()
+      .then(info => { setFieldMap(info); setSeasonField(info.mapping.season); })
+      .catch(() => setFieldMap(null));
+  }, [isSuperAdmin, configured]);
+
+  async function handleSaveFieldMapping() {
+    setMapSaveStatus('saving'); setMapSaveMsg('');
+    try {
+      await saveFieldMapping({ season: seasonField });
+      setFieldMap(f => f && { ...f, mapping: { season: seasonField } });
+      setMapSaveStatus('saved'); setMapSaveMsg('Alan eşlemesi kaydedildi');
+    } catch (e) {
+      setMapSaveStatus('error'); setMapSaveMsg(e instanceof Error ? e.message : 'Kaydedilemedi');
     }
   }
 
@@ -354,6 +377,36 @@ export function Settings({ onSaved }: Props) {
                 }>
                 {saveStatus === 'saving' ? 'Kaydediliyor…' : 'Kaydet'}
               </button>
+            </div>
+          )}
+
+          {/* Alan eşlemesi — hangi mağaza alanı hangi genel ürün bilgisine karşılık gelir */}
+          {isSuperAdmin && fieldMap?.configured && (
+            <div className="space-y-3 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+              <div>
+                <p className="text-xs font-semibold" style={{ color: 'var(--tx2)' }}>Alan eşlemesi</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--tx3)' }}>
+                  Sezon ön-sıralamasında kullanılan sezon etiketinin ürünün hangi alanından okunacağını seçin.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="flex-1 min-w-[200px] space-y-2">
+                  <span className="text-xs font-medium block" style={{ color: 'var(--tx2)' }}>Sezon etiketi alanı</span>
+                  <select value={seasonField} onChange={e => { setSeasonField(e.target.value); setMapSaveStatus('idle'); }}
+                    className={inputCls} style={inputSt}>
+                    {fieldMap.options.season.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+                  </select>
+                </label>
+                <button onClick={handleSaveFieldMapping}
+                  disabled={mapSaveStatus === 'saving' || seasonField === fieldMap.mapping.season && mapSaveStatus !== 'error'}
+                  className="px-5 py-3 rounded-lg text-sm font-semibold transition-all"
+                  style={{ background: 'var(--surface2)', color: 'var(--tx2)', border: '1px solid var(--border)' }}>
+                  {mapSaveStatus === 'saving' ? 'Kaydediliyor…' : 'Eşlemeyi Kaydet'}
+                </button>
+              </div>
+              {mapSaveMsg && (
+                <p className="text-xs" role="status" style={{ color: mapSaveStatus === 'error' ? 'var(--err-tx)' : 'var(--ok-tx)' }}>{mapSaveMsg}</p>
+              )}
             </div>
           )}
         </div>

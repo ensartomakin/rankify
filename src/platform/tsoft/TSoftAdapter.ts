@@ -96,6 +96,9 @@ export class TSoftAdapter implements PlatformAdapter {
     return this.client.setKategoriSira(entries.map(e => ({ productCode: e.code, categoryId, sortOrder: e.position })));
   }
 
+  /** T-Soft's sort import identifies categories as "T<id>". */
+  exportCategoryCode(categoryId: string): string { return `T${categoryId}`; }
+
   /** Raw T-Soft client — only for T-Soft debug tooling. */
   get raw(): TSoftClientApi { return this.client; }
 }

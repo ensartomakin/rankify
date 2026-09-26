@@ -112,6 +112,7 @@ export interface CurrentRankingResult {
   products: CurrentRankItem[];
   total:    number;
   apiUrl:   string;
+  categoryExportCode: string;   // category id as the store's sort import expects it
 }
 
 export async function getCurrentRanking(
@@ -137,7 +138,7 @@ export async function getCurrentRanking(
     seoUrl:      p.url,
   }));
 
-  return { products: items, total: items.length, apiUrl: adapter.storeUrl };
+  return { products: items, total: items.length, apiUrl: adapter.storeUrl, categoryExportCode: adapter.exportCategoryCode(categoryId) };
 }
 
 export interface ProductPreviewItem {
@@ -171,6 +172,7 @@ export interface PreviewResult {
   qualifiedCount:    number;
   disqualifiedCount: number;
   apiUrl:            string;
+  categoryExportCode: string;
   criteria:          WeightConfig['criteria'];
 }
 
@@ -319,7 +321,7 @@ export async function previewRanking(
   const products = await adapter.getProducts(categoryId);
 
   if (products.length === 0) {
-    return { products: [], total: 0, qualifiedCount: 0, disqualifiedCount: 0, apiUrl, criteria: config.criteria };
+    return { products: [], total: 0, qualifiedCount: 0, disqualifiedCount: 0, apiUrl, categoryExportCode: adapter.exportCategoryCode(categoryId), criteria: config.criteria };
   }
 
   const byCode = new Map<string, PlatformProduct>(products.map(p => [p.code, p]));
@@ -362,7 +364,7 @@ export async function previewRanking(
   });
 
   logger.info(`Preview bitti — ${qualifiedCount} aktif, ${disqualifiedCount} disqualified`);
-  return { products: items, total: ranked.length, qualifiedCount, disqualifiedCount, apiUrl, criteria: config.criteria };
+  return { products: items, total: ranked.length, qualifiedCount, disqualifiedCount, apiUrl, categoryExportCode: adapter.exportCategoryCode(categoryId), criteria: config.criteria };
 }
 
 export async function applyManualRanking(

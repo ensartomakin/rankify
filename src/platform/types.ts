@@ -59,6 +59,8 @@ export interface PlatformAdapter {
   getProductsInStoreOrder(categoryId: string): Promise<PlatformProduct[]>;
   getSales(codes: string[], days: number): Promise<SalesStat[]>;
   applySorting(categoryId: string, entries: SortEntry[]): Promise<ApplyResult>;
+  /** Category identifier the store's bulk sort import expects (CSV export). */
+  exportCategoryCode(categoryId: string): string;
 }
 
 /** Static description of a platform: what settings need before an adapter exists. */

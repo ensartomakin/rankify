@@ -109,7 +109,18 @@ export async function previewRanking(req: PreviewRequest): Promise<PreviewRespon
     throw new Error(msg);
   }
   const data = await res.json();
-  return { ...data, products: data.products.map((p: ProductPreviewItem & LegacyItem) => withUrls(p, data.apiUrl ?? '')) };
+  const products: ProductPreviewItem[] = data.products.map((p: ProductPreviewItem & LegacyItem) => withUrls(p, data.apiUrl ?? ''));
+  return { ...data, products: rankExcludedByScore(products) };
+}
+
+/* Excluded products come after the active ones and are ordered among themselves
+   by ranking score (ties: more stock first). Older API versions ordered them by
+   stock only, so the order is (re)applied here as well. */
+function rankExcludedByScore(products: ProductPreviewItem[]): ProductPreviewItem[] {
+  const active   = products.filter(p => !p.isDisqualified);
+  const excluded = products.filter(p => p.isDisqualified)
+    .sort((a, b) => (b.rankingScore - a.rankingScore) || (b.totalStock - a.totalStock));
+  return [...active, ...excluded].map((p, i) => ({ ...p, finalRank: i + 1 }));
 }
 
 /* ─── AI destekli sıralama düzenleme ─── */

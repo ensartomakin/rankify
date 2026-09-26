@@ -116,10 +116,11 @@ export function buildFinalRanking(products: NormalizedProduct[]): NormalizedProd
     .filter(p => !p.isDisqualified)
     .sort((a, b) => b.rankingScore - a.rankingScore);
 
-  // Disqualified ürünler: kendi içinde stok miktarına göre sıralanır
+  // Disqualified ürünler: aktiflerden sonra, kendi içinde de kriter puanına göre
+  // sıralanır (eşitlikte stok miktarı fazla olan önce).
   const disqualified = products
     .filter(p => p.isDisqualified)
-    .sort((a, b) => b.sizeAvailability.totalStock - a.sizeAvailability.totalStock);
+    .sort((a, b) => (b.rankingScore - a.rankingScore) || (b.sizeAvailability.totalStock - a.sizeAvailability.totalStock));
 
   return [...qualified, ...disqualified].map((p, i) => ({
     ...p,

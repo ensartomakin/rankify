@@ -13,6 +13,8 @@ export interface CredentialsSummary extends Omit<CredentialsPayload, 'apiPass' |
   storeName?: string;  // connected store's domain, for display
   apiPass: string;   // '••••••••' (sunucu her zaman maskeler)
   apiToken: string;  // '••••••••' ayarlıysa, '' ayarlanmamışsa
+  platform?: string;   // store platform id (e.g. 'tsoft'); newer API
+  updatedAt?: string | null;  // when the connection was last saved; newer API
 }
 
 export async function fetchCredentials(): Promise<CredentialsSummary> {

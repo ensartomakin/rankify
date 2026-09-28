@@ -6,6 +6,10 @@ export interface Ga4Status {
   propertyId:  string | null;
   googleEmail: string | null;
   lastSync:    string | null;
+  /** Per date range: used by a category's GA4 criterion, and last sync (newer API). */
+  ranges?:     { range: string; used: boolean; lastSync: string | null }[];
+  /** Categories whose criteria use GA4 (newer API). */
+  usedBy?:     { categoryId: string; categoryName?: string }[];
 }
 
 export interface Ga4ProductMetric {
@@ -55,8 +59,9 @@ export async function testGa4Connection(): Promise<{ ok: boolean; message: strin
   return res.json();
 }
 
-export async function syncGa4Metrics(dateRange = '30d'): Promise<{ count: number }> {
-  const res = await apiFetch(`/api/ga4/sync?dateRange=${dateRange}`, { method: 'POST' });
+/** Without a dateRange the server syncs every range the categories use. */
+export async function syncGa4Metrics(dateRange?: string): Promise<{ count: number; results?: { range: string; count: number; error?: string }[] }> {
+  const res = await apiFetch(dateRange ? `/api/ga4/sync?dateRange=${dateRange}` : '/api/ga4/sync', { method: 'POST' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err?.error ?? `Hata: ${res.status}`);

@@ -1,53 +1,7 @@
 import { getAdapterForUser } from '../platform/registry';
 import type { PlatformAdapter, PlatformProduct, SalesStat } from '../platform/types';
 import { computeSizeAvailability } from '../scoring/availability';
-import { getGa4Credentials, getGa4Metrics, upsertGa4Metrics, getGa4LastSyncForRange } from '../db/ga4.repo';
-import { fetchGa4ProductMetrics, } from '../services/ga4-client';
-
-const GA4_KEYS         = new Set(['ga4Views','ga4CartAdds','ga4ConversionRate']);
-const GA4_CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 saat — bu sürenin ötesinde önbellek bayat sayılır
-
-function salesPeriodToGa4Range(period?: string): string {
-  switch (period) {
-    case '3d':  return '3d';
-    case '7d':  return '7d';
-    case '14d': return '14d';
-    case '21d': return '21d';
-    case '1m':  return '30d';
-    case '2m':  return '60d';
-    case '3m':  return '90d';
-    default:    return '30d';
-  }
-}
-
-async function resolveGa4Map(
-  config: WeightConfig,
-  userId: number
-): Promise<Map<string, import('../db/ga4.repo').Ga4ProductMetric>> {
-  const ga4Criterion = config.criteria.find(c => GA4_KEYS.has(c.key));
-  if (!ga4Criterion) return new Map();
-  const dateRange = salesPeriodToGa4Range(ga4Criterion.salesPeriod);
-  let map = await getGa4Metrics(userId, dateRange).catch(() => new Map());
-
-  const lastSync = await getGa4LastSyncForRange(userId, dateRange).catch(() => null);
-  const isStale  = !lastSync || (Date.now() - lastSync.getTime()) > GA4_CACHE_TTL_MS;
-
-  if (map.size === 0 || isStale) {
-    try {
-      const creds = await getGa4Credentials(userId);
-      if (creds) {
-        const metrics = await fetchGa4ProductMetrics(creds.propertyId, creds.refreshToken, dateRange);
-        await upsertGa4Metrics(userId, metrics, dateRange);
-        map = new Map(metrics.map(m => [m.itemId, m]));
-        logger.info(`[GA4] auto-sync ${dateRange}: ${metrics.length} ürün`);
-      }
-    } catch (e) {
-      logger.warn(`[GA4] auto-sync başarısız: ${e}`);
-      // senkronizasyon başarısız olsa bile, varsa eski (bayat) önbelleği kullanmaya devam et
-    }
-  }
-  return map;
-}
+import { resolveGa4ForRanking, GA4_TTL_MS, GA4_TTL_SCHEDULED_MS } from '../services/ga4-sync';
 
 function salesPeriodToDays(period?: string): number {
   switch (period) {
@@ -197,18 +151,20 @@ async function loadAndScore(
   products: PlatformProduct[],
   config: WeightConfig,
   userId: number,
-): Promise<NormalizedProduct[]> {
+  tenantId: number | undefined,
+  ga4MaxAgeMs: number,
+): Promise<{ scored: NormalizedProduct[]; warnings: string[] }> {
   const { availabilityThreshold } = config;
   const bestSellerCriterion = config.criteria.find(c => c.key === 'bestSeller');
   const salesDays = salesPeriodToDays(bestSellerCriterion?.salesPeriod);
   const sales     = await adapter.getSales(products.map(p => p.code), salesDays);
   const salesMap  = new Map<string, SalesStat>(sales.map(s => [s.code, s]));
 
-  // GA4 metrikleri — periyoda göre önbellekten veya auto-sync
-  const ga4Map = await resolveGa4Map(config, userId);
+  // GA4 metrikleri — her GA4 kriteri kendi döneminden; gerekirse önce senkronize edilir
+  const ga4 = await resolveGa4ForRanking(config, userId, tenantId, ga4MaxAgeMs);
+  const hasGa4 = ga4.byKey.size > 0;
 
   const normalized: NormalizedProduct[] = products.map(p => {
-    const ga4 = ga4Map.get(p.id);
     return {
       productId:        p.id,
       productCode:      p.code,
@@ -222,7 +178,11 @@ async function loadAndScore(
       isActive:         p.isActive,
       season:           p.season,
       sizeAvailability: computeSizeAvailability(p.variants, availabilityThreshold),
-      ga4: ga4 ? { views: ga4.views, cartAdds: ga4.cartAdds, conversionRate: ga4.conversionRate } : undefined,
+      ga4: hasGa4 ? {
+        views:          ga4.byKey.get('ga4Views')?.get(p.id)?.views ?? 0,
+        cartAdds:       ga4.byKey.get('ga4CartAdds')?.get(p.id)?.cartAdds ?? 0,
+        conversionRate: ga4.byKey.get('ga4ConversionRate')?.get(p.id)?.conversionRate ?? 0,
+      } : undefined,
       scores: { newness: 0, bestSeller: 0, reviewScore: 0, stockScore: 0, availabilityScore: 0 },
       rankingScore:   0,
       isDisqualified: false,
@@ -230,7 +190,7 @@ async function loadAndScore(
     };
   });
 
-  return computeRankingScores(applyDisqualification(normalized, availabilityThreshold), config);
+  return { scored: computeRankingScores(applyDisqualification(normalized, availabilityThreshold), config), warnings: ga4.warnings };
 }
 
 /** 1) Kriter puanı → 2) Sezon gruplandırması → 3) Smart mix (en son — böylece sezon
@@ -277,12 +237,16 @@ export async function rankCategory(
   products: PlatformProduct[],
   config: WeightConfig,
   userId: number,
+  tenantId?: number,
+  ga4MaxAgeMs = GA4_TTL_MS,
 ): Promise<CategoryRanking> {
   const warnings: string[] = [];
   const renumber = <T extends NormalizedProduct>(list: T[]) => list.map((p, i) => ({ ...p, finalRank: i + 1 }));
 
   // b + c
-  const ruleOrder = renumber(fullStoreOrder(rankProducts(await loadAndScore(adapter, products, config, userId), config)));
+  const { scored, warnings: dataWarnings } = await loadAndScore(adapter, products, config, userId, tenantId, ga4MaxAgeMs);
+  warnings.push(...dataWarnings);
+  const ruleOrder = renumber(fullStoreOrder(rankProducts(scored, config)));
   const ruleRank  = new Map(ruleOrder.map(p => [p.productCode, p.finalRank]));
 
   // d) AI rules (kept as rules, so they adapt to the current products)
@@ -342,7 +306,8 @@ export async function runRankingPipeline(
     if (emptyCode > 0) logger.warn(`${emptyCode} üründe productCode boş`);
 
     // Phase 2-3: dışlama, puanlama, sıralama, AI kuralları, sabitlemeler (ortak fonksiyon)
-    const { order: toRank, warnings, missingPins } = await rankCategory(adapter, products, config, userId);
+    const { order: toRank, warnings, missingPins } = await rankCategory(adapter, products, config, userId, tenantId,
+      triggeredBy === 'cron' ? GA4_TTL_SCHEDULED_MS : GA4_TTL_MS);
     const ranked = toRank;
     const disqualifiedCount = ranked.filter(p => p.isDisqualified).length;
     const qualifiedCount    = ranked.length - disqualifiedCount;
@@ -420,7 +385,7 @@ export async function previewRanking(
   }
 
   const byCode = new Map<string, PlatformProduct>(products.map(p => [p.code, p]));
-  const { order: ranked, ruleRank, baseRank, warnings, aiWarnings } = await rankCategory(adapter, products, config, userId);
+  const { order: ranked, ruleRank, baseRank, warnings, aiWarnings } = await rankCategory(adapter, products, config, userId, tenantId);
   const qualifiedCount    = ranked.filter(p => !p.isDisqualified).length;
   const disqualifiedCount = ranked.length - qualifiedCount;
 

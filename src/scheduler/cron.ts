@@ -2,6 +2,8 @@ import cron from 'node-cron';
 import { runAllCategories } from '../pipeline/orchestrator';
 import { getScheduledConfigs } from '../db/config.repo';
 import { logger } from '../utils/logger';
+import { listGa4Owners } from '../db/ga4.repo';
+import { syncUsedGa4Ranges } from '../services/ga4-sync';
 
 export const SCHEDULE_TIMEZONE = 'Europe/Istanbul';
 
@@ -51,5 +53,20 @@ export function startScheduler(): void {
     { timezone: SCHEDULE_TIMEZONE }
   );
 
-  logger.info('Scheduler aktif — her saat başı kategori zamanlamaları kontrol edilir');
+  // Günlük GA4 senkronizasyonu (06:00 İstanbul): kategorilerin kullandığı tüm dönemler.
+  // Zamanlanmış sıralama ayrıca veri 6 saatten eskiyse çalışmadan önce yeniler.
+  cron.schedule(
+    '0 6 * * *',
+    async () => {
+      const owners = await listGa4Owners().catch(err => { logger.error(`GA4 sahipleri alınamadı: ${err}`); return []; });
+      for (const { userId, tenantId } of owners) {
+        const results = await syncUsedGa4Ranges(userId, tenantId);
+        const failed = results.filter(r => r.error);
+        if (failed.length) logger.warn(`[GA4 günlük sync] owner=${userId} başarısız: ${failed.map(f => `${f.range}: ${f.error}`).join('; ')}`);
+      }
+    },
+    { timezone: SCHEDULE_TIMEZONE }
+  );
+
+  logger.info('Scheduler aktif — her saat başı kategori zamanlamaları, her gün 06:00 GA4 senkronizasyonu');
 }

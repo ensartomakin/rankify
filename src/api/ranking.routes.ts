@@ -190,7 +190,9 @@ rankingRouter.post('/preview', async (req: Request, res: Response) => {
     res.json(result);
   } catch (err) {
     logger.error(`Preview hatası [${categoryId}]: ${err}`);
-    res.status(500).json({ error: 'Önizleme hesaplaması başarısız' });
+    // GA4 verisi alınamadı / bağlı değil gibi kullanıcıya yönelik hataları olduğu gibi göster
+    const msg = err instanceof Error && err.message.startsWith('GA4') ? err.message : 'Önizleme hesaplaması başarısız';
+    res.status(500).json({ error: msg });
   }
 });
 

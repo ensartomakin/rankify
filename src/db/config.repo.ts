@@ -108,6 +108,19 @@ export async function getConfigByCategoryId(userId: number, categoryId: string) 
   return row ? devRowToConfig(row) : null;
 }
 
+/** Active configs of every user in a tenant (all active configs when there is no tenant / no database). */
+export async function getActiveConfigsForTenant(tenantId?: number) {
+  if (usePg()) {
+    const rows = tenantId !== undefined
+      ? await query<PgConfigRow>(
+          `SELECT rc.* FROM ranking_configs rc JOIN users u ON u.id = rc.user_id
+           WHERE rc.is_active = TRUE AND u.tenant_id = $1`, [tenantId])
+      : await query<PgConfigRow>('SELECT * FROM ranking_configs WHERE is_active = TRUE');
+    return rows.map(pgRowToConfig);
+  }
+  return [...store.configs.values()].filter(c => c.isActive).map(devRowToConfig);
+}
+
 /** Active categories whose schedule is on, with the owner's tenant — for the scheduler. */
 export async function getScheduledConfigs() {
   if (usePg()) {

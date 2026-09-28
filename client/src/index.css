@@ -302,3 +302,17 @@ input[type=range].range-fill::-moz-range-thumb {
   cursor: pointer;
 }
 input[type=range].range-fill::-moz-range-track { background: transparent; }
+
+/* Browser autofill must not repaint inputs (yellow/blue in light, white in dark):
+   keep the theme's input background and text colour. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--tx1);
+  -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset;
+  box-shadow: 0 0 0 1000px var(--input-bg) inset;
+  caret-color: var(--tx1);
+  transition: background-color 9999s ease-out 0s;
+}

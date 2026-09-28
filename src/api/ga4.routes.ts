@@ -20,6 +20,8 @@ import {
   testGa4Connection,
 } from '../services/ga4-client';
 import { logger } from '../utils/logger';
+import { getGa4LastSyncByRange } from '../db/ga4.repo';
+import { usedGa4Ranges, ga4UsingConfigs, syncUsedGa4Ranges } from '../services/ga4-sync';
 
 export const ga4Router = Router();
 
@@ -102,7 +104,13 @@ ga4Router.get('/status', async (req, res) => {
     const propertyId = configured ? await getGa4PropertyId(ownerId)  : null;
     const email      = configured ? await getGa4GoogleEmail(ownerId) : null;
     const ready      = configured && Boolean(propertyId);
-    res.json({ configured, ready, propertyId, googleEmail: email, lastSync: lastSync?.toISOString() ?? null });
+    // Per date range: the ranges the tenant's categories use and when each was last synced
+    const byRange    = configured ? await getGa4LastSyncByRange(ownerId).catch(() => ({} as Record<string, Date>)) : {};
+    const used       = await usedGa4Ranges(req.user!.tenantId);
+    const rangeKeys  = [...new Set([...used, ...Object.keys(byRange)])];
+    const ranges     = rangeKeys.map(r => ({ range: r, used: used.includes(r), lastSync: byRange[r]?.toISOString() ?? null }));
+    const usedBy     = await ga4UsingConfigs(req.user!.tenantId);
+    res.json({ configured, ready, propertyId, googleEmail: email, lastSync: lastSync?.toISOString() ?? null, ranges, usedBy });
   } catch {
     res.status(500).json({ error: 'Durum sorgusu başarısız' });
   }
@@ -122,11 +130,19 @@ ga4Router.delete('/credentials', requireSuperAdmin, async (req, res) => {
 // POST /api/ga4/sync — superadmin credentials kullanır, metrikler paylaşımlı kaydedilir
 ga4Router.post('/sync', async (req, res) => {
   const ownerId   = await getGa4OwnerId(req.user!.userId, req.user!.tenantId);
-  const dateRange = String(req.query.dateRange ?? '30d');
 
   const creds = await getGa4Credentials(ownerId);
   if (!creds)            return res.status(404).json({ error: 'GA4 bağlı değil' });
   if (!creds.propertyId) return res.status(400).json({ error: 'Property ID girilmemiş' });
+
+  // Without a dateRange: every range the tenant's categories use
+  if (req.query.dateRange === undefined) {
+    const results = await syncUsedGa4Ranges(ownerId, req.user!.tenantId);
+    const failed  = results.filter(r => r.error);
+    if (failed.length === results.length) return res.status(500).json({ error: 'GA4 senkronizasyonu başarısız', results });
+    return res.json({ ok: true, count: results.reduce((s, r) => s + r.count, 0), results });
+  }
+  const dateRange = String(req.query.dateRange);
 
   try {
     const metrics = await fetchGa4ProductMetrics(creds.propertyId, creds.refreshToken, dateRange);

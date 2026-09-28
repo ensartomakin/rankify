@@ -91,3 +91,10 @@ export async function setFieldMapping(userId: number, mapping: FieldMapping): Pr
   const row = store.credentials.get(userId);
   if (row) store.credentials.set(userId, { ...row, fieldMapping: mapping });
 }
+
+/** When the store connection was last saved (null without a database or record). */
+export async function getCredentialsUpdatedAt(userId: number): Promise<string | null> {
+  if (!usePg()) return null;
+  const rows = await query<{ updated_at: Date }>('SELECT updated_at FROM tsoft_credentials WHERE user_id = $1', [userId]);
+  return rows[0] ? new Date(rows[0].updated_at).toISOString() : null;
+}

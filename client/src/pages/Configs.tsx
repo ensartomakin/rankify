@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchConfigs, deleteConfig, triggerSaved, saveConfig, type SavedConfig } from '../api/config';
 import { fetchAuditLogs } from '../api/audit';
+import { fetchGa4Status } from '../api/ga4';
 import { CRITERION_LABELS, criteriaColor, type CriterionKey } from '../types';
 import { formatPercent, formatDateTime, formatRelative } from '../utils/format';
 import { toDraft, fromDraft, scheduleSummary, type ScheduleDraft } from '../utils/schedule';
@@ -38,6 +39,9 @@ export function Configs({ onEdit }: Props) {
   const [scheduleFor, setScheduleFor] = useState<string | null>(null);
   // Older API versions send no lastRun; derive it from the recent run history instead.
   const [fallbackRuns, setFallbackRuns] = useState<Record<string, LastRun>>({});
+  // GA4 kriteri kullanan kategoriler, GA4 kurulu değilken çalıştırılamaz
+  const [ga4Ready, setGa4Ready] = useState(true);
+  useEffect(() => { fetchGa4Status().then(s => setGa4Ready(s.ready)).catch(() => {}); }, []);
 
   async function load() {
     setLoading(true);
@@ -222,6 +226,12 @@ export function Configs({ onEdit }: Props) {
                         <span className={tagCls} style={{ background: 'var(--ai-bg)', color: 'var(--ai-tx)', border: '1px solid var(--ai-bd)' }}
                           title={cfg.aiRules.map(r => `• ${r.description}`).join('\n')}>
                           ✨ {cfg.aiRules.length} AI kuralı
+                        </span>
+                      )}
+                      {!ga4Ready && cfg.criteria.some(c => String(c.key).startsWith('ga4')) && (
+                        <span className={tagCls} style={{ background: 'var(--warn-bg)', color: 'var(--warn-tx)', border: '1px solid var(--warn-bd)' }}
+                          title="Bu kategori GA4 kriteri kullanıyor ama Google Analytics bağlı değil. Ayarlar → Google Analytics 4'ten bağlayın ya da kriteri değiştirin; o zamana kadar sıralama uygulanmaz.">
+                          ⚠ GA4 bağlı değil
                         </span>
                       )}
                       <ScheduleTag cfg={cfg}

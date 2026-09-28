@@ -8,7 +8,6 @@ import { Dashboard } from './pages/Dashboard';
 import { Configs } from './pages/Configs';
 import { Audit } from './pages/Audit';
 import { Settings } from './pages/Settings';
-import { Users } from './pages/Users';
 import { ProducerDashboard } from './pages/ProducerDashboard';
 import { fetchCredentials } from './api/settings';
 import type { SavedConfig } from './api/config';
@@ -80,7 +79,6 @@ function AppShell() {
           {page === 'configs'   && <Configs onEdit={handleEdit} />}
           {page === 'audit'     && <Audit />}
           {page === 'settings'  && <Settings onSaved={() => setConfigured(true)} />}
-          {page === 'users'     && isSuperAdmin && <Users />}
         </main>
       </div>
     </div>

@@ -168,3 +168,22 @@ export async function getGa4LastSyncForRange(userId: number, dateRange: string):
   );
   return rows[0]?.cached_at ?? null;
 }
+
+/** Last sync time per date range, e.g. { "30d": Date, "7d": Date }. */
+export async function getGa4LastSyncByRange(userId: number): Promise<Record<string, Date>> {
+  const rows = await query<{ date_range: string; cached_at: Date }>(
+    'SELECT date_range, MAX(cached_at) AS cached_at FROM ga4_product_metrics WHERE user_id = $1 GROUP BY date_range',
+    [userId]
+  );
+  return Object.fromEntries(rows.map(r => [r.date_range, new Date(r.cached_at)]));
+}
+
+/** Owners (super admins) with a usable GA4 connection, with their tenant — for the daily sync. */
+export async function listGa4Owners(): Promise<{ userId: number; tenantId?: number }[]> {
+  const rows = await query<{ user_id: number; tenant_id: number | null }>(
+    `SELECT g.user_id, u.tenant_id
+     FROM ga4_credentials g JOIN users u ON u.id = g.user_id
+     WHERE g.property_id <> '' AND g.refresh_token_enc IS NOT NULL`
+  );
+  return rows.map(r => ({ userId: r.user_id, tenantId: r.tenant_id ?? undefined }));
+}

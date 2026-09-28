@@ -128,7 +128,8 @@ function AddUserForm({ onAdd, onCancel }: AddUserFormProps) {
   );
 }
 
-export function Users() {
+/** `embedded`: shown inside the Settings page (no page scroller, section-sized heading). */
+export function Users({ embedded = false }: { embedded?: boolean } = {}) {
   const { user: currentUser } = useAuth();
   const [users,      setUsers]      = useState<UserItem[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -172,13 +173,14 @@ export function Users() {
   );
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-2xl mx-auto py-8 space-y-6 animate-fade-up" style={{ paddingLeft: 'var(--spacing-page)', paddingRight: 'var(--spacing-page)' }}>
+    <div className={embedded ? '' : 'h-full overflow-y-auto'}>
+      <div className={embedded ? 'space-y-6' : 'max-w-2xl mx-auto py-8 space-y-6 animate-fade-up'}
+        style={embedded ? undefined : { paddingLeft: 'var(--spacing-page)', paddingRight: 'var(--spacing-page)' }}>
 
         {/* Başlık */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--tx1)' }}>
+            <h1 className={embedded ? 'text-lg font-bold tracking-tight' : 'text-2xl font-bold tracking-tight'} style={{ color: 'var(--tx1)' }}>
               Kullanıcılar
             </h1>
             <p className="text-sm mt-1" style={{ color: 'var(--tx2)' }}>

@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { promises as dns } from 'dns';
 import { z } from 'zod';
 import { requireAuth, requireSuperAdmin } from './auth.middleware';
-import { upsertCredentials, getCredentials, hasCredentials, setFieldMapping } from '../db/credentials.repo';
+import { upsertCredentials, getCredentials, hasCredentials, setFieldMapping, getCredentialsUpdatedAt } from '../db/credentials.repo';
 import { hasLegacyScheduleNotice, dismissLegacyScheduleNotice } from '../db/schedule.repo';
 import { platformInfoFor } from '../platform/registry';
 import { getSuperAdminId } from '../db/user.repo';
@@ -89,6 +89,8 @@ settingsRouter.get('/credentials', async (req: Request, res: Response) => {
     apiUser:   creds.apiUser,
     apiPass:   '••••••••',
     apiToken:  creds.apiToken ? '••••••••' : '',
+    platform:  platformInfoFor(ownerId).id,
+    updatedAt: await getCredentialsUpdatedAt(ownerId).catch(() => null),
   });
 });
 

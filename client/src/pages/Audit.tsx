@@ -153,6 +153,12 @@ export function Audit() {
                           {log.errorMessage}
                         </p>
                       )}
+                      {log.warnings && log.warnings.length > 0 && (
+                        <p className="text-xs mt-1 max-w-xs cursor-help font-semibold" style={{ color: 'var(--warn-tx)' }}
+                          title={log.warnings.join('\n')}>
+                          ⚠ {log.warnings.length} uyarı
+                        </p>
+                      )}
                     </td>
                   </tr>
                 ))}

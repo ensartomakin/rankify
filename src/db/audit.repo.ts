@@ -11,12 +11,14 @@ export interface AuditEntry {
   durationMs: number;
   status: 'success' | 'error';
   errorMessage?: string;
+  warnings?: string[];
 }
 
 interface PgAuditRow {
   id: number; user_id: number; category_id: string; triggered_by: string;
   total_products: number; qualified_count: number; disqualified_count: number;
   duration_ms: number; status: string; error_message: string | null; ran_at: string;
+  warnings?: string[] | null;
 }
 
 function pgRowToLog(r: PgAuditRow) {
@@ -26,6 +28,7 @@ function pgRowToLog(r: PgAuditRow) {
     disqualifiedCount: r.disqualified_count, durationMs: r.duration_ms,
     status: r.status as 'success' | 'error',
     errorMessage: r.error_message ?? undefined, ranAt: r.ran_at,
+    warnings: r.warnings ?? [],
   };
 }
 
@@ -36,6 +39,7 @@ function devRowToLog(r: DevAuditLog) {
     disqualifiedCount: r.disqualifiedCount, durationMs: r.durationMs,
     status: r.status as 'success' | 'error',
     errorMessage: r.errorMessage, ranAt: r.ranAt,
+    warnings: r.warnings ?? [],
   };
 }
 
@@ -46,11 +50,11 @@ export async function insertAuditLog(entry: AuditEntry): Promise<void> {
     await query(
       `INSERT INTO audit_logs
          (user_id, category_id, triggered_by, total_products, qualified_count,
-          disqualified_count, duration_ms, status, error_message)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          disqualified_count, duration_ms, status, error_message, warnings)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [entry.userId, entry.categoryId, entry.triggeredBy, entry.totalProducts,
        entry.qualifiedCount, entry.disqualifiedCount, entry.durationMs,
-       entry.status, entry.errorMessage ?? null]
+       entry.status, entry.errorMessage ?? null, JSON.stringify(entry.warnings ?? [])]
     );
     return;
   }
@@ -60,7 +64,7 @@ export async function insertAuditLog(entry: AuditEntry): Promise<void> {
     triggeredBy: entry.triggeredBy, totalProducts: entry.totalProducts,
     qualifiedCount: entry.qualifiedCount, disqualifiedCount: entry.disqualifiedCount,
     durationMs: entry.durationMs, status: entry.status,
-    errorMessage: entry.errorMessage, ranAt: new Date().toISOString(),
+    errorMessage: entry.errorMessage, warnings: entry.warnings ?? [], ranAt: new Date().toISOString(),
   });
 }
 

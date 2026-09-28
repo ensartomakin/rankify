@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -19,8 +19,9 @@ import { ToastStack } from '../components/Toast';
 import { useToasts } from '../components/useToasts';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import {
-  getCurrentRanking, previewRanking, applyManualRanking, aiAdjustRanking,
+  getCurrentRanking, previewRanking, applyManualRanking, aiAdjustRanking, applyRanking, ApplyUnsupportedError,
 } from '../api/ranking';
+import { applyPins } from '../utils/pins';
 import type {
   CurrentRankingResponse, CurrentRankItem,
   PreviewResponse, ProductPreviewItem, AdjustRule,
@@ -582,6 +583,11 @@ function toAiAdjustProducts(products: ProductPreviewItem[]) {
   }));
 }
 
+// Kural bazlı sıra (AI kuralları ve sabitlemeler öncesi) — AI kuralları hep buna uygulanır.
+function ruleOrderOf(result: PreviewResponse): ProductPreviewItem[] {
+  return [...result.products].sort((a, b) => a.ruleRank - b.ruleRank).map(p => ({ ...p, finalRank: p.ruleRank }));
+}
+
 // AI-adjust yanıtındaki (minimal) yeni sırayı, elimizdeki zengin ürün verisiyle birleştirir.
 function mergeAiOrder(
   base: ProductPreviewItem[],
@@ -673,6 +679,7 @@ export function Dashboard({ prefill }: Props) {
   const [saved, setSaved] = useState<{
     threshold: number; criteria: WeightCriterion[]; smartMix: boolean;
     seasonPreFilter: SeasonPreFilter; schedule: ScheduleDraft;
+    pins: Record<string, number>; aiRules: AdjustRule[];
   } | null>(null);
   const [legacyScheduleNotice, setLegacyScheduleNotice] = useState(false);
   const [ga4Connected,    setGa4Connected]    = useState(false);
@@ -700,14 +707,17 @@ export function Dashboard({ prefill }: Props) {
   const [previewResult, setPreviewResult] = useState<PreviewResponse | null>(null);
   const [previewStatus, setPreviewStatus] = useState<Status>('idle');
 
-  // Manuel sıralama — önizleme görünümü
-  const [previewOrder, setPreviewOrder] = useState<ProductPreviewItem[]>([]);
+  // Önizleme sırası = kurallar + AI kuralları (baseOrder) üzerine manuel sabitlemeler.
+  // Sabitlemeler sunucudaki ortak fonksiyonla aynı algoritmayla (utils/pins) ekranda
+  // anında uygulanır; pin kaldırılınca ürün kural/AI bazlı sırasına döner.
+  const [baseOrder, setBaseOrder] = useState<ProductPreviewItem[]>([]);
+  const [aiWarnings, setAiWarnings] = useState<string[]>([]);
 
-  // Sabitleme
-  const [pinnedPositions, setPinnedPositions] = useState<Record<string, number>>({});
+  // Sabitleme (ürün kodu → sıra) — kategorinin kayıtlı ayarlarıyla birlikte saklanır
+  const [pinnedPositions, setPinnedPositions] = useState<Record<string, number>>(prefill?.pins ?? {});
 
-  // AI destekli sıralama düzenleme (yüzen sohbet paneli)
-  const [aiRules,      setAiRules]      = useState<AdjustRule[]>([]);
+  // AI destekli sıralama düzenleme (yüzen sohbet paneli) — kurallar kategoriyle kaydedilir
+  const [aiRules,      setAiRules]      = useState<AdjustRule[]>(prefill?.aiRules ?? []);
   const [messages,     setMessages]     = useState<ChatMessage[]>([]);
   const [chatOpen,     setChatOpen]     = useState(false);
   // Empty-state action: bring the category search into view and open it.
@@ -718,6 +728,18 @@ export function Dashboard({ prefill }: Props) {
     el?.querySelector<HTMLButtonElement>('button')?.click();
   }
   const [aiInstruction, setAiInstruction] = useState('');
+
+  const pinResult = useMemo(() => applyPins(baseOrder, pinnedPositions), [baseOrder, pinnedPositions]);
+  const previewOrder = useMemo(
+    () => pinResult.order.map((p, i) => (p.finalRank === i + 1 ? p : { ...p, finalRank: i + 1 })),
+    [pinResult],
+  );
+  const previewWarnings = useMemo(() => baseOrder.length === 0 ? [] : [
+    ...aiWarnings,
+    ...pinResult.missing.map(m => `Sabitlenmiş ürün kategoride yok: ${m.code} (#${m.position}) — çalıştırıldığında sabitleme silinir`),
+    ...pinResult.overflow.map(o => `${o.code} #${o.position}'e sabitli ama kategoride ${o.total} ürün var; en sona kondu`),
+    ...pinResult.pinnedExcluded.map(p => `${p.productCode} dışlama kuralına takılıyor (${p.disqualifyReason ?? 'dışlandı'}) ama sabitlendiği için #${pinnedPositions[p.productCode]} sırasında`),
+  ], [baseOrder.length, aiWarnings, pinResult, pinnedPositions]);
   const [aiLoading,    setAiLoading]    = useState(false);
 
   // Filtre & görünüm
@@ -779,11 +801,19 @@ export function Dashboard({ prefill }: Props) {
       if (cancelled) return;
       const draft = toDraft(cfg?.schedule);
       setSchedule(draft);
+      const savedPins = cfg?.pins ?? {};
+      const savedRules = cfg?.aiRules ?? [];
       setSaved(cfg ? {
         threshold: cfg.availabilityThreshold, criteria: cfg.criteria,
         smartMix: cfg.smartMix ?? true, seasonPreFilter: cfg.seasonPreFilter ?? 'none',
-        schedule: draft,
+        schedule: draft, pins: savedPins, aiRules: savedRules,
       } : null);
+      // Sabitlemeler ve AI kuralları kategorinin kuralıdır. Eski sürümde pinler yalnızca
+      // bu tarayıcıda tutuluyordu: kayıtta hiç yoksa bir kez ekrana alınır (Kaydet ile kalıcı olur).
+      let legacy: Record<string, number> = {};
+      try { legacy = categoryId ? JSON.parse(localStorage.getItem(`rankify_pin_${categoryId}`) ?? '{}') : {}; } catch { /* ignore */ }
+      setPinnedPositions(Object.keys(savedPins).length > 0 ? savedPins : legacy);
+      setAiRules(savedRules);
     });
     return () => { cancelled = true; };
   }, [categoryId]);
@@ -794,12 +824,8 @@ export function Dashboard({ prefill }: Props) {
     setPreviewStatus('idle');
     setView('current');
     setManualDirty(false);
-    setAiRules([]);
     setMessages([]);
-    if (!categoryId) { setCurrentResult(null); setCurrentStatus('idle'); setManualOrder([]); setPinnedPositions({}); return; }
-
-    const stored = localStorage.getItem(`rankify_pin_${categoryId}`);
-    setPinnedPositions(stored ? JSON.parse(stored) : {});
+    if (!categoryId) { setCurrentResult(null); setCurrentStatus('idle'); setManualOrder([]); return; }
 
     let cancelled = false;
     setCurrentStatus('loading');
@@ -826,40 +852,32 @@ export function Dashboard({ prefill }: Props) {
   useEffect(() => {
     setPreviewResult(null);
     setPreviewStatus('idle');
-    setAiRules([]);
-    setMessages([]);
+    setBaseOrder([]);
     if (view === 'preview') setView('current');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threshold, JSON.stringify(criteria), smartMix, seasonPreFilter]);
 
+  // Kategoriler → Düzenle: kayıtlı ayarlarla (kurallar, AI kuralları, sabitlemeler) açılınca
+  // önizlemeyi bir kez otomatik hesapla; sabitlenmiş ürünler pinli görünür.
+  const autoPreviewDone = useRef(false);
+  useEffect(() => {
+    if (!prefill || autoPreviewDone.current || !isValid) return;
+    autoPreviewDone.current = true;
+    handlePreview();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefill, isValid]);
+
   function togglePin(code: string, rank: number) {
     setPinnedPositions(prev => {
       const next = { ...prev };
-      if (next[code] !== undefined) delete next[code];
+      if (next[code] !== undefined) delete next[code];   // unpinned → back to its rule/AI position
       else next[code] = rank;
-      localStorage.setItem(`rankify_pin_${categoryId}`, JSON.stringify(next));
       return next;
     });
   }
 
   function clearAllPins() {
     setPinnedPositions({});
-    localStorage.removeItem(`rankify_pin_${categoryId}`);
-  }
-
-  function applyPinnedPositions(items: ProductPreviewItem[], pins = pinnedPositions): ProductPreviewItem[] {
-    const pinCodes = Object.keys(pins);
-    if (pinCodes.length === 0) return items;
-    const pinnedInResult  = items.filter(p => pins[p.productCode] !== undefined);
-    const unpinned        = items.filter(p => pins[p.productCode] === undefined);
-    if (pinnedInResult.length === 0) return items;
-    const sortedPinned = [...pinnedInResult].sort((a, b) => pins[a.productCode] - pins[b.productCode]);
-    const result: ProductPreviewItem[] = [...unpinned];
-    for (const p of sortedPinned) {
-      const idx = Math.max(0, Math.min(result.length, pins[p.productCode] - 1));
-      result.splice(idx, 0, p);
-    }
-    return result.map((p, i) => ({ ...p, finalRank: i + 1 }));
   }
 
   function applyPinnedPositionsCurrent(items: CurrentRankItem[], pins = pinnedPositions): CurrentRankItem[] {
@@ -922,13 +940,13 @@ export function Dashboard({ prefill }: Props) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const pins = pinnedPositions;
+    // A dragged product is pinned to where it was dropped (saved with the category).
+    const newIdx = manualOrder.findIndex(p => p.productCode === over.id);
+    const pins = { ...pinnedPositions, [String(active.id)]: newIdx + 1 };
+    setPinnedPositions(pins);
     setManualOrder(items => {
       const oldIdx = items.findIndex(p => p.productCode === active.id);
-      const newIdx = items.findIndex(p => p.productCode === over.id);
-      let newOrder = arrayMove(items, oldIdx, newIdx).map((p, i) => ({ ...p, currentRank: i + 1 }));
-      if (Object.keys(pins).length > 0) newOrder = applyPinnedPositionsCurrent(newOrder, pins);
-      return newOrder;
+      return applyPinnedPositionsCurrent(arrayMove(items, oldIdx, newIdx).map((p, i) => ({ ...p, currentRank: i + 1 })), pins);
     });
     setManualDirty(true);
   }
@@ -936,24 +954,10 @@ export function Dashboard({ prefill }: Props) {
   // Rank numarası manuel değişince
   function handleRankEdit(code: string, newRank: number) {
     const clamped = Math.max(1, Math.min(manualOrder.length, newRank));
-    if (pinnedPositions[code] !== undefined) {
-      const newPins = { ...pinnedPositions, [code]: clamped };
-      setPinnedPositions(newPins);
-      localStorage.setItem(`rankify_pin_${categoryId}`, JSON.stringify(newPins));
-      setManualOrder(applyPinnedPositionsCurrent(manualOrder, newPins));
-      setManualDirty(true);
-      return;
-    }
-    setManualOrder(items => {
-      const idx = items.findIndex(p => p.productCode === code);
-      if (idx === -1) return items;
-      const next = [...items];
-      const [item] = next.splice(idx, 1);
-      next.splice(clamped - 1, 0, item);
-      let newOrder = next.map((p, i) => ({ ...p, currentRank: i + 1 }));
-      if (Object.keys(pinnedPositions).length > 0) newOrder = applyPinnedPositionsCurrent(newOrder, pinnedPositions);
-      return newOrder;
-    });
+    // Entering a rank pins the product there (saved with the category).
+    const newPins = { ...pinnedPositions, [code]: clamped };
+    setPinnedPositions(newPins);
+    setManualOrder(applyPinnedPositionsCurrent(manualOrder, newPins));
     setManualDirty(true);
   }
 
@@ -988,14 +992,17 @@ export function Dashboard({ prefill }: Props) {
       try {
         await saveConfig({
           categoryId: id, categoryName: name.trim() || undefined, availabilityThreshold: threshold, criteria,
-          smartMix, seasonPreFilter, schedule: fromDraft(schedule),
+          smartMix, seasonPreFilter, schedule: fromDraft(schedule), aiRules,
+          // Sabitlemeler ürüne özel: yalnızca ekrandaki kategoriye yazılır
+          ...(id === categoryId ? { pins: pinnedPositions } : {}),
         });
         done++;
       } catch { fail++; }
     }
     if (fail === 0) {
       setSaveStatus('success');
-      setSaved({ threshold, criteria, smartMix, seasonPreFilter, schedule });
+      setSaved({ threshold, criteria, smartMix, seasonPreFilter, schedule, pins: pinnedPositions, aiRules });
+      try { localStorage.removeItem(`rankify_pin_${categoryId}`); } catch { /* ignore */ }
       notify(selectedCategories.length > 1 ? `${done} kategori kaydedildi.` : 'Konfigürasyon kaydedildi.');
     } else {
       setSaveStatus('error');
@@ -1037,20 +1044,24 @@ export function Dashboard({ prefill }: Props) {
     if (!isValid) return;
     setPreviewStatus('loading'); setPreviewResult(null);
     try {
-      const result = await previewRanking({ categoryId: categoryId.trim(), availabilityThreshold: threshold, criteria, smartMix, seasonPreFilter });
+      // Sunucudaki ortak fonksiyon: kurallar → AI kuralları → sabitlemeler (+ uyarılar)
+      const result = await previewRanking({
+        categoryId: categoryId.trim(), availabilityThreshold: threshold, criteria, smartMix, seasonPreFilter,
+        aiRules, pins: pinnedPositions,
+      });
       setPreviewResult(result);
-      let products = result.products;
-      // Aktif AI kuralları varsa, yeni önizleme verisine yeniden uygula
-      if (aiRules.length > 0) {
+      let base = [...result.products].sort((a, b) => a.baseRank - b.baseRank);
+      setAiWarnings(result.aiWarnings);
+      // Eski API AI kurallarını uygulamaz — o durumda ekranda uygula
+      if (!result.serverRanked && aiRules.length > 0) {
         try {
-          const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(result.products), rules: aiRules, smartMix, seasonPreFilter });
+          const rules = ruleOrderOf(result);
+          const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(rules), rules: aiRules, smartMix, seasonPreFilter });
           setAiRules(resp.rules);
-          products = mergeAiOrder(result.products, resp.products);
-        } catch {
-          setAiRules([]);
-        }
+          base = mergeAiOrder(rules, resp.products);
+        } catch { /* keep the rule order */ }
       }
-      setPreviewOrder(applyPinnedPositions(products));
+      setBaseOrder(base);
       setPreviewStatus('idle');
       setView('preview');
     } catch (err) {
@@ -1067,9 +1078,11 @@ export function Dashboard({ prefill }: Props) {
     setMessages(m => [...m, { role: 'user', text: instruction }]);
     setAiInstruction('');
     try {
-      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(previewResult.products), rules: aiRules, instruction, smartMix, seasonPreFilter });
+      const rules = ruleOrderOf(previewResult);
+      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(rules), rules: aiRules, instruction, smartMix, seasonPreFilter });
       setAiRules(resp.rules);
-      setPreviewOrder(applyPinnedPositions(mergeAiOrder(previewResult.products, resp.products)));
+      setAiWarnings([]);
+      setBaseOrder(mergeAiOrder(rules, resp.products));
       setView('preview');
       const reply = resp.addedRules.length > 0
         ? resp.addedRules.map(r => r.description).join(' ')
@@ -1086,16 +1099,18 @@ export function Dashboard({ prefill }: Props) {
   async function handleRemoveAiRule(idx: number) {
     if (!previewResult || !categoryId || aiLoading) return;
     const newRules = aiRules.filter((_, i) => i !== idx);
+    const rules = ruleOrderOf(previewResult);
+    setAiWarnings([]);
     if (newRules.length === 0) {
       setAiRules([]);
-      setPreviewOrder(applyPinnedPositions(previewResult.products));
+      setBaseOrder(rules);
       return;
     }
     setAiLoading(true);
     try {
-      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(previewResult.products), rules: newRules, smartMix, seasonPreFilter });
+      const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(rules), rules: newRules, smartMix, seasonPreFilter });
       setAiRules(resp.rules);
-      setPreviewOrder(applyPinnedPositions(mergeAiOrder(previewResult.products, resp.products)));
+      setBaseOrder(mergeAiOrder(rules, resp.products));
     } catch (err) {
       const text = err instanceof Error ? err.message : 'Kural kaldırılamadı';
       setMessages(m => [...m, { role: 'assistant', text, isError: true }]);
@@ -1108,51 +1123,46 @@ export function Dashboard({ prefill }: Props) {
   function handlePreviewDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIdx = previewOrder.findIndex(p => p.productCode === active.id);
+    // Dropping a product pins it to that position (pin icon turns on; saved with the category).
     const newIdx = previewOrder.findIndex(p => p.productCode === over.id);
-    let newOrder = arrayMove(previewOrder, oldIdx, newIdx).map((p, i) => ({ ...p, finalRank: i + 1 }));
-    if (Object.keys(pinnedPositions).length > 0) newOrder = applyPinnedPositions(newOrder);
-    setPreviewOrder(newOrder);
+    if (newIdx === -1) return;
+    setPinnedPositions(prev => ({ ...prev, [String(active.id)]: newIdx + 1 }));
   }
 
   // Preview rank input
   function handlePreviewRankEdit(code: string, newRank: number) {
+    // Entering a rank pins the product there.
     const clamped = Math.max(1, Math.min(previewOrder.length, newRank));
-    if (pinnedPositions[code] !== undefined) {
-      // Pinlenmiş ürünün konumu değişiyor — pin pozisyonunu güncelle
-      const newPins = { ...pinnedPositions, [code]: clamped };
-      setPinnedPositions(newPins);
-      localStorage.setItem(`rankify_pin_${categoryId}`, JSON.stringify(newPins));
-      setPreviewOrder(applyPinnedPositions(previewOrder, newPins));
-      return;
-    }
-    const idx = previewOrder.findIndex(p => p.productCode === code);
-    if (idx === -1) return;
-    const next = [...previewOrder];
-    const [item] = next.splice(idx, 1);
-    next.splice(clamped - 1, 0, item);
-    let newOrder = next.map((p, i) => ({ ...p, finalRank: i + 1 }));
-    if (Object.keys(pinnedPositions).length > 0) newOrder = applyPinnedPositions(newOrder);
-    setPreviewOrder(newOrder);
+    setPinnedPositions(prev => ({ ...prev, [code]: clamped }));
   }
 
   async function handleTrigger() {
     if (!isValid || previewOrder.length === 0) return;
     setTriggerStatus('loading');
     try {
-      // Tüm ürünlere önizlemedeki sırayla sıra yaz (dışlananlar dahil). Gönderilmeyen ürün
-      // mağazada eski sıra numarasını korur ve yeni sıralamanın arasına karışır.
-      await applyManualRanking(categoryId.trim(), fullStoreOrder(previewOrder));
-      // Ek kategoriler için algoritmayı çalıştır ve uygula
-      for (const { id } of selectedCategories.slice(1)) {
-        const result = await previewRanking({ categoryId: id, availabilityThreshold: threshold, criteria, smartMix, seasonPreFilter });
-        await applyManualRanking(id, fullStoreOrder(result.products));
+      // Sunucudaki ortak fonksiyon (kurallar → AI kuralları → sabitlemeler) — "Çalıştır" ve
+      // zamanlanmış çalışmayla aynı. Ek kategoriler kendi kayıtlı sabitlemeleriyle sıralanır.
+      const settings = { availabilityThreshold: threshold, criteria, smartMix, seasonPreFilter, aiRules };
+      const warnings: string[] = [];
+      try {
+        warnings.push(...(await applyRanking({ categoryId: categoryId.trim(), ...settings, pins: pinnedPositions })).warnings);
+        for (const { id } of selectedCategories.slice(1)) {
+          warnings.push(...(await applyRanking({ categoryId: id, ...settings })).warnings);
+        }
+      } catch (e) {
+        if (!(e instanceof ApplyUnsupportedError)) throw e;
+        // Eski API: ekrandaki sırayı yaz (dışlananlar dahil tüm ürünler)
+        await applyManualRanking(categoryId.trim(), fullStoreOrder(previewOrder));
+        for (const { id } of selectedCategories.slice(1)) {
+          const result = await previewRanking({ categoryId: id, availabilityThreshold: threshold, criteria, smartMix, seasonPreFilter });
+          await applyManualRanking(id, fullStoreOrder(result.products));
+        }
       }
       setTriggerStatus('success');
-      notify(selectedCategories.length > 1
+      const done = selectedCategories.length > 1
         ? `${selectedCategories.length} kategoriye sıralama uygulandı.`
-        : 'Sıralama başarıyla uygulandı.'
-      );
+        : 'Sıralama başarıyla uygulandı.';
+      notify(warnings.length > 0 ? `${done} ${warnings.length} uyarı: ${warnings.join(' · ')}` : done);
     } catch (err) {
       setTriggerStatus('error'); notify(err instanceof Error ? err.message : 'Hata', 'error');
     }
@@ -1168,7 +1178,9 @@ export function Dashboard({ prefill }: Props) {
   const hasUnsavedChanges = !saved
     || saved.threshold !== threshold || !sameCriteria(saved.criteria, criteria)
     || saved.smartMix !== smartMix || saved.seasonPreFilter !== seasonPreFilter
-    || !sameDraft(saved.schedule, schedule);
+    || !sameDraft(saved.schedule, schedule)
+    || JSON.stringify(saved.pins) !== JSON.stringify(pinnedPositions)
+    || JSON.stringify(saved.aiRules) !== JSON.stringify(aiRules);
   const showScheduleWarning = Boolean(categoryId) && schedule.isEnabled && hasUnsavedChanges;
 
   // Why "Sıralamayı Uygula" is disabled — shown as its tooltip.
@@ -1656,6 +1668,17 @@ export function Dashboard({ prefill }: Props) {
             {/* İçerik */}
             {/* @container: columns step 2 → 3 → 4 → 6 with the panel's own width */}
             <div className="@container" style={{ padding: 'var(--spacing-card)', background: 'var(--panel)', borderRadius: '0 0 16px 16px' }}>
+              {/* Önizleme uyarıları (uygulanamayan sabitleme, eşleşmeyen AI kuralı …) */}
+              {view === 'preview' && previewStatus !== 'loading' && previewWarnings.length > 0 && (
+                <div role="status" className="mb-3 px-3 py-2.5 rounded-lg text-caption flex flex-col gap-1"
+                  style={{ background: 'var(--warn-bg)', border: '1px solid var(--warn-bd)', color: 'var(--warn-tx)' }}>
+                  <span className="font-semibold">⚠ {previewWarnings.length} uyarı</span>
+                  <ul className="list-disc pl-5">
+                    {previewWarnings.map((w, i) => <li key={i}>{w}</li>)}
+                  </ul>
+                </div>
+              )}
+
               {/* Yükleniyor */}
               {(currentStatus === 'loading' || previewStatus === 'loading') && (
                 <EmptyState loading
@@ -1910,6 +1933,9 @@ export function Dashboard({ prefill }: Props) {
               {/* Aktif kurallar */}
               {aiRules.length > 0 && (
                 <div className="shrink-0 px-4 py-2.5 flex flex-wrap gap-1.5" style={{ borderTop: '1px solid var(--border)' }}>
+                  <p className="w-full text-label" style={{ color: 'var(--tx3)' }}>
+                    Kategori kuralları — Kaydet ile saklanır, her çalışmada (zamanlanmış dahil) uygulanır
+                  </p>
                   {aiRules.map((r, i) => (
                     <span key={i}
                       className="text-label font-medium pl-2 pr-1 py-1 rounded-full flex items-center gap-1"

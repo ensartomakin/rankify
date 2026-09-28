@@ -99,6 +99,10 @@ ALTER TABLE ranking_configs ADD COLUMN IF NOT EXISTS smart_mix          BOOLEAN 
 ALTER TABLE ranking_configs ADD COLUMN IF NOT EXISTS season_pre_filter  VARCHAR(32) NOT NULL DEFAULT 'none';
 ALTER TABLE ranking_configs ADD COLUMN IF NOT EXISTS schedule_enabled   BOOLEAN     NOT NULL DEFAULT FALSE;
 ALTER TABLE ranking_configs ADD COLUMN IF NOT EXISTS schedule_day_hours JSONB       NOT NULL DEFAULT '{}';
+-- Kural olarak kaydedilen AI talimatları (yapılandırılmış kurallar) ve manuel sabitlemeler
+-- (ürün kodu → mağazadaki mutlak sıra). Her çalışmada kural bazlı sıralamadan sonra uygulanır.
+ALTER TABLE ranking_configs ADD COLUMN IF NOT EXISTS ai_rules JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE ranking_configs ADD COLUMN IF NOT EXISTS pins     JSONB NOT NULL DEFAULT '{}';
 
 -- Hesap geneli zamanlamadan kategori bazlıya geçiş: açık olan hesap zamanlamaları
 -- kapatılır ve kullanıcıya bir kez bildirilmek üzere işaretlenir. Tablo silinmez.
@@ -126,6 +130,8 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   error_message      TEXT,
   ran_at             TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
+-- Çalışma uyarıları (uygulanamayan sabitleme, eşleşmeyen AI kuralı vb.)
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS warnings JSONB NOT NULL DEFAULT '[]';
 
 -- ============================================================
 -- 7. GA4 OAuth bağlantı bilgileri (şifreli refresh token)

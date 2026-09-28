@@ -20,6 +20,8 @@ export interface DevConfig {
   smartMix?: boolean;
   seasonPreFilter?: string;
   schedule?: { isEnabled: boolean; dayHours: Record<number, number[]> };
+  aiRules?: unknown[];
+  pins?: Record<string, number>;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,6 +37,7 @@ export interface DevAuditLog {
   durationMs: number;
   status: string;
   errorMessage?: string;
+  warnings?: string[];
   ranAt: string;
 }
 

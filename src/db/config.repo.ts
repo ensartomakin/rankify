@@ -1,6 +1,7 @@
 import { store, type DevConfig } from './dev-store';
 import { query } from './client';
 import type { WeightConfig, WeightCriterion, SeasonPreFilter } from '../types/product';
+import type { AdjustRule } from '../scoring/ai-adjust';
 
 const usePg = () => Boolean(process.env.DATABASE_URL);
 
@@ -22,6 +23,8 @@ export interface ConfigExtras {
   smartMix?:        boolean;
   seasonPreFilter?: SeasonPreFilter;
   schedule?:        CategorySchedule;
+  aiRules?:         AdjustRule[];
+  pins?:            Record<string, number>;
 }
 
 function devRowToConfig(row: DevConfig) {
@@ -36,6 +39,8 @@ function devRowToConfig(row: DevConfig) {
     smartMix:              row.smartMix ?? true,
     seasonPreFilter:       (row.seasonPreFilter ?? 'none') as SeasonPreFilter,
     schedule:              row.schedule ?? { ...NO_SCHEDULE },
+    aiRules:               (row.aiRules ?? []) as AdjustRule[],
+    pins:                  row.pins ?? {},
     updatedAt:             row.updatedAt,
   };
 }
@@ -45,6 +50,7 @@ interface PgConfigRow {
   availability_threshold: string; criteria: WeightCriterion[]; is_active: boolean;
   smart_mix: boolean; season_pre_filter: string; updated_at: string | Date;
   schedule_enabled: boolean; schedule_day_hours: Record<string, number[]>;
+  ai_rules: AdjustRule[]; pins: Record<string, number>;
 }
 
 function pgRowToConfig(r: PgConfigRow) {
@@ -59,6 +65,8 @@ function pgRowToConfig(r: PgConfigRow) {
     smartMix:              r.smart_mix,
     seasonPreFilter:       r.season_pre_filter as SeasonPreFilter,
     schedule:              { isEnabled: r.schedule_enabled, dayHours: toDayHours(r.schedule_day_hours) },
+    aiRules:               r.ai_rules ?? [],
+    pins:                  r.pins ?? {},
     updatedAt:             new Date(r.updated_at).toISOString(),
   };
 }
@@ -125,8 +133,10 @@ export async function upsertConfig(
     // NULL extras (older clients) keep the stored value on update, defaults on insert.
     const rows = await query<PgConfigRow>(
       `INSERT INTO ranking_configs (user_id, category_id, category_name, availability_threshold, criteria,
-                                    smart_mix, season_pre_filter, schedule_enabled, schedule_day_hours)
-       VALUES ($1,$2,$3,$4,$5, COALESCE($6, TRUE), COALESCE($7, 'none'), COALESCE($8, FALSE), COALESCE($9::jsonb, '{}'::jsonb))
+                                    smart_mix, season_pre_filter, schedule_enabled, schedule_day_hours,
+                                    ai_rules, pins)
+       VALUES ($1,$2,$3,$4,$5, COALESCE($6, TRUE), COALESCE($7, 'none'), COALESCE($8, FALSE), COALESCE($9::jsonb, '{}'::jsonb),
+               COALESCE($10::jsonb, '[]'::jsonb), COALESCE($11::jsonb, '{}'::jsonb))
        ON CONFLICT (user_id, category_id) DO UPDATE
          SET category_name = EXCLUDED.category_name,
              availability_threshold = EXCLUDED.availability_threshold,
@@ -134,13 +144,17 @@ export async function upsertConfig(
              smart_mix          = COALESCE($6, ranking_configs.smart_mix),
              season_pre_filter  = COALESCE($7, ranking_configs.season_pre_filter),
              schedule_enabled   = COALESCE($8, ranking_configs.schedule_enabled),
-             schedule_day_hours = COALESCE($9::jsonb, ranking_configs.schedule_day_hours)
+             schedule_day_hours = COALESCE($9::jsonb, ranking_configs.schedule_day_hours),
+             ai_rules           = COALESCE($10::jsonb, ranking_configs.ai_rules),
+             pins               = COALESCE($11::jsonb, ranking_configs.pins)
        RETURNING *`,
       [userId, config.categoryId, config.categoryName ?? null,
        config.availabilityThreshold, JSON.stringify(config.criteria),
        config.smartMix ?? null, config.seasonPreFilter ?? null,
        config.schedule ? config.schedule.isEnabled : null,
-       config.schedule ? JSON.stringify(config.schedule.dayHours) : null]
+       config.schedule ? JSON.stringify(config.schedule.dayHours) : null,
+       config.aiRules ? JSON.stringify(config.aiRules) : null,
+       config.pins ? JSON.stringify(config.pins) : null]
     );
     return pgRowToConfig(rows[0]);
   }
@@ -160,11 +174,30 @@ export async function upsertConfig(
     smartMix:              config.smartMix ?? existing?.smartMix ?? true,
     seasonPreFilter:       config.seasonPreFilter ?? existing?.seasonPreFilter ?? 'none',
     schedule:              config.schedule ?? existing?.schedule ?? { ...NO_SCHEDULE },
+    aiRules:               config.aiRules ?? existing?.aiRules ?? [],
+    pins:                  config.pins ?? existing?.pins ?? {},
     createdAt:             existing?.createdAt ?? now,
     updatedAt:             now,
   };
   store.configs.set(id, row);
   return devRowToConfig(row);
+}
+
+/** Drops the given product codes from a category's saved pins (products no longer in the category). */
+export async function removePins(userId: number, categoryId: string, codes: string[]): Promise<void> {
+  if (codes.length === 0) return;
+  if (usePg()) {
+    await query(
+      'UPDATE ranking_configs SET pins = pins - $3::text[] WHERE user_id = $1 AND category_id = $2',
+      [userId, categoryId, codes]
+    );
+    return;
+  }
+  const row = [...store.configs.values()].find(c => c.userId === userId && c.categoryId === categoryId);
+  if (!row?.pins) return;
+  const pins = { ...row.pins };
+  for (const c of codes) delete pins[c];
+  store.configs.set(row.id, { ...row, pins });
 }
 
 export async function deleteConfig(userId: number, categoryId: string): Promise<boolean> {

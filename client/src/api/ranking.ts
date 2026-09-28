@@ -75,6 +75,10 @@ export interface ProductPreviewItem {
     cartAdds:       number;
     conversionRate: number;
   };
+  /** Position from the rules alone, before AI rules and pins (older APIs: = finalRank). */
+  ruleRank:              number;
+  /** Position after the AI rules, before manual pins (older APIs: = finalRank). */
+  baseRank:              number;
 }
 
 export interface PreviewResponse {
@@ -85,6 +89,11 @@ export interface PreviewResponse {
   apiUrl:            string;
   categoryExportCode: string;
   criteria:          WeightConfig['criteria'];
+  /** True when the server already applied the AI rules (older APIs don't). */
+  serverRanked:      boolean;
+  warnings:          string[];
+  /** AI-rule warnings; pin warnings are computed on screen as pins change. */
+  aiWarnings:        string[];
 }
 
 export interface PreviewRequest {
@@ -93,6 +102,8 @@ export interface PreviewRequest {
   criteria?:              WeightCriterion[];
   smartMix?:              boolean;
   seasonPreFilter?:       SeasonPreFilter;
+  aiRules?:               AdjustRule[];
+  pins?:                  Record<string, number>;
 }
 
 export async function previewRanking(req: PreviewRequest): Promise<PreviewResponse> {
@@ -110,7 +121,13 @@ export async function previewRanking(req: PreviewRequest): Promise<PreviewRespon
   }
   const data = await res.json();
   const products: ProductPreviewItem[] = data.products.map((p: ProductPreviewItem & LegacyItem) => withUrls(p, data.apiUrl ?? ''));
-  return { ...data, products: rankExcludedByScore(products) };
+  // Current API: the order already contains exclusions, AI rules and pins (one shared server function).
+  if (products.length === 0 || products[0].baseRank !== undefined) {
+    return { ...data, products, serverRanked: true, warnings: data.warnings ?? [], aiWarnings: data.aiWarnings ?? [] };
+  }
+  // Older API: rule order only.
+  const ordered = rankExcludedByScore(products).map(p => ({ ...p, ruleRank: p.finalRank, baseRank: p.finalRank }));
+  return { ...data, products: ordered, serverRanked: false, warnings: [], aiWarnings: [] };
 }
 
 /* Excluded products come after the active ones and are ordered among themselves
@@ -174,6 +191,32 @@ export async function aiAdjustRanking(req: AiAdjustRequest): Promise<AiAdjustRes
     throw new Error(msg);
   }
   return res.json();
+}
+
+/* ─── Sıralamayı uygula: sunucudaki ortak sıralama fonksiyonuyla ─── */
+export interface ApplyRequest {
+  categoryId:            string;
+  availabilityThreshold: number;
+  criteria:              WeightCriterion[];
+  smartMix:              boolean;
+  seasonPreFilter:       SeasonPreFilter;
+  aiRules:               AdjustRule[];
+  /** Omit to use the category's saved pins. */
+  pins?:                 Record<string, number>;
+}
+
+export class ApplyUnsupportedError extends Error {}
+
+/** Runs the shared ranking (rules → AI rules → pins) on the server and writes it to the store. */
+export async function applyRanking(req: ApplyRequest): Promise<{ warnings: string[]; count: number }> {
+  const res = await apiFetch('/api/ranking/apply', { method: 'POST', body: JSON.stringify(req) });
+  if (res.status === 404) throw new ApplyUnsupportedError('apply endpoint not available');
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const errVal = body?.error;
+    throw new Error(typeof errVal === 'string' ? errVal : errVal?.formErrors?.[0] ?? `Hata: ${res.status}`);
+  }
+  return { warnings: body.warnings ?? [], count: body.count ?? 0 };
 }
 
 /* ─── Manuel sıralama uygula ─── */

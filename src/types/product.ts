@@ -25,6 +25,10 @@ export interface WeightConfig {
   availabilityThreshold: number; // 0.0 - 1.0
   smartMix?: boolean;
   seasonPreFilter?: SeasonPreFilter;
+  /** Saved AI instructions as structured rules, re-applied on every run. */
+  aiRules?: import('../scoring/ai-adjust').AdjustRule[];
+  /** Manual pins: product code → absolute store position (1-based). Applied last. */
+  pins?: Record<string, number>;
 }
 
 export interface SizeAvailability {

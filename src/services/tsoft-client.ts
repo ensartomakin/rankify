@@ -72,7 +72,8 @@ function usernameForUrl(apiUser: string): string {
   return apiUser.includes('@') ? apiUser.split('@')[0] : apiUser;
 }
 
-// REST1 token — query params ile
+// REST1 token — kimlik bilgileri form-encoded POST gövdesinde gönderilir.
+// T-Soft şifrenin query string'de gönderilmesini reddediyor (AUI040).
 async function fetchToken(http: AxiosInstance, creds: TsoftCredentials): Promise<string> {
   const username = usernameForUrl(creds.apiUser);
   const endpoint = `/rest1/auth/login/${encodeURIComponent(username)}`;
@@ -80,8 +81,9 @@ async function fetchToken(http: AxiosInstance, creds: TsoftCredentials): Promise
 
   let res: import('axios').AxiosResponse;
   try {
-    res = await http.post(endpoint, null, {
-      params: { user: username, pass: creds.apiPass },
+    const body = new URLSearchParams({ user: username, pass: creds.apiPass });
+    res = await http.post(endpoint, body, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
   } catch (err) {
     const e = err as AxiosError;
@@ -89,9 +91,10 @@ async function fetchToken(http: AxiosInstance, creds: TsoftCredentials): Promise
     throw err;
   }
 
-  logger.info(`[T-Soft Auth] Response ${res.status}: ${JSON.stringify(res.data)}`);
+  logger.info(`[T-Soft Auth] Response ${res.status} success=${res.data?.success}`);
 
   if (!res.data?.success) {
+    logger.warn(`[T-Soft Auth] Başarısız yanıt: ${JSON.stringify(res.data?.message ?? res.data).slice(0, 300)}`);
     const textField = res.data?.message?.[0]?.text;
     const msg = Array.isArray(textField) ? textField[0] : (textField ?? 'Kimlik doğrulama başarısız');
     throw new Error(msg);

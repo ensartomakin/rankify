@@ -711,7 +711,14 @@ export function Dashboard({ prefill }: Props) {
   // Sabitlemeler sunucudaki ortak fonksiyonla aynı algoritmayla (utils/pins) ekranda
   // anında uygulanır; pin kaldırılınca ürün kural/AI bazlı sırasına döner.
   const [baseOrder, setBaseOrder] = useState<ProductPreviewItem[]>([]);
+  // Önizlemede elle taşıma yapıldı mı — yapıldıysa "Uygula" ekrandaki sırayı yazar
+  const [previewMoved, setPreviewMoved] = useState(false);
   const [aiWarnings, setAiWarnings] = useState<string[]>([]);
+  // Kural/AI bazlı yeni sıra gelince elle taşımalar sıfırlanır
+  function setRuleOrder(order: ProductPreviewItem[]) {
+    setBaseOrder(order);
+    setPreviewMoved(false);
+  }
 
   // Sabitleme (ürün kodu → sıra) — kategorinin kayıtlı ayarlarıyla birlikte saklanır
   const [pinnedPositions, setPinnedPositions] = useState<Record<string, number>>(prefill?.pins ?? {});
@@ -852,7 +859,7 @@ export function Dashboard({ prefill }: Props) {
   useEffect(() => {
     setPreviewResult(null);
     setPreviewStatus('idle');
-    setBaseOrder([]);
+    setRuleOrder([]);
     if (view === 'preview') setView('current');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threshold, JSON.stringify(criteria), smartMix, seasonPreFilter]);
@@ -940,13 +947,11 @@ export function Dashboard({ prefill }: Props) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    // A dragged product is pinned to where it was dropped (saved with the category).
-    const newIdx = manualOrder.findIndex(p => p.productCode === over.id);
-    const pins = { ...pinnedPositions, [String(active.id)]: newIdx + 1 };
-    setPinnedPositions(pins);
+    // Only moves the product; it is not pinned. Existing pins keep their positions.
     setManualOrder(items => {
       const oldIdx = items.findIndex(p => p.productCode === active.id);
-      return applyPinnedPositionsCurrent(arrayMove(items, oldIdx, newIdx).map((p, i) => ({ ...p, currentRank: i + 1 })), pins);
+      const newIdx = items.findIndex(p => p.productCode === over.id);
+      return applyPinnedPositionsCurrent(arrayMove(items, oldIdx, newIdx).map((p, i) => ({ ...p, currentRank: i + 1 })));
     });
     setManualDirty(true);
   }
@@ -954,10 +959,20 @@ export function Dashboard({ prefill }: Props) {
   // Rank numarası manuel değişince
   function handleRankEdit(code: string, newRank: number) {
     const clamped = Math.max(1, Math.min(manualOrder.length, newRank));
-    // Entering a rank pins the product there (saved with the category).
-    const newPins = { ...pinnedPositions, [code]: clamped };
-    setPinnedPositions(newPins);
-    setManualOrder(applyPinnedPositionsCurrent(manualOrder, newPins));
+    // An already pinned product moves its pin; any other product is just moved.
+    if (pinnedPositions[code] !== undefined) {
+      const newPins = { ...pinnedPositions, [code]: clamped };
+      setPinnedPositions(newPins);
+      setManualOrder(applyPinnedPositionsCurrent(manualOrder, newPins));
+      setManualDirty(true);
+      return;
+    }
+    const idx = manualOrder.findIndex(p => p.productCode === code);
+    if (idx === -1) return;
+    const next = [...manualOrder];
+    const [item] = next.splice(idx, 1);
+    next.splice(clamped - 1, 0, item);
+    setManualOrder(applyPinnedPositionsCurrent(next.map((p, i) => ({ ...p, currentRank: i + 1 }))));
     setManualDirty(true);
   }
 
@@ -1061,7 +1076,7 @@ export function Dashboard({ prefill }: Props) {
           base = mergeAiOrder(rules, resp.products);
         } catch { /* keep the rule order */ }
       }
-      setBaseOrder(base);
+      setRuleOrder(base);
       setPreviewStatus('idle');
       setView('preview');
     } catch (err) {
@@ -1082,7 +1097,7 @@ export function Dashboard({ prefill }: Props) {
       const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(rules), rules: aiRules, instruction, smartMix, seasonPreFilter });
       setAiRules(resp.rules);
       setAiWarnings([]);
-      setBaseOrder(mergeAiOrder(rules, resp.products));
+      setRuleOrder(mergeAiOrder(rules, resp.products));
       setView('preview');
       const reply = resp.addedRules.length > 0
         ? resp.addedRules.map(r => r.description).join(' ')
@@ -1103,14 +1118,14 @@ export function Dashboard({ prefill }: Props) {
     setAiWarnings([]);
     if (newRules.length === 0) {
       setAiRules([]);
-      setBaseOrder(rules);
+      setRuleOrder(rules);
       return;
     }
     setAiLoading(true);
     try {
       const resp = await aiAdjustRanking({ categoryId: categoryId.trim(), products: toAiAdjustProducts(rules), rules: newRules, smartMix, seasonPreFilter });
       setAiRules(resp.rules);
-      setBaseOrder(mergeAiOrder(rules, resp.products));
+      setRuleOrder(mergeAiOrder(rules, resp.products));
     } catch (err) {
       const text = err instanceof Error ? err.message : 'Kural kaldırılamadı';
       setMessages(m => [...m, { role: 'assistant', text, isError: true }]);
@@ -1123,17 +1138,30 @@ export function Dashboard({ prefill }: Props) {
   function handlePreviewDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    // Dropping a product pins it to that position (pin icon turns on; saved with the category).
+    const oldIdx = previewOrder.findIndex(p => p.productCode === active.id);
     const newIdx = previewOrder.findIndex(p => p.productCode === over.id);
-    if (newIdx === -1) return;
-    setPinnedPositions(prev => ({ ...prev, [String(active.id)]: newIdx + 1 }));
+    if (oldIdx === -1 || newIdx === -1) return;
+    movePreviewProduct(oldIdx, newIdx);
   }
 
   // Preview rank input
   function handlePreviewRankEdit(code: string, newRank: number) {
-    // Entering a rank pins the product there.
     const clamped = Math.max(1, Math.min(previewOrder.length, newRank));
-    setPinnedPositions(prev => ({ ...prev, [code]: clamped }));
+    // An already pinned product moves its pin; any other product is just moved.
+    if (pinnedPositions[code] !== undefined) {
+      setPinnedPositions(prev => ({ ...prev, [code]: clamped }));
+      return;
+    }
+    const idx = previewOrder.findIndex(p => p.productCode === code);
+    if (idx === -1) return;
+    movePreviewProduct(idx, clamped - 1);
+  }
+
+  // Moves a product on screen without pinning it: the displayed order becomes the new base
+  // order (pinned products already sit at their positions, so applyPins keeps them there).
+  function movePreviewProduct(from: number, to: number) {
+    setBaseOrder(arrayMove(previewOrder, from, to));
+    setPreviewMoved(true);
   }
 
   async function handleTrigger() {
@@ -1145,7 +1173,10 @@ export function Dashboard({ prefill }: Props) {
       const settings = { availabilityThreshold: threshold, criteria, smartMix, seasonPreFilter, aiRules };
       const warnings: string[] = [];
       try {
-        warnings.push(...(await applyRanking({ categoryId: categoryId.trim(), ...settings, pins: pinnedPositions })).warnings);
+        // Elle taşınmış (sabitlenmemiş) ürünler sunucuda yeniden hesaplanırsa kaybolur —
+        // o durumda ekrandaki sıra olduğu gibi yazılır.
+        if (previewMoved) await applyManualRanking(categoryId.trim(), fullStoreOrder(previewOrder));
+        else warnings.push(...(await applyRanking({ categoryId: categoryId.trim(), ...settings, pins: pinnedPositions })).warnings);
         for (const { id } of selectedCategories.slice(1)) {
           warnings.push(...(await applyRanking({ categoryId: id, ...settings })).warnings);
         }

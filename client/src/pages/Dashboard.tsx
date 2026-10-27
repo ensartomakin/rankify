@@ -1026,23 +1026,28 @@ export function Dashboard({ prefill }: Props) {
   }
 
   function handleExportCsv() {
-    const rows: [string, string, string, string][] = [];
+    const rows: [string, string, string | number, number][] = [];
     // Category id in the store's sort-import format (provided by the platform adapter)
-    const categoryWsCode = previewResult?.categoryExportCode ?? currentResult?.categoryExportCode ?? categoryId;
+    const rawCategoryCode = String(previewResult?.categoryExportCode ?? currentResult?.categoryExportCode ?? categoryId);
+    // Tamamen rakamdan oluşan kategori kodu sayı olarak yazılır (baştaki sıfır kaybolmasın diye "0…" metin kalır)
+    const categoryWsCode = /^[1-9]\d*$/.test(rawCategoryCode) ? Number(rawCategoryCode) : rawCategoryCode;
     if (view === 'preview' && previewOrder.length > 0) {
       previewOrder.forEach(p => {
-        rows.push([p.productCode, p.productName || '', categoryWsCode, String(p.finalRank)]);
+        rows.push([p.productCode, p.productName || '', categoryWsCode, p.finalRank]);
       });
     } else if (manualOrder.length > 0) {
       manualOrder.forEach(p => {
-        rows.push([p.productCode, p.productName || '', categoryWsCode, String(p.currentRank)]);
+        rows.push([p.productCode, p.productName || '', categoryWsCode, p.currentRank]);
       });
     }
     if (rows.length === 0) return;
 
     const header = ['Ürün Web Servis Kodu', 'Ürün Adı', 'Kategori Web Servis Kodu', 'Sıra No'];
+    // Metinler tırnak içinde, sayılar tırnaksız yazılır — içe aktarımda sayı sütunları sayı olarak okunur
+    const formatCell = (cell: string | number) =>
+      typeof cell === 'number' ? String(cell) : `"${cell.replace(/"/g, '""')}"`;
     const csvContent = [header, ...rows]
-      .map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+      .map(r => r.map(formatCell).join(';'))
       .join('\r\n');
 
     const bom = '\uFEFF';

@@ -43,7 +43,7 @@ const triggerSchema = z.object({
 // Kategorinin kural olarak saklanan AI talimatları ve manuel sabitlemeleri
 const aiRulesSchema = z.array(adjustRuleSchema).max(20);
 const pinsSchema    = z.record(z.string().min(1).max(200), z.number().int().min(1).max(100000))
-  .refine(p => Object.keys(p).length <= 5000, { message: 'Çok fazla sabitleme' });
+  .refine(p => Object.keys(p).length <= 50000, { message: 'Çok fazla sabitleme' });
 
 const previewSchema = z.object({
   categoryId:            z.string().min(1),
@@ -101,7 +101,7 @@ const manualSchema = z.object({
   products:   z.array(z.object({
     productCode: z.string().min(1).max(200),
     rank:        z.number().int().min(1),
-  })).min(1).max(5000),
+  })).min(1).max(50000),
 });
 
 rankingRouter.post('/manual', async (req: Request, res: Response) => {
@@ -209,7 +209,7 @@ const adjustProductSchema = z.object({
 
 const aiAdjustSchema = z.object({
   categoryId:  z.string().min(1),
-  products:    z.array(adjustProductSchema).min(1).max(5000),
+  products:    z.array(adjustProductSchema).min(1).max(50000),
   rules:       z.array(adjustRuleSchema).max(20).optional(),
   instruction: z.string().trim().min(1).max(500).optional(),
   // Önizleme Smart Mix ile üretildiyse true — kural uygulamaları o zaman Smart Mix'in

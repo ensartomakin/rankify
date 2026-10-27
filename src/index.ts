@@ -71,7 +71,7 @@ async function bootstrap() {
 
   app.use(cookieParser());
   // 64kb varsayılanı büyük kategorilerin (yüzlerce ürün) AI sıralama isteklerini kırpıyordu
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({ limit: '20mb' }));
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });

@@ -41,7 +41,7 @@ const configSchema = z.object({
   // AI talimatlarından üretilen kurallar ve manuel sabitlemeler (ürün kodu → sıra)
   aiRules: z.array(adjustRuleSchema).max(20).optional(),
   pins:    z.record(z.string().min(1).max(200), z.number().int().min(1).max(100000))
-    .refine(p => Object.keys(p).length <= 5000, { message: 'Çok fazla sabitleme' })
+    .refine(p => Object.keys(p).length <= 50000, { message: 'Çok fazla sabitleme' })
     .optional(),
 });
 

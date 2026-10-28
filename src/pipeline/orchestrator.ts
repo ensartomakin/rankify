@@ -294,8 +294,7 @@ export async function runRankingPipeline(
   try {
     // Phase 1: Veri toplama
     const adapter  = await getAdapterForUser(userId, tenantId);
-    // Manuel çalıştırma mağazadaki son fiyat/stok değişikliklerini görmeli → önbellek atlanır
-    const products = await adapter.getProducts(categoryId, { fresh: triggeredBy === 'manual' });
+    const products = await adapter.getProducts(categoryId);
 
     if (products.length === 0) {
       logger.warn(`Kategoride ürün bulunamadı: ${categoryId}`);

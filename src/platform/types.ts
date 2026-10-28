@@ -53,8 +53,8 @@ export interface PlatformAdapter {
   readonly storeUrl: string;
 
   getCategories(): Promise<PlatformCategory[]>;
-  /** All products of a category with full details (for scoring). `fresh` bypasses any cache. */
-  getProducts(categoryId: string, opts?: { fresh?: boolean }): Promise<PlatformProduct[]>;
+  /** All products of a category with full details (for scoring). */
+  getProducts(categoryId: string): Promise<PlatformProduct[]>;
   /** Products in the order the store currently shows them. */
   getProductsInStoreOrder(categoryId: string): Promise<PlatformProduct[]>;
   getSales(codes: string[], days: number): Promise<SalesStat[]>;

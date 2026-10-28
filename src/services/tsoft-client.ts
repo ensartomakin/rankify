@@ -394,11 +394,11 @@ export class TSoftClient {
     return results;
   }
 
-  async getCategoryProductsFull(categoryId: string, opts: { fresh?: boolean } = {}): Promise<TSoftProduct[]> {
+  async getCategoryProductsFull(categoryId: string): Promise<TSoftProduct[]> {
     // season field is part of the key so a mapping change is picked up at once
     const key = `${this.cacheKey}::cat::${categoryId}::s${this.seasonField}`;
     const cached = categoryProductsCache.get(key);
-    if (!opts.fresh && cached && cached.expiresAt > Date.now()) {
+    if (cached && cached.expiresAt > Date.now()) {
       logger.info(`[getCategoryProductsFull] önbellekten döndü — kategori=${categoryId} toplam=${cached.data.length}`);
       return cached.data;
     }

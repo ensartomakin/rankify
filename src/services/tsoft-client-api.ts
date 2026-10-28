@@ -7,8 +7,7 @@ export interface TSoftClientApi {
   getCategoryProductsRawSample(categoryId: string, limit?: number): Promise<Record<string, unknown>[]>;
   getCategoryProducts(categoryId: string): Promise<{ productCode: string }[]>;
   getCategoryProductsSorted(categoryId: string): Promise<TSoftProduct[]>;
-  /** `fresh` skips the cached copy (the result still refreshes the cache). */
-  getCategoryProductsFull(categoryId: string, opts?: { fresh?: boolean }): Promise<TSoftProduct[]>;
+  getCategoryProductsFull(categoryId: string): Promise<TSoftProduct[]>;
   getProductDetails(productCodes: string[]): Promise<TSoftProduct[]>;
 
   getSalesReport(productCodes: string[], days: number): Promise<TSoftSalesData[]>;

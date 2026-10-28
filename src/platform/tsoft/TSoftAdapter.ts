@@ -77,8 +77,8 @@ export class TSoftAdapter implements PlatformAdapter {
     return cats.map(c => ({ id: c.categoryId, name: c.name, parentId: c.parentCategoryId }));
   }
 
-  async getProducts(categoryId: string, opts?: { fresh?: boolean }): Promise<PlatformProduct[]> {
-    const items = await this.client.getCategoryProductsFull(categoryId, opts);
+  async getProducts(categoryId: string): Promise<PlatformProduct[]> {
+    const items = await this.client.getCategoryProductsFull(categoryId);
     return items.map(p => toPlatformProduct(p, this.storeUrl));
   }
 
